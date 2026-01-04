@@ -1,0 +1,1263 @@
+      ******************************************************************
+      ***                                                            ***
+      ***  SYSTEM:-  BANCS                                           ***
+      ***                                                            ***
+      ***  PROGRAM:- FDB0405B                                        ***
+      ***                                                            ***
+      ***  PURPOSE:- REPORT PROGRAM FOR DEPOSIT                      ***
+      ***                                                            ***
+      ******************************************************************
+      *                                                                *
+      *                    PROGRAM HISTORY                             *
+      *                    ---------------                             *
+      *                                                                *
+      ******************************************************************
+      * PROGRAMMER : DATE :SPR NO : COMMENTS *
+      *-----------------------------------------------------------------
+      * CHENXINGZHANG: 20110728:        : NEW                          *
+R10186* VNBWXL       : 20140403:        : UPDATE FOR R10186            *
+R36285* VNBHXF       : 20180428:        : UPDATE FOR R36285            *
+      *-----------------------------------------------------------------
+      *-----------------------------------------------------------------
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID.    FDB0405B.
+       AUTHOR.        VNBXXX.
+       INSTALLATION.
+       DATE-WRITTEN.  JULY 2011.
+       ENVIRONMENT   DIVISION.
+       CONFIGURATION SECTION.
+       INPUT-OUTPUT  SECTION.
+       FILE-CONTROL.
+      ******************************************************************
+           SELECT FDQ0405A ASSIGN TO    FDQ0405A
+                           ORGANIZATION IS SEQUENTIAL
+                           ACCESS MODE  IS SEQUENTIAL
+                           FILE STATUS  IS FILE-0405A-STS.
+ZL0317     SELECT FDQ0405G ASSIGN TO    FDQ0405G
+ZL0317                     ORGANIZATION IS SEQUENTIAL
+ZL0317                     ACCESS MODE  IS SEQUENTIAL
+ZL0317                     FILE STATUS  IS FILE-0405G-STS.
+           SELECT FDQ0405H ASSIGN TO    FDQ0405H
+                           ORGANIZATION IS SEQUENTIAL
+                           ACCESS MODE  IS SEQUENTIAL
+                           FILE STATUS  IS FILE-0405H-STS.
+      ******************************************************************
+       DATA DIVISION.
+      ******************************************************************
+       FILE SECTION.
+       FD FDQ0405A RECORDING MODE IS F.
+          COPY FDC0405A IN LIBRYMIS REPLACING ==:0405A:== BY ==0405A==.
+ZL0317 FD FDQ0405G RECORDING MODE IS F.
+ZL0317    COPY FDC0405A IN LIBRYMIS REPLACING ==:0405A:== BY ==0405G==.
+       FD FDQ0405H RECORDING MODE IS F.
+          COPY RPCRPT IN LIBRYMIS REPLACING ==:RPTL:== BY ==0405H==.
+      ******************************************************************
+       WORKING-STORAGE SECTION.
+      ******************************************************************
+XZ0511*    EXEC SQL INCLUDE CPCCYM   END-EXEC.
+XZ0511*    EXEC SQL INCLUDE CPBRHM   END-EXEC.
+XZ0511*    EXEC SQL INCLUDE CPINVM   END-EXEC.
+           EXEC SQL INCLUDE CPAMCM   END-EXEC.
+           EXEC SQL INCLUDE SQLCA    END-EXEC.
+      **************************
+      * CONSTANT DECLARATION   *
+      **************************
+       77 ERROR-RC                        PIC 9(1)  VALUE 8.
+       77 K-PROGRAM-NAME                  PIC X(8)  VALUE 'FDB0405B'.
+XZ0511*77 WK-TABLE-BRHM                   PIC X(8)  VALUE 'BRHM    '.
+XZ0511*77 WK-TABLE-CCYM                   PIC X(8)  VALUE 'CCYM    '.
+       77 WK-TABLE-AMCM                   PIC X(8)  VALUE 'AMCM    '.
+       77 PGM-ZFXBINQ                     PIC X(10) VALUE 'ZFXBINQ   '.
+      ******************************
+      * PROGRAM VARIABLES          *
+      ******************************
+       01 WS-PROGRAM-DATA.
+          03 WS-PGM-TEMP-DATA.
+             05 WS-TYPE.
+                07 WS-TYPE-A                   PIC X(1).
+                07 WS-TYPE-B                   PIC X(1).
+             05 WS-CCY                         PIC X(3).
+             05 WS-BRN                         PIC X(5).
+             05 WS-TOT-CERT                    PIC S9(09)       COMP-3.
+             05 WS-ACT-CERT                    PIC S9(09)       COMP-3.
+             05 WS-NEW-CERT                    PIC S9(09)       COMP-3.
+             05 WS-DOR-CERT                    PIC S9(09)       COMP-3.
+             05 WS-CLS-CERT                    PIC S9(09)       COMP-3.
+      **************************
+      * MAP DATA               *
+      **************************
+       01 WS-FORMAT-REPORT.
+          03 WS-FORMAT-D03.
+R36285*      05 WS-FORMAT-D03-F1            PIC X(04).
+R36285       05 WS-FORMAT-D03-F1            PIC X(08).
+             05 WS-FORMAT-D03-F2            PIC ZZZZZZZZ9.
+             05 WS-FORMAT-D03-F3            PIC $,$$$,$$$,$$$,$$9.99.
+             05 WS-FORMAT-D03-F4            PIC $,$$$,$$$,$$$,$$9.99.
+             05 WS-FORMAT-D03-F5            PIC $,$$$,$$$,$$$,$$9.99.
+          03 WS-FORMAT-D04.
+             05 WS-FORMAT-D04-F1            PIC ZZZZZZZZ9.
+             05 WS-FORMAT-D04-F2            PIC $$$,$$$,$$$,$$$,$$9.99.
+             05 WS-FORMAT-D04-F3            PIC $$$,$$$,$$$,$$$,$$9.99.
+             05 WS-FORMAT-D04-F4            PIC $$$,$$$,$$$,$$$,$$9.99.
+          03 WS-FORMAT-D07.
+R36285*      05 WS-FORMAT-D07-F1            PIC X(04).
+R36285       05 WS-FORMAT-D07-F1            PIC X(08).
+             05 WS-FORMAT-D07-F2            PIC ZZZZZZZZ9.
+             05 WS-FORMAT-D07-F3            PIC $,$$$,$$$,$$$,$$9.99.
+             05 WS-FORMAT-D07-F4            PIC $,$$$,$$$,$$$,$$9.99.
+             05 WS-FORMAT-D07-F5            PIC $,$$$,$$$,$$$,$$9.99.
+             05 WS-FORMAT-D07-F6            PIC $,$$$,$$$,$$$,$$9.99.
+             05 WS-FORMAT-D07-F7            PIC $$$,$$$,$$$,$$9.999.
+          03 WS-FORMAT-D08.
+             05 WS-FORMAT-D08-F1            PIC ZZZZZZZZ9.
+             05 WS-FORMAT-D08-F2            PIC $$$,$$$,$$$,$$$,$$9.99.
+             05 WS-FORMAT-D08-F3            PIC $$$,$$$,$$$,$$$,$$9.99.
+             05 WS-FORMAT-D08-F4            PIC $$$,$$$,$$$,$$$,$$9.99.
+             05 WS-FORMAT-D08-F5            PIC $$$,$$$,$$$,$$$,$$9.99.
+             05 WS-FORMAT-D08-F6            PIC $,$$$,$$$,$$$,$$9.999.
+          03 WS-FORMAT-D11.
+R36285*      05 WS-FORMAT-D11-F1            PIC X(04).
+R36285       05 WS-FORMAT-D11-F1            PIC X(08).
+             05 WS-FORMAT-D11-F2            PIC ZZZZZZZZ9.
+             05 WS-FORMAT-D11-F3            PIC $,$$$,$$$,$$$,$$9.99.
+             05 WS-FORMAT-D11-F4            PIC $,$$$,$$$,$$$,$$9.99.
+             05 WS-FORMAT-D11-F5            PIC $,$$$,$$$,$$$,$$9.99.
+             05 WS-FORMAT-D11-F6            PIC $$$,$$$,$$$,$$9.999.
+             05 WS-FORMAT-D11-F7            PIC $$$,$$$,$$$,$$9.999.
+          03 WS-FORMAT-D12.
+             05 WS-FORMAT-D12-F1            PIC ZZZZZZZZ9.
+             05 WS-FORMAT-D12-F2            PIC $$$,$$$,$$$,$$$,$$9.99.
+             05 WS-FORMAT-D12-F3            PIC $$$,$$$,$$$,$$$,$$9.99.
+             05 WS-FORMAT-D12-F4            PIC $$$,$$$,$$$,$$$,$$9.99.
+             05 WS-FORMAT-D12-F5            PIC $,$$$,$$$,$$$,$$9.999.
+             05 WS-FORMAT-D12-F6            PIC $,$$$,$$$,$$$,$$9.999.
+          03 WS-FORMAT-D15.
+R36285*      05 WS-FORMAT-D15-F1            PIC X(04).
+R36285       05 WS-FORMAT-D15-F1            PIC X(08).
+             05 WS-FORMAT-D15-F2            PIC ZZZZZZZZ9.
+             05 WS-FORMAT-D15-F3            PIC $,$$$,$$$,$$$,$$9.99.
+             05 WS-FORMAT-D15-F4            PIC ZZZZZZZZ9.
+             05 WS-FORMAT-D15-F5            PIC $,$$$,$$$,$$$,$$9.99.
+             05 WS-FORMAT-D15-F6            PIC $$$,$$$,$$$,$$9.999.
+          03 WS-FORMAT-D16.
+             05 WS-FORMAT-D16-F1            PIC ZZZZZZZZ9.
+             05 WS-FORMAT-D16-F2            PIC $$$,$$$,$$$,$$$,$$9.99.
+             05 WS-FORMAT-D16-F3            PIC ZZZZZZZZ9.
+             05 WS-FORMAT-D16-F4            PIC $$$,$$$,$$$,$$$,$$9.99.
+             05 WS-FORMAT-D16-F5            PIC $,$$$,$$$,$$$,$$9.999.
+          03 WS-FORMAT-D18.
+             05 WS-FORMAT-D18-F1            PIC X(03).
+             05 WS-FORMAT-D18-F2            PIC X(03).
+          03 WS-FORMAT-D19.
+             05 WS-FORMAT-D19-F1            PIC X(03).
+             05 WS-FORMAT-D19-F2            PIC X(03).
+             05 WS-FORMAT-D19-F3            PIC ZZZZZZZZ9.
+             05 WS-FORMAT-D19-F4            PIC $$$,$$$,$$$,$$$,$$9.99.
+             05 WS-FORMAT-D19-F5            PIC $$$,$$$,$$$,$$$,$$9.99.
+             05 WS-FORMAT-D19-F6            PIC $$$,$$$,$$$,$$$,$$9.99.
+             05 WS-FORMAT-D19-F7            PIC ZZ9.999999.
+             05 WS-FORMAT-D19-F8            PIC $$$,$$$,$$$,$$$,$$9.99.
+          03 WS-FORMAT-D20.
+R36285*      05 WS-FORMAT-D20-F1            PIC X(04).
+R36285       05 WS-FORMAT-D20-F1            PIC X(08).
+             05 WS-FORMAT-D20-F2            PIC ZZZZZZZZ9.
+             05 WS-FORMAT-D20-F3            PIC $$$,$$$,$$$,$$$,$$9.99.
+             05 WS-FORMAT-D20-F4            PIC $$$,$$$,$$$,$$$,$$9.99.
+             05 WS-FORMAT-D20-F5            PIC $$$,$$$,$$$,$$$,$$9.99.
+             05 WS-FORMAT-D20-F6            PIC ZZ9.999999.
+             05 WS-FORMAT-D20-F7            PIC $$$,$$$,$$$,$$$,$$9.99.
+          03 WS-FORMAT-D21.
+             05 WS-FORMAT-D21-F1            PIC ZZZZZZZZ9.
+             05 WS-FORMAT-D21-F2            PIC $$$,$$$,$$$,$$$,$$9.99.
+             05 WS-FORMAT-D21-F3            PIC $$$,$$$,$$$,$$$,$$9.99.
+             05 WS-FORMAT-D21-F4            PIC $$$,$$$,$$$,$$$,$$9.99.
+             05 WS-FORMAT-D21-F5            PIC ZZ9.999999.
+             05 WS-FORMAT-D21-F6            PIC $$$,$$$,$$$,$$$,$$9.99.
+          03 WS-FORMAT-D22.
+             05 WS-FORMAT-D22-F1            PIC ZZZZZZZZ9.
+          03 WS-FORMAT-D23.
+             05 WS-FORMAT-D23-F1            PIC ZZZZZZZZ9.
+             05 WS-FORMAT-D23-F2            PIC ZZZZZZZZ9.
+          03 WS-FORMAT-D24.
+             05 WS-FORMAT-D24-F1            PIC ZZZZZZZZ9.
+             05 WS-FORMAT-D24-F2            PIC ZZZZZZZZ9.
+      **************************
+      * FILE STATUS            *
+      **************************
+       01 WS-FILE-STS.
+          03 FILE-0405A-STS                   PIC 9(2).
+ZL0317    03 FILE-0405G-STS                   PIC 9(2).
+          03 FILE-0405H-STS                   PIC 9(2).
+      **************************
+      * CONDITION DECLARATION  *
+      **************************
+       01 WS-FLIE-END.
+          03 FILE-END-0405A                   PIC X(1) VALUE SPACE.
+             88 EOF-0405A                              VALUE 'Y'.
+R10186       88 NEOF-0405A                             VALUE 'N'.
+ZL0317    03 FILE-END-0405G                   PIC X(1) VALUE SPACE.
+ZL0317       88 EOF-0405G                              VALUE 'Y'.
+      *****************************************************************
+      *    COMMUNICATION AREA                                         *
+      *****************************************************************
+           COPY ZTCCJPRM IN LIBRYMIS.
+           COPY ZFXCBINQ IN LIBRYMIS.
+           COPY UT0030CA IN LIBRYMIS.
+      **************************
+       PROCEDURE DIVISION.
+      **************************
+       A000-MAIN-PROC.
+           PERFORM A000-INITIALIZE
+           PERFORM B000-MAIN-LOGIC
+           PERFORM Z000-EXIT
+           .
+           EXIT.
+      *************************
+      * INITIALIZE VARIABLES  *
+      *************************
+       A000-INITIALIZE.
+           INITIALIZE WS-PROGRAM-DATA
+           PERFORM S000-OPEN-FILE
+           .
+           EXIT.
+      ****************************************************************
+      * MAIN PROGRAM                                                 *
+      ****************************************************************
+       B000-MAIN-LOGIC.
+R10186     SET NEOF-0405A             TO TRUE
+           PERFORM S000-READ-0405A
+R10186     IF NEOF-0405A
+R10186     THEN
+R10186        MOVE 0405A-REC-TYPE               TO WS-CCY
+R10186     END-IF
+R10186*    MOVE 0405A-REC-TYPE                  TO WS-CCY
+           PERFORM UNTIL EOF-0405A
+              EVALUATE TRUE
+                 WHEN 0405A-REC-TYPE(1:1) = "1"
+                    PERFORM B100-PROC-TYPE1
+                 WHEN 0405A-REC-TYPE(1:1) = "2"
+                    PERFORM B200-PROC-TYPE2
+                 WHEN 0405A-REC-TYPE(1:1) = "3"
+                    PERFORM B300-PROC-TYPE3
+                 WHEN 0405A-REC-TYPE(1:1) = "4"
+                    PERFORM B400-PROC-TYPE4
+                 WHEN 0405A-REC-TYPE(1:1) = "5"
+                    PERFORM B500-PROC-TYPE5
+                 WHEN 0405A-REC-TYPE(1:1) = "6"
+                    PERFORM B600-PROC-TYPE6
+                 WHEN OTHER
+                    CONTINUE
+              END-EVALUATE
+              MOVE 0405A-BRN                    TO WS-BRN
+              MOVE 0405A-CCY                    TO WS-CCY
+              MOVE 0405A-REC-TYPE               TO WS-TYPE
+              PERFORM S000-READ-0405A
+           END-PERFORM
+           .
+           EXIT.
+      *****************************************************************
+      *   PROCESS TYPE OF 1                                           *
+      *****************************************************************
+       B100-PROC-TYPE1.
+           IF 0405A-REC-TYPE = WS-TYPE
+           THEN
+              MOVE SPACE                  TO 0405H-TXT
+R36285*       MOVE 0405A-AC-TYPE          TO WS-FORMAT-D03-F1
+R36285        MOVE 0405A-PROD-CODE        TO WS-FORMAT-D03-F1
+              MOVE 0405A-NEW-CNT          TO WS-FORMAT-D03-F2
+              MOVE 0405A-NEW-AMT          TO WS-FORMAT-D03-F3
+              MOVE 0405A-NEW-EX-AMT       TO WS-FORMAT-D03-F4
+              MOVE 0405A-NEW-EQU-HKD      TO WS-FORMAT-D03-F5
+              MOVE WS-FORMAT-D03          TO 0405H-TXT
+              MOVE 03                     TO 0405H-FMT-NO
+              MOVE 0405A-BRN              TO 0405H-BR-DP
+              MOVE 0405A-CCY              TO 0405H-CCY
+              SET 0405H-DET-YES           TO TRUE
+              PERFORM S100-WRITE-FDQ0405H
+           ELSE
+              IF 0405A-CCY NOT = WS-CCY
+              THEN
+                 PERFORM B320-PROC-BACK
+              END-IF
+              PERFORM B110-PROC-FORWARD
+           END-IF
+           .
+           EXIT.
+      *****************************************************************
+      *   PROCESS TYPE OF 1 FORWARD RECORD                            *
+      *****************************************************************
+       B110-PROC-FORWARD.
+           IF 0405A-REC-TYPE(2:1) = "2"
+           THEN
+              MOVE SPACE                  TO 0405H-TXT
+              MOVE 0405A-NEW-CNT          TO WS-FORMAT-D04-F1
+              MOVE 0405A-NEW-AMT          TO WS-FORMAT-D04-F2
+              MOVE 0405A-NEW-EX-AMT       TO WS-FORMAT-D04-F3
+              MOVE 0405A-NEW-EQU-HKD      TO WS-FORMAT-D04-F4
+              MOVE WS-FORMAT-D04          TO 0405H-TXT
+              MOVE 04                     TO 0405H-FMT-NO
+              MOVE 0405A-BRN              TO 0405H-BR-DP
+              MOVE 0405A-CCY              TO 0405H-CCY
+              SET 0405H-DET-YES           TO TRUE
+              PERFORM S100-WRITE-FDQ0405H
+           ELSE
+              MOVE SPACE                  TO 0405H-TXT
+              MOVE 01                     TO 0405H-FMT-NO
+              MOVE 0405A-BRN              TO 0405H-BR-DP
+              MOVE 0405A-CCY              TO 0405H-CCY
+              SET 0405H-DET-YES           TO TRUE
+              PERFORM S100-WRITE-FDQ0405H
+              MOVE SPACE                  TO 0405H-TXT
+              MOVE 02                     TO 0405H-FMT-NO
+              MOVE 0405A-BRN              TO 0405H-BR-DP
+              MOVE 0405A-CCY              TO 0405H-CCY
+              SET 0405H-DET-YES           TO TRUE
+              PERFORM S100-WRITE-FDQ0405H
+              MOVE SPACE                  TO 0405H-TXT
+R36285*       MOVE 0405A-AC-TYPE          TO WS-FORMAT-D03-F1
+R36285        MOVE 0405A-PROD-CODE        TO WS-FORMAT-D03-F1
+              MOVE 0405A-NEW-CNT          TO WS-FORMAT-D03-F2
+              MOVE 0405A-NEW-AMT          TO WS-FORMAT-D03-F3
+              MOVE 0405A-NEW-EX-AMT       TO WS-FORMAT-D03-F4
+              MOVE 0405A-NEW-EQU-HKD      TO WS-FORMAT-D03-F5
+              MOVE WS-FORMAT-D03          TO 0405H-TXT
+              MOVE 03                     TO 0405H-FMT-NO
+              MOVE 0405A-BRN              TO 0405H-BR-DP
+              MOVE 0405A-CCY              TO 0405H-CCY
+              SET 0405H-DET-YES           TO TRUE
+              PERFORM S100-WRITE-FDQ0405H
+           END-IF
+           .
+           EXIT.
+      *****************************************************************
+      *   PROCESS TYPE OF 2                                           *
+      *****************************************************************
+       B200-PROC-TYPE2.
+           IF 0405A-REC-TYPE = WS-TYPE
+           THEN
+              MOVE SPACE                  TO 0405H-TXT
+R36285*       MOVE 0405A-AC-TYPE          TO WS-FORMAT-D07-F1
+R36285        MOVE 0405A-PROD-CODE        TO WS-FORMAT-D07-F1
+              MOVE 0405A-SETL-CNT         TO WS-FORMAT-D07-F2
+              MOVE 0405A-SETL-AMT         TO WS-FORMAT-D07-F3
+              MOVE 0405A-SETL-AMT-TOT     TO WS-FORMAT-D07-F4
+              MOVE 0405A-SETL-EX-AMT      TO WS-FORMAT-D07-F5
+              MOVE 0405A-SETL-EQU-HKD     TO WS-FORMAT-D07-F6
+              MOVE 0405A-SETL-INT-PAID    TO WS-FORMAT-D07-F7
+              MOVE WS-FORMAT-D07          TO 0405H-TXT
+              MOVE 07                     TO 0405H-FMT-NO
+              MOVE 0405A-BRN              TO 0405H-BR-DP
+              MOVE 0405A-CCY              TO 0405H-CCY
+              SET 0405H-DET-YES           TO TRUE
+              PERFORM S100-WRITE-FDQ0405H
+           ELSE
+              IF 0405A-CCY NOT = WS-CCY
+              THEN
+                 PERFORM B320-PROC-BACK
+              END-IF
+              PERFORM B210-PROC-FORWARD
+           END-IF
+           .
+           EXIT.
+      *****************************************************************
+      *   PROCESS TYPE OF 2 FORWARD RECORD                            *
+      *****************************************************************
+       B210-PROC-FORWARD.
+           IF 0405A-REC-TYPE(2:1) = "2"
+           THEN
+              MOVE SPACE                  TO 0405H-TXT
+              MOVE 0405A-SETL-CNT         TO WS-FORMAT-D08-F1
+              MOVE 0405A-SETL-AMT         TO WS-FORMAT-D08-F2
+              MOVE 0405A-SETL-AMT-TOT     TO WS-FORMAT-D08-F3
+              MOVE 0405A-SETL-EX-AMT      TO WS-FORMAT-D08-F4
+              MOVE 0405A-SETL-EQU-HKD     TO WS-FORMAT-D08-F5
+              MOVE 0405A-SETL-INT-PAID    TO WS-FORMAT-D08-F6
+              MOVE WS-FORMAT-D08          TO 0405H-TXT
+              MOVE 08                     TO 0405H-FMT-NO
+              MOVE 0405A-BRN              TO 0405H-BR-DP
+              MOVE 0405A-CCY              TO 0405H-CCY
+              SET 0405H-DET-YES           TO TRUE
+              PERFORM S100-WRITE-FDQ0405H
+           ELSE
+              IF WS-TYPE(1:1) NOT = "1"
+                 PERFORM B910-PROC-NEW-FORW
+              END-IF
+              MOVE SPACE                  TO 0405H-TXT
+              MOVE 25                     TO 0405H-FMT-NO
+              MOVE 0405A-BRN              TO 0405H-BR-DP
+              MOVE 0405A-CCY              TO 0405H-CCY
+              SET 0405H-DET-YES           TO TRUE
+              PERFORM S100-WRITE-FDQ0405H
+              MOVE SPACE                  TO 0405H-TXT
+              MOVE 05                     TO 0405H-FMT-NO
+              MOVE 0405A-BRN              TO 0405H-BR-DP
+              MOVE 0405A-CCY              TO 0405H-CCY
+              SET 0405H-DET-YES           TO TRUE
+              PERFORM S100-WRITE-FDQ0405H
+              MOVE SPACE                  TO 0405H-TXT
+              MOVE 06                     TO 0405H-FMT-NO
+              MOVE 0405A-BRN              TO 0405H-BR-DP
+              MOVE 0405A-CCY              TO 0405H-CCY
+              SET 0405H-DET-YES           TO TRUE
+              PERFORM S100-WRITE-FDQ0405H
+              MOVE SPACE                  TO 0405H-TXT
+R36285*       MOVE 0405A-AC-TYPE          TO WS-FORMAT-D07-F1
+R36285        MOVE 0405A-PROD-CODE        TO WS-FORMAT-D07-F1
+              MOVE 0405A-SETL-CNT         TO WS-FORMAT-D07-F2
+              MOVE 0405A-SETL-AMT         TO WS-FORMAT-D07-F3
+              MOVE 0405A-SETL-AMT-TOT     TO WS-FORMAT-D07-F4
+              MOVE 0405A-SETL-EX-AMT      TO WS-FORMAT-D07-F5
+              MOVE 0405A-SETL-EQU-HKD     TO WS-FORMAT-D07-F6
+              MOVE 0405A-SETL-INT-PAID    TO WS-FORMAT-D07-F7
+              MOVE WS-FORMAT-D07          TO 0405H-TXT
+              MOVE 07                     TO 0405H-FMT-NO
+              MOVE 0405A-BRN              TO 0405H-BR-DP
+              MOVE 0405A-CCY              TO 0405H-CCY
+              SET 0405H-DET-YES           TO TRUE
+              PERFORM S100-WRITE-FDQ0405H
+           END-IF
+           .
+           EXIT.
+      *****************************************************************
+      *   PROCESS TYPE OF 3                                           *
+      *****************************************************************
+       B300-PROC-TYPE3.
+           IF 0405A-REC-TYPE = WS-TYPE
+           THEN
+              MOVE SPACE                  TO 0405H-TXT
+R36285*       MOVE 0405A-AC-TYPE          TO WS-FORMAT-D11-F1
+R36285        MOVE 0405A-PROD-CODE        TO WS-FORMAT-D11-F1
+              MOVE 0405A-EFF-CNT          TO WS-FORMAT-D11-F2
+              MOVE 0405A-EFF-AMT-TOT      TO WS-FORMAT-D11-F3
+              MOVE 0405A-EFF-FLOAT        TO WS-FORMAT-D11-F4
+              MOVE 0405A-EFF-NET-AMT      TO WS-FORMAT-D11-F5
+              MOVE 0405A-EFF-TOD-INT      TO WS-FORMAT-D11-F6
+              MOVE 0405A-EFF-TTL-INT      TO WS-FORMAT-D11-F7
+              MOVE WS-FORMAT-D11          TO 0405H-TXT
+              MOVE 11                     TO 0405H-FMT-NO
+              MOVE 0405A-BRN              TO 0405H-BR-DP
+              MOVE 0405A-CCY              TO 0405H-CCY
+              SET 0405H-DET-YES           TO TRUE
+              PERFORM S100-WRITE-FDQ0405H
+           ELSE
+              IF 0405A-CCY NOT = WS-CCY
+              THEN
+                 PERFORM B320-PROC-BACK
+              END-IF
+              PERFORM B310-PROC-FORWARD
+           END-IF
+           .
+           EXIT.
+      *****************************************************************
+      *   PROCESS TYPE OF 3 FORWARD RECORD                            *
+      *****************************************************************
+       B310-PROC-FORWARD.
+           IF 0405A-REC-TYPE(2:1) = "2"
+           THEN
+              MOVE SPACE                  TO 0405H-TXT
+              MOVE 0405A-EFF-CNT          TO WS-FORMAT-D12-F1
+              MOVE 0405A-EFF-AMT-TOT      TO WS-FORMAT-D12-F2
+              MOVE 0405A-EFF-FLOAT        TO WS-FORMAT-D12-F3
+              MOVE 0405A-EFF-NET-AMT      TO WS-FORMAT-D12-F4
+              MOVE 0405A-EFF-TOD-INT      TO WS-FORMAT-D12-F5
+              MOVE 0405A-EFF-TTL-INT      TO WS-FORMAT-D12-F6
+              MOVE WS-FORMAT-D12          TO 0405H-TXT
+              MOVE 12                     TO 0405H-FMT-NO
+              MOVE 0405A-BRN              TO 0405H-BR-DP
+              MOVE 0405A-CCY              TO 0405H-CCY
+              SET 0405H-DET-YES           TO TRUE
+              PERFORM S100-WRITE-FDQ0405H
+           ELSE
+LF0222        IF WS-TYPE(1:1) NOT = "1" AND WS-TYPE(1:1) NOT = "2"
+              PERFORM B910-PROC-NEW-FORW
+              END-IF
+LF0222        IF WS-TYPE(1:1) NOT = "2"
+LF0222        PERFORM B920-PROC-SETL-FORW
+              END-IF
+              MOVE SPACE                  TO 0405H-TXT
+              MOVE 25                     TO 0405H-FMT-NO
+              MOVE 0405A-BRN              TO 0405H-BR-DP
+              MOVE 0405A-CCY              TO 0405H-CCY
+              SET 0405H-DET-YES           TO TRUE
+              PERFORM S100-WRITE-FDQ0405H
+              MOVE SPACE                  TO 0405H-TXT
+              MOVE 09                     TO 0405H-FMT-NO
+              MOVE 0405A-BRN              TO 0405H-BR-DP
+              MOVE 0405A-CCY              TO 0405H-CCY
+              SET 0405H-DET-YES           TO TRUE
+              PERFORM S100-WRITE-FDQ0405H
+              MOVE SPACE                  TO 0405H-TXT
+              MOVE 10                     TO 0405H-FMT-NO
+              MOVE 0405A-BRN              TO 0405H-BR-DP
+              MOVE 0405A-CCY              TO 0405H-CCY
+              SET 0405H-DET-YES           TO TRUE
+              PERFORM S100-WRITE-FDQ0405H
+              MOVE SPACE                  TO 0405H-TXT
+R36285*       MOVE 0405A-AC-TYPE          TO WS-FORMAT-D11-F1
+R36285        MOVE 0405A-PROD-CODE        TO WS-FORMAT-D11-F1
+              MOVE 0405A-EFF-CNT          TO WS-FORMAT-D11-F2
+              MOVE 0405A-EFF-AMT-TOT      TO WS-FORMAT-D11-F3
+              MOVE 0405A-EFF-FLOAT        TO WS-FORMAT-D11-F4
+              MOVE 0405A-EFF-NET-AMT      TO WS-FORMAT-D11-F5
+              MOVE 0405A-EFF-TOD-INT      TO WS-FORMAT-D11-F6
+              MOVE 0405A-EFF-TTL-INT      TO WS-FORMAT-D11-F7
+              MOVE WS-FORMAT-D11          TO 0405H-TXT
+              MOVE 11                     TO 0405H-FMT-NO
+              MOVE 0405A-BRN              TO 0405H-BR-DP
+              MOVE 0405A-CCY              TO 0405H-CCY
+              SET 0405H-DET-YES           TO TRUE
+              PERFORM S100-WRITE-FDQ0405H
+           END-IF
+           .
+           EXIT.
+      *****************************************************************
+      *   PROCESS TYPE OF 4                                           *
+      *****************************************************************
+       B400-PROC-TYPE4.
+           IF 0405A-REC-TYPE = WS-TYPE
+           THEN
+              MOVE SPACE                  TO 0405H-TXT
+R36285*       MOVE 0405A-AC-TYPE          TO WS-FORMAT-D15-F1
+R36285        MOVE 0405A-PROD-CODE        TO WS-FORMAT-D15-F1
+              MOVE 0405A-AUT-CNT          TO WS-FORMAT-D15-F2
+              MOVE 0405A-AUT-NEW-AMT      TO WS-FORMAT-D15-F3
+              MOVE 0405A-AUT-SETL-CNT     TO WS-FORMAT-D15-F4
+              MOVE 0405A-AUT-SETL-AMT     TO WS-FORMAT-D15-F5
+              MOVE 0405A-AUT-INT-PAID     TO WS-FORMAT-D15-F6
+              MOVE WS-FORMAT-D15          TO 0405H-TXT
+              MOVE 15                     TO 0405H-FMT-NO
+              MOVE 0405A-BRN              TO 0405H-BR-DP
+              MOVE 0405A-CCY              TO 0405H-CCY
+              SET 0405H-DET-YES           TO TRUE
+              PERFORM S100-WRITE-FDQ0405H
+           ELSE
+              IF 0405A-CCY NOT = WS-CCY
+              THEN
+                 PERFORM B320-PROC-BACK
+              END-IF
+              PERFORM B410-PROC-FORWARD
+           END-IF
+           .
+           EXIT.
+      *****************************************************************
+      *   PROCESS TYPE OF 4 FORWARD RECORD                            *
+      *****************************************************************
+       B410-PROC-FORWARD.
+           IF 0405A-REC-TYPE(2:1) = "2"
+           THEN
+              MOVE SPACE                  TO 0405H-TXT
+              MOVE 0405A-AUT-CNT          TO WS-FORMAT-D16-F1
+              MOVE 0405A-AUT-NEW-AMT      TO WS-FORMAT-D16-F2
+              MOVE 0405A-AUT-SETL-CNT     TO WS-FORMAT-D16-F3
+              MOVE 0405A-AUT-SETL-AMT     TO WS-FORMAT-D16-F4
+              MOVE 0405A-AUT-INT-PAID     TO WS-FORMAT-D16-F5
+              MOVE WS-FORMAT-D16          TO 0405H-TXT
+              MOVE 16                     TO 0405H-FMT-NO
+              MOVE 0405A-BRN              TO 0405H-BR-DP
+              MOVE 0405A-CCY              TO 0405H-CCY
+              SET 0405H-DET-YES           TO TRUE
+              PERFORM S100-WRITE-FDQ0405H
+           ELSE
+LF0222        IF WS-TYPE(1:1) NOT = "1" AND WS-TYPE(1:1) NOT = "2" AND
+                 WS-TYPE(1:1) NOT = "3"
+LF0222           PERFORM B910-PROC-NEW-FORW
+              END-IF
+LF0222        IF WS-TYPE(1:1) NOT = "2" AND WS-TYPE(1:1) NOT = "3"
+LF0222           PERFORM B920-PROC-SETL-FORW
+              END-IF
+LF0222        IF WS-TYPE(1:1) NOT = "3"
+LF0222           PERFORM B930-PROC-EFFE-FORW
+              END-IF
+              MOVE SPACE                  TO 0405H-TXT
+              MOVE 25                     TO 0405H-FMT-NO
+              MOVE 0405A-BRN              TO 0405H-BR-DP
+              MOVE 0405A-CCY              TO 0405H-CCY
+              SET 0405H-DET-YES           TO TRUE
+              PERFORM S100-WRITE-FDQ0405H
+              MOVE SPACE                  TO 0405H-TXT
+              MOVE 13                     TO 0405H-FMT-NO
+              MOVE 0405A-BRN              TO 0405H-BR-DP
+              MOVE 0405A-CCY              TO 0405H-CCY
+              SET 0405H-DET-YES           TO TRUE
+              PERFORM S100-WRITE-FDQ0405H
+              MOVE SPACE                  TO 0405H-TXT
+              MOVE 14                     TO 0405H-FMT-NO
+              MOVE 0405A-BRN              TO 0405H-BR-DP
+              MOVE 0405A-CCY              TO 0405H-CCY
+              SET 0405H-DET-YES           TO TRUE
+              PERFORM S100-WRITE-FDQ0405H
+              MOVE SPACE                  TO 0405H-TXT
+R36285*       MOVE 0405A-AC-TYPE          TO WS-FORMAT-D15-F1
+R36285        MOVE 0405A-PROD-CODE        TO WS-FORMAT-D15-F1
+              MOVE 0405A-AUT-CNT          TO WS-FORMAT-D15-F2
+              MOVE 0405A-AUT-NEW-AMT      TO WS-FORMAT-D15-F3
+              MOVE 0405A-AUT-SETL-CNT     TO WS-FORMAT-D15-F4
+              MOVE 0405A-AUT-SETL-AMT     TO WS-FORMAT-D15-F5
+              MOVE 0405A-AUT-INT-PAID     TO WS-FORMAT-D15-F6
+              MOVE WS-FORMAT-D15          TO 0405H-TXT
+              MOVE 15                     TO 0405H-FMT-NO
+              MOVE 0405A-BRN              TO 0405H-BR-DP
+              MOVE 0405A-CCY              TO 0405H-CCY
+              SET 0405H-DET-YES           TO TRUE
+              PERFORM S100-WRITE-FDQ0405H
+           END-IF
+           .
+           EXIT.
+      *****************************************************************
+      *   PROCESS TYPE OF 5                                           *
+      *****************************************************************
+       B500-PROC-TYPE5.
+      *
+           IF 0405A-REC-TYPE = WS-TYPE
+           THEN
+XZ0511        PERFORM B700-GET-EXCH-RATE
+XZ0511           THRU B700-GET-EXCH-RATE-EXIT
+XZ0511        PERFORM B800-CALL-ZFXBINQ
+XZ0511           THRU B800-CALL-ZFXBINQ-EXIT
+              MOVE SPACE                  TO 0405H-TXT
+              MOVE 0405A-CCY              TO WS-FORMAT-D19-F1
+              MOVE 0405A-CCY-CHAR         TO WS-FORMAT-D19-F2
+              MOVE 0405A-EFF-CNT          TO WS-FORMAT-D19-F3
+              MOVE 0405A-EFF-AMT-TOT      TO WS-FORMAT-D19-F4
+              MOVE 0405A-EFF-FLOAT        TO WS-FORMAT-D19-F5
+              MOVE 0405A-EFF-NET-AMT      TO WS-FORMAT-D19-F6
+XZ0511        MOVE AMCM-RATE              TO WS-FORMAT-D19-F7
+XZ0511        MOVE BINQ-FX-SEL-AMT        TO WS-FORMAT-D19-F8
+              MOVE WS-FORMAT-D19          TO 0405H-TXT
+              MOVE 19                     TO 0405H-FMT-NO
+              MOVE 0405A-BRN              TO 0405H-BR-DP
+              MOVE "000"                  TO 0405H-CCY
+              SET 0405H-SUM-YES           TO TRUE
+              PERFORM S100-WRITE-FDQ0405H
+           ELSE
+              PERFORM B320-PROC-BACK
+              IF 0405A-REC-TYPE(2:1) = "2"
+              THEN
+ZL0317           READ FDQ0405G
+ZL0317              AT END SET EOF-0405G      TO TRUE
+ZL0317           END-READ
+ZL0322           IF 0405G-BRN NOT = 0405A-BRN
+ZL0322           THEN
+ZL0322              READ FDQ0405G
+ZL0322                 AT END SET EOF-0405G   TO TRUE
+ZL0322           END-IF
+R10186           IF EOF-0405G
+R10186           THEN
+R10186              PERFORM Z000-EXIT
+R10186           END-IF
+                 MOVE SPACE               TO 0405H-TXT
+ZL0317*          MOVE 0405A-TOT-CERT      TO WS-FORMAT-D22-F1
+ZL0317           MOVE 0405G-TOT-CERT      TO WS-FORMAT-D22-F1
+                 MOVE WS-FORMAT-D22       TO 0405H-TXT
+                 MOVE 22                  TO 0405H-FMT-NO
+                 MOVE 0405A-BRN           TO 0405H-BR-DP
+                 MOVE "000"               TO 0405H-CCY
+                 SET 0405H-SUM-YES        TO TRUE
+                 PERFORM S100-WRITE-FDQ0405H
+ZL0319           ADD 0405G-TOT-CERT       TO WS-TOT-CERT
+      *
+                 MOVE SPACE               TO 0405H-TXT
+ZL0317*          MOVE 0405A-ACT-CERT      TO WS-FORMAT-D23-F1
+ZL0317*          MOVE 0405A-DOR-CERT      TO WS-FORMAT-D23-F2
+ZL0317           MOVE 0405G-ACT-CERT      TO WS-FORMAT-D23-F1
+ZL0317           MOVE 0405G-DOR-CERT      TO WS-FORMAT-D23-F2
+                 MOVE WS-FORMAT-D23       TO 0405H-TXT
+                 MOVE 23                  TO 0405H-FMT-NO
+                 MOVE 0405A-BRN           TO 0405H-BR-DP
+                 MOVE "000"               TO 0405H-CCY
+                 SET 0405H-SUM-YES        TO TRUE
+                 PERFORM S100-WRITE-FDQ0405H
+ZL0319           ADD 0405G-ACT-CERT       TO WS-ACT-CERT
+ZL0319           ADD 0405G-DOR-CERT       TO WS-DOR-CERT
+      *
+                 MOVE SPACE               TO 0405H-TXT
+ZL0317*          MOVE 0405A-NEW-CERT      TO WS-FORMAT-D24-F1
+ZL0317*          MOVE 0405A-CLS-CERT      TO WS-FORMAT-D24-F2
+ZL0317           MOVE 0405G-NEW-CERT      TO WS-FORMAT-D24-F1
+ZL0317           MOVE 0405G-CLS-CERT      TO WS-FORMAT-D24-F2
+                 MOVE WS-FORMAT-D24       TO 0405H-TXT
+                 MOVE 24                  TO 0405H-FMT-NO
+                 MOVE 0405A-BRN           TO 0405H-BR-DP
+                 MOVE "000"               TO 0405H-CCY
+                 SET 0405H-SUM-YES        TO TRUE
+                 PERFORM S100-WRITE-FDQ0405H
+ZL0319           ADD 0405G-NEW-CERT       TO WS-NEW-CERT
+ZL0319           ADD 0405G-CLS-CERT       TO WS-CLS-CERT
+      *
+              ELSE
+                 PERFORM B510-PROC-FORWARD
+              END-IF
+           END-IF
+           .
+           EXIT.
+      *****************************************************************
+      *   PROCESS TYPE OF 5 FORWARD RECORD                            *
+      *****************************************************************
+       B510-PROC-FORWARD.
+           MOVE SPACE                     TO 0405H-TXT
+           MOVE 17                        TO 0405H-FMT-NO
+           MOVE 0405A-BRN                 TO 0405H-BR-DP
+           MOVE "000"                     TO 0405H-CCY
+           SET 0405H-SUM-YES              TO TRUE
+           PERFORM S100-WRITE-FDQ0405H
+XZ0511     PERFORM B700-GET-EXCH-RATE
+XZ0511        THRU B700-GET-EXCH-RATE-EXIT
+XZ0511     PERFORM B800-CALL-ZFXBINQ
+XZ0511        THRU B800-CALL-ZFXBINQ-EXIT
+           MOVE SPACE                     TO 0405H-TXT
+           MOVE 0405A-CCY                 TO WS-FORMAT-D19-F1
+           MOVE 0405A-CCY-CHAR            TO WS-FORMAT-D19-F2
+           MOVE 0405A-EFF-CNT             TO WS-FORMAT-D19-F3
+           MOVE 0405A-EFF-AMT-TOT         TO WS-FORMAT-D19-F4
+           MOVE 0405A-EFF-FLOAT           TO WS-FORMAT-D19-F5
+           MOVE 0405A-EFF-NET-AMT         TO WS-FORMAT-D19-F6
+XZ0511     MOVE AMCM-RATE                 TO WS-FORMAT-D19-F7
+XZ0511     MOVE BINQ-FX-SEL-AMT           TO WS-FORMAT-D19-F8
+           MOVE WS-FORMAT-D19             TO 0405H-TXT
+           MOVE 19                        TO 0405H-FMT-NO
+           MOVE 0405A-BRN                 TO 0405H-BR-DP
+           MOVE "000"                     TO 0405H-CCY
+           SET 0405H-SUM-YES              TO TRUE
+           PERFORM S100-WRITE-FDQ0405H
+           .
+           EXIT.
+      *****************************************************************
+      *   PROCESS TYPE OF 3 BACK RECORD                               *
+      *****************************************************************
+       B320-PROC-BACK.
+           EVALUATE TRUE
+              WHEN WS-TYPE(1:1) = "1"
+                 PERFORM B940-PROC-SETL-BACK
+                 PERFORM B950-PROC-EFFE-BACK
+                 PERFORM B960-PROC-AUTO-BACK
+              WHEN WS-TYPE(1:1) = "2"
+                 PERFORM B950-PROC-EFFE-BACK
+                 PERFORM B960-PROC-AUTO-BACK
+              WHEN WS-TYPE(1:1) = "3"
+                 PERFORM B960-PROC-AUTO-BACK
+              WHEN OTHER
+                 CONTINUE
+           END-EVALUATE
+           .
+           EXIT.
+      *****************************************************************
+      *   WRITE NEW FORWARD                                           *
+      *****************************************************************
+       B910-PROC-NEW-FORW.
+           MOVE SPACE                     TO 0405H-TXT
+           MOVE 01                        TO 0405H-FMT-NO
+           MOVE 0405A-BRN                 TO 0405H-BR-DP
+           MOVE 0405A-CCY                 TO 0405H-CCY
+           SET 0405H-DET-YES              TO TRUE
+           PERFORM S100-WRITE-FDQ0405H
+           MOVE SPACE                     TO 0405H-TXT
+           MOVE 02                        TO 0405H-FMT-NO
+           MOVE 0405A-BRN                 TO 0405H-BR-DP
+           MOVE 0405A-CCY                 TO 0405H-CCY
+           SET 0405H-DET-YES              TO TRUE
+           PERFORM S100-WRITE-FDQ0405H
+           MOVE SPACE                     TO 0405H-TXT
+           MOVE ZERO                      TO WS-FORMAT-D04-F1
+           MOVE ZERO                      TO WS-FORMAT-D04-F2
+           MOVE ZERO                      TO WS-FORMAT-D04-F3
+           MOVE ZERO                      TO WS-FORMAT-D04-F4
+           MOVE WS-FORMAT-D04             TO 0405H-TXT
+           MOVE 04                        TO 0405H-FMT-NO
+           MOVE 0405A-BRN                 TO 0405H-BR-DP
+           MOVE 0405A-CCY                 TO 0405H-CCY
+           SET 0405H-DET-YES              TO TRUE
+           PERFORM S100-WRITE-FDQ0405H
+           .
+           EXIT.
+      *****************************************************************
+      *   WRITE SETTLE FORWARD                                        *
+      *****************************************************************
+       B920-PROC-SETL-FORW.
+           MOVE SPACE                     TO 0405H-TXT
+           MOVE 25                        TO 0405H-FMT-NO
+           MOVE 0405A-BRN                 TO 0405H-BR-DP
+           MOVE 0405A-CCY                 TO 0405H-CCY
+           SET 0405H-DET-YES              TO TRUE
+           PERFORM S100-WRITE-FDQ0405H
+           MOVE SPACE                     TO 0405H-TXT
+           MOVE 05                        TO 0405H-FMT-NO
+           MOVE 0405A-BRN                 TO 0405H-BR-DP
+           MOVE 0405A-CCY                 TO 0405H-CCY
+           SET 0405H-DET-YES              TO TRUE
+           PERFORM S100-WRITE-FDQ0405H
+           MOVE SPACE                     TO 0405H-TXT
+           MOVE 06                        TO 0405H-FMT-NO
+           MOVE 0405A-BRN                 TO 0405H-BR-DP
+           MOVE 0405A-CCY                 TO 0405H-CCY
+           SET 0405H-DET-YES              TO TRUE
+           PERFORM S100-WRITE-FDQ0405H
+           MOVE SPACE                     TO 0405H-TXT
+           MOVE ZERO                      TO WS-FORMAT-D08-F1
+           MOVE ZERO                      TO WS-FORMAT-D08-F2
+           MOVE ZERO                      TO WS-FORMAT-D08-F3
+           MOVE ZERO                      TO WS-FORMAT-D08-F4
+           MOVE ZERO                      TO WS-FORMAT-D08-F5
+           MOVE ZERO                      TO WS-FORMAT-D08-F6
+           MOVE WS-FORMAT-D08             TO 0405H-TXT
+           MOVE 08                        TO 0405H-FMT-NO
+           MOVE 0405A-BRN                 TO 0405H-BR-DP
+           MOVE 0405A-CCY                 TO 0405H-CCY
+           SET 0405H-DET-YES              TO TRUE
+           PERFORM S100-WRITE-FDQ0405H
+           .
+           EXIT.
+      *****************************************************************
+      *   WRITE EFFECT FORWARD                                        *
+      *****************************************************************
+       B930-PROC-EFFE-FORW.
+           MOVE SPACE                     TO 0405H-TXT
+           MOVE 25                        TO 0405H-FMT-NO
+           MOVE 0405A-BRN                 TO 0405H-BR-DP
+           MOVE 0405A-CCY                 TO 0405H-CCY
+           SET 0405H-DET-YES              TO TRUE
+           PERFORM S100-WRITE-FDQ0405H
+           MOVE SPACE                     TO 0405H-TXT
+           MOVE 09                        TO 0405H-FMT-NO
+           MOVE 0405A-BRN                 TO 0405H-BR-DP
+           MOVE 0405A-CCY                 TO 0405H-CCY
+           SET 0405H-DET-YES              TO TRUE
+           PERFORM S100-WRITE-FDQ0405H
+           MOVE SPACE                     TO 0405H-TXT
+           MOVE 10                        TO 0405H-FMT-NO
+           MOVE 0405A-BRN                 TO 0405H-BR-DP
+           MOVE 0405A-CCY                 TO 0405H-CCY
+           SET 0405H-DET-YES              TO TRUE
+           PERFORM S100-WRITE-FDQ0405H
+           MOVE SPACE                     TO 0405H-TXT
+           MOVE ZERO                      TO WS-FORMAT-D12-F1
+           MOVE ZERO                      TO WS-FORMAT-D12-F2
+           MOVE ZERO                      TO WS-FORMAT-D12-F3
+           MOVE ZERO                      TO WS-FORMAT-D12-F4
+           MOVE ZERO                      TO WS-FORMAT-D12-F5
+           MOVE ZERO                      TO WS-FORMAT-D12-F6
+           MOVE WS-FORMAT-D12             TO 0405H-TXT
+           MOVE 12                        TO 0405H-FMT-NO
+           MOVE 0405A-BRN                 TO 0405H-BR-DP
+           MOVE 0405A-CCY                 TO 0405H-CCY
+           SET 0405H-DET-YES              TO TRUE
+           PERFORM S100-WRITE-FDQ0405H
+           .
+           EXIT.
+      *****************************************************************
+      *   WRITE SETTLE BACK                                           *
+      *****************************************************************
+       B940-PROC-SETL-BACK.
+           MOVE SPACE                     TO 0405H-TXT
+           MOVE 25                        TO 0405H-FMT-NO
+           MOVE WS-BRN                    TO 0405H-BR-DP
+           MOVE WS-CCY                    TO 0405H-CCY
+           SET 0405H-DET-YES              TO TRUE
+           PERFORM S100-WRITE-FDQ0405H
+           MOVE SPACE                     TO 0405H-TXT
+           MOVE 05                        TO 0405H-FMT-NO
+           MOVE WS-BRN                    TO 0405H-BR-DP
+           MOVE WS-CCY                    TO 0405H-CCY
+           SET 0405H-DET-YES              TO TRUE
+           PERFORM S100-WRITE-FDQ0405H
+           MOVE SPACE                     TO 0405H-TXT
+           MOVE 06                        TO 0405H-FMT-NO
+           MOVE WS-BRN                    TO 0405H-BR-DP
+           MOVE WS-CCY                    TO 0405H-CCY
+           SET 0405H-DET-YES              TO TRUE
+           PERFORM S100-WRITE-FDQ0405H
+           MOVE SPACE                     TO 0405H-TXT
+           MOVE ZERO                      TO WS-FORMAT-D08-F1
+           MOVE ZERO                      TO WS-FORMAT-D08-F2
+           MOVE ZERO                      TO WS-FORMAT-D08-F3
+           MOVE ZERO                      TO WS-FORMAT-D08-F4
+           MOVE ZERO                      TO WS-FORMAT-D08-F5
+           MOVE ZERO                      TO WS-FORMAT-D08-F6
+           MOVE WS-FORMAT-D08             TO 0405H-TXT
+           MOVE 08                        TO 0405H-FMT-NO
+           MOVE WS-BRN                    TO 0405H-BR-DP
+           MOVE WS-CCY                    TO 0405H-CCY
+           SET 0405H-DET-YES              TO TRUE
+           PERFORM S100-WRITE-FDQ0405H
+           .
+           EXIT.
+      *****************************************************************
+      *   WRITE EFFECT BACK                                           *
+      *****************************************************************
+       B950-PROC-EFFE-BACK.
+           MOVE SPACE                     TO 0405H-TXT
+           MOVE 25                        TO 0405H-FMT-NO
+           MOVE WS-BRN                    TO 0405H-BR-DP
+           MOVE WS-CCY                    TO 0405H-CCY
+           SET 0405H-DET-YES              TO TRUE
+           PERFORM S100-WRITE-FDQ0405H
+           MOVE SPACE                     TO 0405H-TXT
+           MOVE 09                        TO 0405H-FMT-NO
+           MOVE WS-BRN                    TO 0405H-BR-DP
+           MOVE WS-CCY                    TO 0405H-CCY
+           SET 0405H-DET-YES              TO TRUE
+           PERFORM S100-WRITE-FDQ0405H
+           MOVE SPACE                     TO 0405H-TXT
+           MOVE 10                        TO 0405H-FMT-NO
+           MOVE WS-BRN                    TO 0405H-BR-DP
+           MOVE WS-CCY                    TO 0405H-CCY
+           SET 0405H-DET-YES              TO TRUE
+           PERFORM S100-WRITE-FDQ0405H
+           MOVE SPACE                     TO 0405H-TXT
+           MOVE ZERO                      TO WS-FORMAT-D12-F1
+           MOVE ZERO                      TO WS-FORMAT-D12-F2
+           MOVE ZERO                      TO WS-FORMAT-D12-F3
+           MOVE ZERO                      TO WS-FORMAT-D12-F4
+           MOVE ZERO                      TO WS-FORMAT-D12-F5
+           MOVE ZERO                      TO WS-FORMAT-D12-F6
+           MOVE WS-FORMAT-D12             TO 0405H-TXT
+           MOVE 12                        TO 0405H-FMT-NO
+           MOVE WS-BRN                    TO 0405H-BR-DP
+           MOVE WS-CCY                    TO 0405H-CCY
+           SET 0405H-DET-YES              TO TRUE
+           PERFORM S100-WRITE-FDQ0405H
+           .
+           EXIT.
+      *****************************************************************
+      *   WRITE AUTORALL BACK                                         *
+      *****************************************************************
+       B960-PROC-AUTO-BACK.
+           MOVE SPACE                     TO 0405H-TXT
+           MOVE 25                        TO 0405H-FMT-NO
+           MOVE WS-BRN                    TO 0405H-BR-DP
+           MOVE WS-CCY                    TO 0405H-CCY
+           SET 0405H-DET-YES              TO TRUE
+           PERFORM S100-WRITE-FDQ0405H
+           MOVE SPACE                     TO 0405H-TXT
+           MOVE 13                        TO 0405H-FMT-NO
+           MOVE WS-BRN                    TO 0405H-BR-DP
+           MOVE WS-CCY                    TO 0405H-CCY
+           SET 0405H-DET-YES              TO TRUE
+           PERFORM S100-WRITE-FDQ0405H
+           MOVE SPACE                     TO 0405H-TXT
+           MOVE 14                        TO 0405H-FMT-NO
+           MOVE WS-BRN                    TO 0405H-BR-DP
+           MOVE WS-CCY                    TO 0405H-CCY
+           SET 0405H-DET-YES              TO TRUE
+           PERFORM S100-WRITE-FDQ0405H
+           MOVE SPACE                     TO 0405H-TXT
+           MOVE ZERO                      TO WS-FORMAT-D16-F1
+           MOVE ZERO                      TO WS-FORMAT-D16-F2
+           MOVE ZERO                      TO WS-FORMAT-D16-F3
+           MOVE ZERO                      TO WS-FORMAT-D16-F4
+           MOVE ZERO                      TO WS-FORMAT-D16-F5
+           MOVE WS-FORMAT-D16             TO 0405H-TXT
+           MOVE 16                        TO 0405H-FMT-NO
+           MOVE WS-BRN                    TO 0405H-BR-DP
+           MOVE WS-CCY                    TO 0405H-CCY
+           SET 0405H-DET-YES              TO TRUE
+           PERFORM S100-WRITE-FDQ0405H
+           .
+           EXIT.
+      *****************************************************************
+      *   WRITE BANK SUMMARY                                          *
+      *****************************************************************
+       B600-PROC-TYPE6.
+           IF WS-TYPE(1:1) = "6"
+           THEN
+              EVALUATE TRUE
+                 WHEN 0405A-REC-TYPE(2:1) = "1"
+                    PERFORM B610-PROC-TYPE61
+                 WHEN 0405A-REC-TYPE(2:1) = "2"
+                    PERFORM B620-PROC-TYPE62
+                 WHEN 0405A-REC-TYPE(2:1) = "3"
+                    PERFORM B630-PROC-TYPE63
+                 WHEN OTHER
+                    CONTINUE
+              END-EVALUATE
+           ELSE
+              MOVE SPACE                  TO 0405H-TXT
+              MOVE 17                     TO 0405H-FMT-NO
+              MOVE ZERO                   TO 0405H-BR-DP
+              MOVE "000"                  TO 0405H-CCY
+              SET 0405H-SUM-YES           TO TRUE
+              PERFORM S100-WRITE-FDQ0405H
+              MOVE SPACE                  TO 0405H-TXT
+              MOVE 0405A-CCY              TO WS-FORMAT-D18-F1
+              MOVE 0405A-CCY-CHAR         TO WS-FORMAT-D18-F2
+              MOVE WS-FORMAT-D18          TO 0405H-TXT
+              MOVE 18                     TO 0405H-FMT-NO
+              MOVE ZERO                   TO 0405H-BR-DP
+              MOVE "000"                  TO 0405H-CCY
+              SET 0405H-SUM-YES           TO TRUE
+              PERFORM S100-WRITE-FDQ0405H
+XZ0511        PERFORM B700-GET-EXCH-RATE
+XZ0511           THRU B700-GET-EXCH-RATE-EXIT
+XZ0511        PERFORM B800-CALL-ZFXBINQ
+XZ0511           THRU B800-CALL-ZFXBINQ-EXIT
+              MOVE SPACE                  TO 0405H-TXT
+R36285*       MOVE 0405A-AC-TYPE          TO WS-FORMAT-D20-F1
+R36285        MOVE 0405A-PROD-CODE        TO WS-FORMAT-D20-F1
+              MOVE 0405A-EFF-CNT          TO WS-FORMAT-D20-F2
+              MOVE 0405A-EFF-AMT-TOT      TO WS-FORMAT-D20-F3
+              MOVE 0405A-EFF-FLOAT        TO WS-FORMAT-D20-F4
+              MOVE 0405A-EFF-NET-AMT      TO WS-FORMAT-D20-F5
+XZ0511        MOVE AMCM-RATE              TO WS-FORMAT-D20-F6
+XZ0511        MOVE BINQ-FX-SEL-AMT        TO WS-FORMAT-D20-F7
+              MOVE WS-FORMAT-D20          TO 0405H-TXT
+              MOVE 20                     TO 0405H-FMT-NO
+              MOVE ZERO                   TO 0405H-BR-DP
+              MOVE "000"                  TO 0405H-CCY
+              SET 0405H-SUM-YES           TO TRUE
+              PERFORM S100-WRITE-FDQ0405H
+           END-IF
+           .
+           EXIT.
+      *
+       B610-PROC-TYPE61.
+           IF 0405A-CCY NOT = WS-CCY
+           THEN
+              MOVE SPACE                  TO 0405H-TXT
+              MOVE 25                     TO 0405H-FMT-NO
+              MOVE ZERO                   TO 0405H-BR-DP
+              MOVE "000"                  TO 0405H-CCY
+              SET 0405H-SUM-YES           TO TRUE
+              PERFORM S100-WRITE-FDQ0405H
+              MOVE SPACE                  TO 0405H-TXT
+              MOVE 0405A-CCY              TO WS-FORMAT-D18-F1
+              MOVE 0405A-CCY-CHAR         TO WS-FORMAT-D18-F2
+              MOVE WS-FORMAT-D18          TO 0405H-TXT
+              MOVE 18                     TO 0405H-FMT-NO
+              MOVE ZERO                   TO 0405H-BR-DP
+              MOVE "000"                  TO 0405H-CCY
+              SET 0405H-SUM-YES           TO TRUE
+              PERFORM S100-WRITE-FDQ0405H
+           END-IF
+XZ0511     PERFORM B700-GET-EXCH-RATE
+XZ0511        THRU B700-GET-EXCH-RATE-EXIT
+XZ0511     PERFORM B800-CALL-ZFXBINQ
+XZ0511        THRU B800-CALL-ZFXBINQ-EXIT
+           MOVE SPACE                     TO 0405H-TXT
+R36285*    MOVE 0405A-AC-TYPE             TO WS-FORMAT-D20-F1
+R36285     MOVE 0405A-PROD-CODE           TO WS-FORMAT-D20-F1
+           MOVE 0405A-EFF-CNT             TO WS-FORMAT-D20-F2
+           MOVE 0405A-EFF-AMT-TOT         TO WS-FORMAT-D20-F3
+           MOVE 0405A-EFF-FLOAT           TO WS-FORMAT-D20-F4
+           MOVE 0405A-EFF-NET-AMT         TO WS-FORMAT-D20-F5
+XZ0511     MOVE AMCM-RATE                 TO WS-FORMAT-D20-F6
+XZ0511     MOVE BINQ-FX-SEL-AMT           TO WS-FORMAT-D20-F7
+           MOVE WS-FORMAT-D20             TO 0405H-TXT
+           MOVE 20                        TO 0405H-FMT-NO
+           MOVE ZERO                      TO 0405H-BR-DP
+           MOVE "000"                     TO 0405H-CCY
+           SET 0405H-SUM-YES              TO TRUE
+           PERFORM S100-WRITE-FDQ0405H
+           .
+           EXIT.
+      *
+       B620-PROC-TYPE62.
+           MOVE SPACE                     TO 0405H-TXT
+           MOVE 0405A-EFF-CNT             TO WS-FORMAT-D21-F1
+           MOVE 0405A-EFF-AMT-TOT         TO WS-FORMAT-D21-F2
+           MOVE 0405A-EFF-FLOAT           TO WS-FORMAT-D21-F3
+           MOVE 0405A-EFF-NET-AMT         TO WS-FORMAT-D21-F4
+##?   *    MOVE                           TO WS-FORMAT-D21-F5
+##?   *    MOVE                           TO WS-FORMAT-D21-F6
+           MOVE WS-FORMAT-D21             TO 0405H-TXT
+           MOVE 21                        TO 0405H-FMT-NO
+           MOVE ZERO                      TO 0405H-BR-DP
+           MOVE "000"                     TO 0405H-CCY
+           SET 0405H-SUM-YES              TO TRUE
+           PERFORM S100-WRITE-FDQ0405H
+           .
+           EXIT.
+      *
+       B630-PROC-TYPE63.
+           MOVE SPACE                     TO 0405H-TXT
+           MOVE 25                        TO 0405H-FMT-NO
+           MOVE ZERO                      TO 0405H-BR-DP
+           MOVE "000"                     TO 0405H-CCY
+           SET 0405H-SUM-YES              TO TRUE
+           PERFORM S100-WRITE-FDQ0405H
+           MOVE SPACE                     TO 0405H-TXT
+ZL0319*    MOVE 0405A-TOT-CERT            TO WS-FORMAT-D22-F1
+ZL0319     MOVE WS-TOT-CERT               TO WS-FORMAT-D22-F1
+           MOVE WS-FORMAT-D22             TO 0405H-TXT
+           MOVE 22                        TO 0405H-FMT-NO
+           MOVE ZERO                      TO 0405H-BR-DP
+           MOVE "000"                     TO 0405H-CCY
+           SET 0405H-SUM-YES              TO TRUE
+           PERFORM S100-WRITE-FDQ0405H
+           MOVE SPACE                     TO 0405H-TXT
+ZL0319*    MOVE 0405A-ACT-CERT            TO WS-FORMAT-D23-F1
+ZL0319*    MOVE 0405A-DOR-CERT            TO WS-FORMAT-D23-F2
+ZL0319     MOVE WS-ACT-CERT               TO WS-FORMAT-D23-F1
+ZL0319     MOVE WS-DOR-CERT               TO WS-FORMAT-D23-F2
+           MOVE WS-FORMAT-D23             TO 0405H-TXT
+           MOVE 23                        TO 0405H-FMT-NO
+           MOVE ZERO                      TO 0405H-BR-DP
+           MOVE "000"                     TO 0405H-CCY
+           SET 0405H-SUM-YES              TO TRUE
+           PERFORM S100-WRITE-FDQ0405H
+           MOVE SPACE                     TO 0405H-TXT
+ZL0319*    MOVE 0405A-NEW-CERT            TO WS-FORMAT-D24-F1
+ZL0319*    MOVE 0405A-CLS-CERT            TO WS-FORMAT-D24-F2
+ZL0319     MOVE WS-NEW-CERT               TO WS-FORMAT-D24-F1
+ZL0319     MOVE WS-CLS-CERT               TO WS-FORMAT-D24-F2
+           MOVE WS-FORMAT-D24             TO 0405H-TXT
+           MOVE 24                        TO 0405H-FMT-NO
+           MOVE ZERO                      TO 0405H-BR-DP
+           MOVE "000"                     TO 0405H-CCY
+           SET 0405H-SUM-YES              TO TRUE
+           PERFORM S100-WRITE-FDQ0405H
+           .
+           EXIT.
+      *****************************************************************
+      *  GET-EXCH-RATE                                                *
+      *****************************************************************
+       B700-GET-EXCH-RATE.
+           MOVE 0405A-CCY                 TO AMCM-CCY-CODE
+           EXEC SQL
+                SELECT  AMCM_RATE
+                 INTO  :AMCM-RATE
+                 FROM   AMCM
+              WHERE AMCM_CCY_CODE = :AMCM-CCY-CODE
+           END-EXEC
+            EVALUATE TRUE
+               WHEN SQLCODE = ZERO
+                  CONTINUE
+               WHEN SQLCODE = 100
+                  MOVE ZEROS              TO AMCM-RATE
+               WHEN OTHER
+                  DISPLAY 'THE ERROR PROGRAM NAME :' K-PROGRAM-NAME
+                  DISPLAY 'B700-GET-EXCH-RATE    '
+                  DISPLAY 'THE ERROR TABLE   NAME :' WK-TABLE-AMCM
+                  DISPLAY 'THE ERROR KEY2  RECORD :' AMCM-CCY-CODE
+                  DISPLAY 'THE SELECT SQLCODE      :' SQLCODE
+                  DISPLAY 'THE SELECT SQLSTATE     :' SQLSTATE
+                  MOVE ERROR-RC           TO RETURN-CODE
+                  PERFORM Z000-EXIT
+            END-EVALUATE
+           .
+       B700-GET-EXCH-RATE-EXIT.
+           EXIT.
+       B800-CALL-ZFXBINQ.
+           INITIALIZE ZFXCBINQ
+           IF 0405A-CCY-CHAR = 'MOP'
+           THEN
+              MOVE 0405A-EFF-AMT-TOT      TO BINQ-FX-SEL-AMT
+           ELSE
+              IF 0405A-EFF-AMT-TOT NOT = ZEROS
+              THEN
+                 SET BINQ-FX-FUNC-COM     TO TRUE
+                 MOVE 0405A-CCY-CHAR      TO BINQ-FX-BUY-CCY
+                 MOVE 0405A-EFF-AMT-TOT   TO BINQ-FX-BUY-AMT
+                 MOVE 'MOP'               TO BINQ-FX-SEL-CCY
+      *          MOVE WS-FX-RATE          TO BINQ-FX-RATE
+                 CALL PGM-ZFXBINQ USING ZFXCBINQ
+                 IF BINQ-FX-RC NOT = ZEROS
+                 THEN
+                    MOVE ERROR-RC         TO RETURN-CODE
+                    DISPLAY 'CALL ZFXBINQ   ERROR, STATUS=' BINQ-FX-RC
+                    PERFORM Z000-EXIT
+                 END-IF
+              END-IF
+           END-IF
+      *
+           .
+       B800-CALL-ZFXBINQ-EXIT.
+           EXIT.
+      *****************************************************************
+      *  OPEN I-O FLIE                                                *
+      *****************************************************************
+       S000-OPEN-FILE.
+ZL0317     OPEN INPUT   FDQ0405A FDQ0405G
+                OUTPUT  FDQ0405H
+           IF FILE-0405A-STS NOT = ZEROS
+           THEN
+              MOVE ERROR-RC               TO RETURN-CODE
+              DISPLAY 'OPEN FDQ0405A ERROR, STATUS = ' FILE-0405A-STS
+              PERFORM Z000-EXIT
+           END-IF
+ZL0317     IF FILE-0405G-STS NOT = ZEROS
+ZL0317     THEN
+ZL0317        MOVE ERROR-RC               TO RETURN-CODE
+ZL0317        DISPLAY 'OPEN FDQ0405G ERROR, STATUS = ' FILE-0405G-STS
+ZL0317        PERFORM Z000-EXIT
+ZL0317     END-IF
+           IF FILE-0405H-STS NOT = ZEROS
+           THEN
+              MOVE ERROR-RC               TO RETURN-CODE
+              DISPLAY 'OPEN FDQ0405H ERROR, STATUS = ' FILE-0405H-STS
+              PERFORM Z000-EXIT
+           END-IF
+           .
+           EXIT.
+      *****************************************************************
+      * CLOSE I-O FILE                                                *
+      *****************************************************************
+       S000-CLOSE-FILE.
+ZL0317     CLOSE FDQ0405A FDQ0405G
+                 FDQ0405H
+           IF FILE-0405A-STS NOT = ZEROS
+           THEN
+              MOVE ERROR-RC               TO RETURN-CODE
+              DISPLAY 'CLOSE FDQ0405A ERROR, STATUS = ' FILE-0405A-STS
+           END-IF
+ZL0317     IF FILE-0405G-STS NOT = ZEROS
+ZL0317     THEN
+ZL0317        MOVE ERROR-RC               TO RETURN-CODE
+ZL0317        DISPLAY 'CLOSE FDQ0405G ERROR, STATUS = ' FILE-0405G-STS
+ZL0317     END-IF
+           IF FILE-0405H-STS NOT = ZEROS
+           THEN
+              MOVE ERROR-RC               TO RETURN-CODE
+              DISPLAY 'CLOSE FDQ0405H ERROR, STATUS = ' FILE-0405H-STS
+           END-IF
+           .
+           EXIT.
+      *****************************************************************
+      *  WRITE REPORT DATA FILE                                       *
+      *****************************************************************
+       S100-WRITE-FDQ0405H.
+      *
+           MOVE 'DEPDFD0405'               TO 0405H-RPT-NO
+           WRITE RPC0405H
+           IF FILE-0405H-STS NOT = ZEROS
+           THEN
+              MOVE ERROR-RC               TO RETURN-CODE
+              DISPLAY 'WRITE FDQ0405H ERROR, STATUS=' FILE-0405H-STS
+              PERFORM Z000-EXIT
+           END-IF
+           .
+           EXIT.
+      *****************************************************************
+      *  READ FILE PROC                                               *
+      *****************************************************************
+       S000-READ-0405A.
+      *
+           READ FDQ0405A
+R10186*       AT END SET EOF-0405A            TO TRUE
+R10186*    END-READ
+R10186     EVALUATE FILE-0405A-STS
+R10186        WHEN ZERO
+R10186           CONTINUE
+R10186        WHEN 10
+R10186        WHEN 14
+R10186           SET EOF-0405A                TO TRUE
+R10186        WHEN OTHER
+R10186           DISPLAY "READ FDQ0405A ERROR, STATUS = " FILE-0405A-STS
+R10186           PERFORM Z000-EXIT
+R10186     END-EVALUATE
+           .
+           EXIT.
+      *****************************************************************
+      *  RETURN PROGRAM                                               *
+      *****************************************************************
+      *
+       Z000-EXIT.
+           PERFORM S000-CLOSE-FILE
+           DISPLAY "Z000-EXIT"
+           GOBACK
+      *
+           .
+           EXIT.
+      *********************
+      *  END PROGRAM      *
+      *********************
+       END PROGRAM FDB0405B.
+      *********************

@@ -1,0 +1,309 @@
+      ******************************************************************
+      ***                                                            ***
+      ***  SYSTEM:-  BANCS                                           ***
+      ***                                                            ***
+      ***  PROGRAM:- FDB0402A                                        ***
+      ***                                                            ***
+      ***  PURPOSE:- READ FDQ0402T TO WRITE FDQ0402F                 ***
+      ***                                                            ***
+      ******************************************************************
+      *
+      *                    PROGRAM HISTORY
+      *                    ---------------
+      *
+      ******************************************************************
+      * PROGRAMMER : DATE :SPR NO : COMMENTS
+      *-----------------------------------------------------------------
+      * HEXIONGFENG: 20110714:        : NEW
+      *-----------------------------------------------------------------
+R36285* HEXIONGFENG: 20180425:        : UPDATE FOR RQM : 36285
+R36285*-----------------------------------------------------------------
+      *-----------------------------------------------------------------
+      *
+       IDENTIFICATION DIVISION.
+      *
+       PROGRAM-ID.    FDB0402A.
+       AUTHOR.        VNBHXF.
+      *-----------------------------------------------------------------
+      *-----------------------------------------------------------------
+       INSTALLATION.
+       DATE-WRITTEN.  JULY 2011.
+      *
+      ******************************************************************
+       ENVIRONMENT   DIVISION.
+       CONFIGURATION SECTION.
+       INPUT-OUTPUT  SECTION.
+       FILE-CONTROL.
+           SELECT FDQ0402T ASSIGN TO    FDQ0402T
+                           ORGANIZATION IS SEQUENTIAL
+                           ACCESS MODE  IS SEQUENTIAL
+                           FILE STATUS  IS FILE-0402T-STS.
+VNBCXY     SELECT FDQ0402F ASSIGN TO    FDQ0402F
+VNBCXY                     ORGANIZATION IS SEQUENTIAL
+VNBCXY                     ACCESS MODE  IS SEQUENTIAL
+VNBCXY                     FILE STATUS  IS FILE-0402F-STS.
+      ******************************************************************
+       DATA DIVISION.
+       FILE SECTION.
+       FD FDQ0402T RECORDING MODE IS F.
+          COPY FDC0402T IN LIBRYMIS.
+VNBCXY FD FDQ0402F RECORDING MODE IS F.
+VNBCXY    COPY FDC0402A IN LIBRYMIS.
+      *
+       WORKING-STORAGE SECTION.
+      *
+       01 WS-DP-DATA.
+           COPY DPRINCT IN LIBRYMIS REPLACING ==(INCT)== BY ==INCT==.
+           COPY DPRINVM IN LIBRYMIS REPLACING ==(INVM)== BY ==INVM==.
+           EXEC SQL INCLUDE CPINVT   END-EXEC.
+           EXEC SQL INCLUDE SQLCA    END-EXEC.
+       01 WS-PGM-TEMP-DATA.
+          03 WS-BR-DP                         PIC 9(5).
+          03 WS-CCY                           PIC 9(3).
+          03 WS-TENURE                        PIC X(4).
+          03 WS-REC-NO                        PIC X(9).
+          03 WS-SUB-ACCT                      PIC X(16).
+          03 WK-FORM-AC-FROM                  PIC X(16).
+          03 WK-FORM-AC-TO                    PIC X(16).
+          03 WK-AC-10-FORM.
+             05 WK-AC-10-HEADER               PIC X(03) VALUE ZEROS.
+             05 WK-AC-10-CCY-BR               PIC X(03).
+             05 WK-AC-10-FMT1                 PIC X(01) VALUE '-'.
+             05 WK-AC-10-SUB-SYS              PIC X(01).
+             05 WK-AC-10-FMT2                 PIC X(01) VALUE '-'.
+             05 WK-AC-10-SSN                  PIC X(05).
+             05 WK-AC-10-FMT3                 PIC X(01) VALUE '-'.
+             05 WK-AC-10-CHECK-D              PIC X(01).
+          03 WK-AC-12-FORM.
+             05 WK-AC-12-BR                   PIC X(02) .
+             05 WK-AC-12-FMT1                 PIC X(01) VALUE '-'.
+             05 WK-AC-12-CCY                  PIC X(02).
+             05 WK-AC-12-FMT2                 PIC X(01) VALUE '-'.
+             05 WK-AC-12-SUB-SYS              PIC X(01).
+             05 WK-AC-12-FMT3                 PIC X(01) VALUE '-'.
+             05 WK-AC-12-SSN                  PIC X(06).
+             05 WK-AC-12-FMT4                 PIC X(01) VALUE '-'.
+             05 WK-AC-12-CHECK-D              PIC X(01).
+          03 WS-ACCT-NO                       PIC 9(17).
+          03 WS-CERT-NO                       PIC 9(17).
+          03 WS-BINARY-DATE                   PIC S9(9) USAGE COMP.
+          03 WS-NORM-DATE                     PIC X(9).
+          03 WS-TERM-BASIS                    PIC X.
+          03 WS-TRM-DAY                       PIC 9(8).
+          03 WS-NUM                           PIC 9(1).
+          03 WS-TODAY-AC-DATE                 PIC 9(08).
+          03 WS-TODAY-AC-DATE-B               PIC S9(9) BINARY.
+CXY    01 FILE-END-QSAM1                      PIC X(1).
+CXY       88 WS-END-Y                                  VALUE 'Y'.
+CXY       88 WS-END-N                                  VALUE 'N'.
+       01 WS-REC-INT                          PIC X(1).
+          88 WS-REC-Y                                  VALUE 'Y'.
+          88 WS-REC-N                                  VALUE 'N'.
+       01 WS-FMT-NO                           PIC 9(2).
+      **************************
+      * FILE STATUS            *
+      **************************
+       01 FILE-0402T-STS                      PIC 9(2).
+       01 FILE-0402F-STS                      PIC 9(2).
+      **************************
+      * CONSTANT DECLARATION   *
+      **************************
+       77  WK-PROGRAM-NAME                    PIC X(8) VALUE 'FDB0402A'.
+       77  WK-TABLE-INVM                      PIC X(8) VALUE 'INVM    '.
+       77  WK-TABLE-INVT                      PIC X(8) VALUE 'INVT    '.
+       77 ERROR-RC                            PIC 9(1) VALUE 8.
+      **************************
+      *  FILLER                *
+      **************************
+      *
+       PROCEDURE DIVISION.
+      **************************
+      * MAIN ROUNTE            *
+      **************************
+      *
+           PERFORM A000-INITIALIZE
+              THRU A000-INITIALIZE-EXIT
+      *
+           PERFORM B000-MAIN-LOGIC
+              THRU B000-MAIN-LOGIC-EXIT
+      *
+           PERFORM C000-CLOSE-FILE
+              THRU C000-CLOSE-FILE-EXIT
+      *
+           PERFORM Z000-RETURN
+              THRU Z000-RETURN-EXIT
+              .
+           EXIT.
+      *************************
+      * INITIALIZE VARIABLES  *
+      *************************
+       A000-INITIALIZE.
+      *
+           INITIALIZE WS-PGM-TEMP-DATA
+           OPEN INPUT   FDQ0402T
+           OPEN OUTPUT  FDQ0402F
+      *
+           IF FILE-0402T-STS NOT = ZEROS   THEN
+              MOVE ERROR-RC               TO RETURN-CODE
+#??           DISPLAY 'OPEN FDQ0402T ERROR, STATUS = ' FILE-0402T-STS
+              PERFORM Z000-RETURN
+                 THRU Z000-RETURN-EXIT
+           END-IF
+           IF FILE-0402F-STS NOT = ZEROS   THEN
+              MOVE ERROR-RC               TO RETURN-CODE
+#??           DISPLAY 'OPEN FDQ0402F ERROR, STATUS = ' FILE-0402F-STS
+              PERFORM Z000-RETURN
+                 THRU Z000-RETURN-EXIT
+           END-IF
+           .
+       A000-INITIALIZE-EXIT.
+           EXIT.
+      ********************
+      * MAIN PROGRAM     *
+      ********************
+       B000-MAIN-LOGIC.
+      *
+           SET WS-END-N                       TO TRUE
+CXY        READ FDQ0402T
+CXY           AT END SET WS-END-Y             TO TRUE
+CXY        END-READ
+           MOVE 0402T-REC-NO                  TO WS-REC-NO
+           MOVE 0402T-SUB-ACCT                TO WS-SUB-ACCT
+           PERFORM UNTIL WS-END-Y
+              IF FILE-END-QSAM1 NOT = "Y"     THEN
+      *
+                 SET WS-REC-N                 TO TRUE
+                 IF 0402T-SUB-ACCT = WS-SUB-ACCT
+                 THEN
+                    IF 0402T-REC-NO NOT = WS-REC-NO
+                    THEN
+                       SET WS-REC-Y           TO TRUE
+                    END-IF
+                 END-IF
+      *
+                 MOVE 0402T-BR-DP             TO 0402A-BR-DP
+                 MOVE 0402T-CCY               TO 0402A-CCY
+                 MOVE 0402T-TENURE            TO 0402A-TENURE
+                 MOVE 0402T-SUB-ACCT          TO 0402A-ACCT-NO
+                 MOVE 0402T-INT-IND           TO 0402A-INT-IND
+                 MOVE 0402T-CERT-AMT          TO 0402A-CERT-AMT
+                 MOVE 0402T-AMT-EXCHANGED     TO 0402A-AMT-EXCHANGED
+                 MOVE 0402T-EXCH-RATE         TO 0402A-EXCH-RATE
+                 MOVE 0402T-EXC-CCY           TO 0402A-EXC-CCY
+                 MOVE 0402T-RATE              TO 0402A-RATE
+                 MOVE 0402T-DUE-DATE          TO 0402A-DUE-DATE
+                 MOVE 0402T-INT-PAID          TO 0402A-INT-PAID
+                 MOVE 0402T-ISS-BR            TO 0402A-ISS-BR
+                 MOVE 0402T-CCY-NAME          TO 0402A-CCY-NAME
+                 MOVE 0402T-IN-HKD            TO 0402A-IN-HKD
+R36285           MOVE 0402T-PROD-CODE         TO 0402A-PROD-CODE
+R36285           MOVE 0402T-PROD-IND          TO 0402A-PROD-IND
+                 PERFORM B300-READ-INVT
+                    THRU B300-READ-INVT-EXIT
+                 MOVE INVT-MAST-ACCT          TO 0402A-MAST-ACCT
+                 MOVE INVT-VOLUME-NO          TO 0402A-CERT-NO(1:3)
+                 MOVE INVT-SEQUENCE-NO        TO 0402A-CERT-NO(4:2)
+                 IF WS-REC-N
+                 THEN
+                    PERFORM S000-WRITE-FDQ0402F
+                       THRU S000-WRITE-FDQ0402F-EXIT
+                 END-IF
+      *
+                 SET WS-END-N                 TO TRUE
+                 MOVE 0402T-REC-NO            TO WS-REC-NO
+                 MOVE 0402T-SUB-ACCT          TO WS-SUB-ACCT
+CXY              READ FDQ0402T
+                    AT END SET WS-END-Y       TO TRUE
+                 END-READ
+              END-IF
+           END-PERFORM
+           .
+       B000-MAIN-LOGIC-EXIT.
+           EXIT.
+      *
+       B300-READ-INVT.
+           INITIALIZE INVT
+           MOVE 003                       TO INVT-SOC-NO
+           MOVE 0402T-SUB-ACCT            TO INVT-SUB-ACCT-NO
+           EXEC SQL
+              SELECT
+                     MAST_ACCT,
+                     VOLUME_NO,
+                     SEQUENCE_NO
+              INTO
+                    :INVT-MAST-ACCT,
+                    :INVT-VOLUME-NO,
+                    :INVT-SEQUENCE-NO
+              FROM   INVT
+              WHERE SUB_ACCT_NO = :INVT-SUB-ACCT-NO AND
+                    ACTIVE_FLAG = '0'
+           END-EXEC
+           EVALUATE TRUE
+              WHEN SQLCODE = ZERO
+              WHEN SQLCODE = 100
+                 CONTINUE
+              WHEN OTHER
+                DISPLAY 'THE ERROR PROGRAM NAME :' WK-PROGRAM-NAME
+                DISPLAY 'B300-READ-INVT'
+                DISPLAY 'THE ERROR TABLE   NAME :' WK-TABLE-INVT
+                DISPLAY 'THE ERROR KEY   RECORD :' INVT-MAST-ACCT
+                DISPLAY 'THE OPEN SQLCODE       :' SQLCODE
+                DISPLAY 'THE OPEN SQLSTATE      :' SQLSTATE
+                MOVE ERROR-RC            TO RETURN-CODE
+                PERFORM Z000-RETURN
+                   THRU Z000-RETURN-EXIT
+           END-EVALUATE
+           .
+       B300-READ-INVT-EXIT.
+           EXIT.
+      **********************
+      *  WRITE-FDQ0402F    *
+      **********************
+       S000-WRITE-FDQ0402F.
+           WRITE FDC0402A-DATA
+           IF FILE-0402F-STS NOT = ZEROS THEN
+              MOVE ERROR-RC                TO RETURN-CODE
+#??           DISPLAY 'WRITE FDQ0402F ERROR, STATUS=' FILE-0402F-STS
+              PERFORM Z000-RETURN
+                 THRU Z000-RETURN-EXIT
+           END-IF
+      *
+           .
+       S000-WRITE-FDQ0402F-EXIT.
+           EXIT.
+      *
+      ********************
+      * CLOSE FILE       *
+      ********************
+      *
+       C000-CLOSE-FILE.
+           CLOSE FDQ0402T FDQ0402F
+           IF FILE-0402T-STS NOT = ZEROS   THEN
+              MOVE ERROR-RC               TO RETURN-CODE
+#??           DISPLAY 'CLOSE FDQ0402T ERROR, STATUS = ' FILE-0402T-STS
+              PERFORM Z000-RETURN
+                 THRU Z000-RETURN-EXIT
+           END-IF
+           IF FILE-0402F-STS NOT = ZEROS   THEN
+              MOVE ERROR-RC               TO RETURN-CODE
+#??           DISPLAY 'CLOSE FDQ0402F ERROR, STATUS = ' FILE-0402F-STS
+              PERFORM Z000-RETURN
+                 THRU Z000-RETURN-EXIT
+           END-IF
+      *
+           .
+       C000-CLOSE-FILE-EXIT.
+           EXIT.
+      *
+       COPY RPRFMTAC.
+      *
+       Z000-RETURN.
+           GOBACK
+      *
+           .
+       Z000-RETURN-EXIT.
+           EXIT.
+      *********************
+      *  END PROGRAM      *
+      *********************
+       END PROGRAM FDB0402A.

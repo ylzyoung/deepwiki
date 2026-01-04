@@ -1,0 +1,1051 @@
+      ******************************************************************
+      ***                                                            ***
+      ***  SYSTEM:-  BANCS                                           ***
+      ***                                                            ***
+      ***  PROGRAM:- FDB0420B                                        ***
+      ***                                                            ***
+      ***  PURPOSE:- REPORT PROGRAM FOR DEPOSIT                      ***
+      ***                                                            ***
+      ******************************************************************
+      *                                                                *
+      *                    PROGRAM HISTORY                             *
+      *                    ---------------                             *
+      *                                                                *
+      *****************************************************************
+      * PROGRAMMER : DATE :SPR NO : COMMENTS *
+      *-----------------------------------------------------------------
+      * CHENXINGZHANG: 20110728:        : NEW                          *
+      *-----------------------------------------------------------------
+R31737* VNBZP  : 20170413 : R31737 :HANDLE FOR ISSUE WHEN SEND INT ABNOM
+      *-----------------------------------------------------------------
+R36285* VNBSD  : 20180420 : VNB420 :ADD PROD-CODE FIELD TO THE REPORT
+R36285*-----------------------------------------------------------------
+      *
+       IDENTIFICATION DIVISION.
+      *
+       PROGRAM-ID.    FDB0420B.
+       AUTHOR.        VNBXXX.
+      *-----------------------------------------------------------------
+      *-----------------------------------------------------------------
+       INSTALLATION.
+       DATE-WRITTEN.  JULY 2011.
+      *
+      ******************************************************************
+       ENVIRONMENT   DIVISION.
+      ******************************************************************
+      *
+      ******************************************************************
+       CONFIGURATION SECTION.
+      ******************************************************************
+      *
+      ******************************************************************
+       INPUT-OUTPUT  SECTION.
+      ******************************************************************
+      *
+      ******************************************************************
+       FILE-CONTROL.
+      ******************************************************************
+      *
+           SELECT FDQ0420A  ASSIGN TO    FDQ0420A
+                           ORGANIZATION IS SEQUENTIAL
+                           ACCESS MODE  IS SEQUENTIAL
+                           FILE STATUS  IS FILE-0420A-STS.
+      *
+           SELECT FDQ0420B ASSIGN TO    FDQ0420B
+                           ORGANIZATION IS SEQUENTIAL
+                           ACCESS MODE  IS SEQUENTIAL
+                           FILE STATUS  IS FILE-0420B-STS.
+      *
+           SELECT FDQ0420C ASSIGN TO    FDQ0420C
+                           ORGANIZATION IS SEQUENTIAL
+                           ACCESS MODE  IS SEQUENTIAL
+                           FILE STATUS  IS FILE-0420C-STS.
+      *
+           SELECT FDQ0420  ASSIGN TO    FDQ0420
+                           ORGANIZATION IS SEQUENTIAL
+                           ACCESS MODE  IS SEQUENTIAL
+                           FILE STATUS  IS FILE-0420-STS.
+      *
+      ******************************************************************
+       DATA DIVISION.
+      ******************************************************************
+      *
+      ******************************************************************
+       FILE SECTION.
+      ******************************************************************
+      *
+       FD FDQ0420A RECORDING MODE IS F.
+          COPY FDC0420A IN LIBRYMIS.
+      *
+       FD FDQ0420B RECORDING MODE IS F.
+          COPY FDC0420B IN LIBRYMIS REPLACING ==:0420B:== BY ==0420B==.
+      *
+       FD FDQ0420C RECORDING MODE IS F.
+          COPY FDC0420B IN LIBRYMIS REPLACING ==:0420B:== BY ==0420C==.
+      *
+       FD FDQ0420  RECORDING MODE IS F.
+          COPY RPCRPT IN LIBRYMIS REPLACING ==:RPTL:== BY ==0420==.
+      *
+      ******************************************************************
+       WORKING-STORAGE SECTION.
+      ******************************************************************
+      **************************
+      * RECORD LAYOUT          *
+      **************************
+      *
+           EXEC SQL INCLUDE CPINVM   END-EXEC.
+           EXEC SQL INCLUDE CPINCT   END-EXEC.
+           EXEC SQL INCLUDE CPBRHM   END-EXEC.
+           EXEC SQL INCLUDE CPCCYM   END-EXEC.
+           EXEC SQL INCLUDE CPFXSM   END-EXEC.
+           EXEC SQL INCLUDE SQLCA    END-EXEC.
+      *
+      **************************
+      * CONSTANT DECLARATION   *
+      **************************
+      *
+       77 ERROR-RC                        PIC 9(1) VALUE 8.
+       77 WK-PROG-NAME                    PIC X(8) VALUE 'FDB0420B'.
+       77 WK-TABLE-INCT                   PIC X(08) VALUE 'INCT    '.
+       77 K-CCY-COUNT                     PIC 9(2) VALUE 50.
+       77 WK-TABLE-BRHM                    PIC X(08) VALUE 'BRHM    '.
+       77 WK-TABLE-CCYM                    PIC X(08) VALUE 'CCYM    '.
+       77 WK-PGM-ZFXBINQ                   PIC X(10) VALUE 'ZFXBINQ '.
+      *
+      ******************************
+      * PROGRAM VARIABLES          *
+      ******************************
+       01 WS-PROGRAM-DATA.
+          03 WS-PGM-TEMP-DATA.
+      *      05 WS-FLG                         PIC X(01).
+             05 WS-I                           PIC 9(02).
+             05 WS-EXCH-RATE                   PIC 9(5)V9(4).
+             05 WS-CCYM-X                      PIC X(3).
+             05 WS-CCYM-Y                      PIC X(3).
+             05 WS-FXSM-AMT                    PIC S9(15)V9(2).
+             05 WS-D05-AMT                     PIC S9(15)V9(2).
+             05 WS-D05-PAID                    PIC S9(15)V9(2).
+             05 WS-D06-AMT                     PIC S9(15)V9(2).
+             05 WS-D09-TOT                     PIC S9(15)V9(2).
+             05 WS-TODAY-AC-DATE               PIC 9(08).
+             05 WS-TODAY-AC-DATE-B             PIC S9(9) BINARY.
+             05 WS-BINARY-DATE                 PIC S9(9) BINARY.
+      *      05 WS-COUNT                       PIC 9(09).
+      *      05 WS-AMOUNT                      PIC S9(14)V9(3).
+      *      05 WS-TOTAL-COUNT                 PIC 9(09).
+             05 WS-TOTAL-INT-PAID              PIC S9(14)V9(3).
+             05 WS-CONTROL-BR                  PIC X(05).
+          03 WK-FORM-AC-FROM                   PIC X(16).
+          03 WK-FORM-AC-TO                     PIC X(16).
+          03 WK-AC-10-FORM.
+             05 WK-AC-10-HEADER                PIC X(03) VALUE SPACES.
+             05 WK-AC-10-CCY-BR                PIC X(03).
+             05 WK-AC-10-FMT1                  PIC X(01) VALUE '-'.
+             05 WK-AC-10-SUB-SYS               PIC X(01).
+             05 WK-AC-10-FMT2                  PIC X(01) VALUE '-'.
+             05 WK-AC-10-SSN                   PIC X(05).
+             05 WK-AC-10-FMT3                  PIC X(01) VALUE '-'.
+             05 WK-AC-10-CHECK-D               PIC X(01).
+          03 WK-AC-12-FORM.
+             05 WK-AC-12-BR                    PIC X(02) .
+             05 WK-AC-12-FMT1                  PIC X(01) VALUE '-'.
+             05 WK-AC-12-CCY                   PIC X(02).
+             05 WK-AC-12-FMT2                  PIC X(01) VALUE '-'.
+             05 WK-AC-12-SUB-SYS               PIC X(01).
+             05 WK-AC-12-FMT3                  PIC X(01) VALUE '-'.
+             05 WK-AC-12-SSN                   PIC X(06).
+             05 WK-AC-12-FMT4                  PIC X(01) VALUE '-'.
+             05 WK-AC-12-CHECK-D               PIC X(01).
+          03 WS-CCY-DATA.
+             05 WS-CCY-TOTAL OCCURS 99 TIMES.
+                07 WS-CCY9                     PIC X(03).
+                07 WS-CCYX                     PIC X(03).
+       01 WS-FORMAT-AREA.
+          03 WS-D01-DATA.
+             05 WS-D01-AC                   PIC X(16).
+R36285    03 WS-D02-DATA.
+R36285       05 WS-D02-PROD-CODE            PIC X(8).
+          03 WS-D05-DATA.
+             05 WS-D05-ACCT-TYPE            PIC X(04).
+             05 WS-D05-VOL-NO               PIC X(03).
+             05 WS-D05-SEQ-NO               PIC X(02).
+             05 WS-D05-CCY                  PIC X(03).
+             05 WS-D05-CERT-AMT             PIC $$$,$$$,$$$,$$$,$$9.99.
+             05 WS-D05-INT-RATE             PIC ZZ9.9999.
+             05 WS-D05-INT-PAID             PIC $$$,$$$,$$$,$$$,$$9.99-.
+             05 WS-D05-INT-FROM             PIC X(09).
+             05 WS-D05-INT-TO               PIC X(09).
+          03 WS-D06-DATA.
+             05 WS-D06-TRF-AC               PIC X(16).
+             05 WS-D06-TRF-CCY              PIC X(03).
+             05 WS-D06-EXCH-RATE            PIC ZZZZ9.9999.
+             05 WS-D06-TRF-AMT              PIC $$$,$$$,$$$,$$$,$$9.99-.
+          03 WS-D09-DATA.
+             05 WS-D09-CCY9                 PIC X(03).
+             05 WS-D09-CCYX                 PIC X(03).
+             05 WS-D09-AMT-TOT              PIC $$$,$$$,$$$,$$$,$$9.99-.
+      **************************
+      * FILE STATUS            *
+      **************************
+       01 WS-FILE-STS.
+          03 FILE-0420-STS                  PIC 9(2).
+          03 FILE-0420A-STS                 PIC 9(2).
+          03 FILE-0420B-STS                 PIC 9(2).
+          03 FILE-0420C-STS                 PIC 9(2).
+      **************************
+      * CONDITION DECLARATION  *
+      **************************
+       01 WS-FLIE-END.
+          03 FILE-END-0420A                   PIC X(1) VALUE SPACE.
+             88 EOF-0420A                              VALUE 'Y'.
+          03 FILE-END-0420B                   PIC X(1) VALUE SPACE.
+             88 EOF-0420B                              VALUE 'Y'.
+          03 FILE-END-0420C                   PIC X(1) VALUE SPACE.
+             88 EOF-0420C                              VALUE 'Y'.
+      *
+          03 TABLE-FETCH-FLG                  PIC X(1) VALUE SPACE.
+             88 WS-END-Y                               VALUE 'Y'.
+             88 WS-END-N                               VALUE 'N'.
+          03 WS-DETAIL-PRINT-FLG              PIC X(1) VALUE SPACE.
+             88 WS-DETAIL-PRINT-Y                      VALUE 'Y'.
+             88 WS-DETAIL-PRINT-N                      VALUE 'N'.
+          03 WS-INVM-VALID-FLG                PIC X(1) VALUE SPACE.
+             88 WS-INVM-VALID-Y                        VALUE "Y".
+             88 WS-INVM-VALID-N                        VALUE "N".
+          03 WS-INCT-VALID-FLG                PIC X(1) VALUE SPACE.
+             88 WS-INCT-VALID-Y                        VALUE "Y".
+             88 WS-INCT-VALID-N                        VALUE "N".
+      *
+      *****************************************************************
+      *    COMMUNICATION AREA                                         *
+      *****************************************************************
+      *
+           COPY ZTCCJPRM IN LIBRYMIS.
+      *
+           COPY UT0030CA IN LIBRYMIS.
+      *
+           COPY ZFXCBINQ IN LIBRYMIS.
+      *
+       01 WS-INCT-VAR-AREA.
+           COPY DPRINCT IN LIBRYMIS
+                        REPLACING ==(INCT)== BY ==INCT==.
+      **************************
+       PROCEDURE DIVISION.
+      **************************
+      *
+       A000-MAIN-PROC.
+      *
+           PERFORM A000-INITIALIZE
+      *
+           PERFORM B000-MAIN-LOGIC
+      *
+           PERFORM Z000-RETURN
+              THRU Z000-RETURN-EXIT
+           .
+           EXIT.
+      *************************
+      * INITIALIZE VARIABLES  *
+      *************************
+       A000-INITIALIZE.
+      *
+           INITIALIZE WS-PGM-TEMP-DATA
+      *
+           PERFORM S000-OPEN-FILE
+           .
+           EXIT.
+      ****************************************************************
+      * MAIN PROGRAM                                                 *
+      ****************************************************************
+       B000-MAIN-LOGIC.
+      *
+           PERFORM B050-GET-ACDATE
+      *
+           PERFORM B070-LOAD-CCY
+      *
+           PERFORM B100-PROC-REPORT-FILE
+      *
+           .
+           EXIT.
+      *****************************************************************
+      * OUTPUT DATA TO REPORT FILE
+      *****************************************************************
+       B100-PROC-REPORT-FILE.
+      *
+           SET WS-END-N                        TO TRUE
+           PERFORM S000-READ-FDQ0420A
+           PERFORM S000-READ-FDQ0420B
+           PERFORM S000-READ-FDQ0420C
+           PERFORM B110-DEC-CUR-BR
+           PERFORM B120-OPEN-CUR-BR
+           PERFORM B130-FETCH-CUR-BR
+      *
+           PERFORM UNTIL WS-END-Y
+      *       MOVE SPACE                       TO 0420-TXT
+      *       MOVE 10                          TO 0420-FMT-NO
+      *       SET 0420-DET-YES                 TO TRUE
+      *       MOVE 'Y'                         TO 0420-SPECIAL-PAGE
+      *       PERFORM S000-WRITE-FDQ0420
+      *       MOVE SPACE                       TO 0420-SPECIAL-PAGE
+      *       MOVE SPACE                       TO 0420-TXT
+      *       MOVE 10                          TO 0420-FMT-NO
+      *       SET 0420-DET-YES                 TO TRUE
+      *       PERFORM S000-WRITE-FDQ0420
+      *
+              SET WS-DETAIL-PRINT-N            TO TRUE
+              PERFORM B160-PRINT-DETAIL
+      *
+              IF WS-DETAIL-PRINT-Y
+              THEN
+                 PERFORM B180-PRINT-BRANCH-SUM
+              END-IF
+      *
+              PERFORM B130-FETCH-CUR-BR
+           END-PERFORM
+      *
+           IF NOT EOF-0420C
+           THEN
+              PERFORM B190-PROC-BANK-SUMMARY
+           END-IF
+      *
+           .
+           EXIT.
+      *****************************************************************
+      *   PRINT DETAIL DATA TO REPORT FILE                            *
+      *****************************************************************
+       B160-PRINT-DETAIL.
+      *
+           PERFORM UNTIL 0420A-BR-NO(2:2) > WS-CONTROL-BR(2:2) OR
+                         EOF-0420A
+              SET WS-DETAIL-PRINT-Y            TO TRUE
+              IF 0420A-MAST-AC NOT = WS-D01-AC
+              THEN
+                 MOVE SPACE                    TO 0420-TXT
+                 MOVE 01                       TO 0420-FMT-NO
+                 SET 0420-DET-YES              TO TRUE
+      *          MOVE 0420A-MAST-AC            TO WS-D01-AC
+                 MOVE 0420A-MAST-AC            TO WK-FORM-AC-FROM
+                 PERFORM S00-FORMAT-CBS-AC
+                 MOVE WK-FORM-AC-TO            TO WS-D01-AC
+                 MOVE WS-D01-DATA              TO 0420-TXT
+                 PERFORM S000-WRITE-FDQ0420
+                 MOVE SPACE                    TO 0420-TXT
+                 MOVE 02                       TO 0420-FMT-NO
+                 SET 0420-DET-YES              TO TRUE
+R36285           MOVE 0420A-PROD-CODE          TO WS-D02-PROD-CODE
+R36285           MOVE WS-D02-DATA              TO 0420-TXT
+                 PERFORM S000-WRITE-FDQ0420
+                 MOVE SPACE                    TO 0420-TXT
+                 MOVE 03                       TO 0420-FMT-NO
+                 SET 0420-DET-YES              TO TRUE
+                 PERFORM S000-WRITE-FDQ0420
+                 MOVE SPACE                    TO 0420-TXT
+                 MOVE 04                       TO 0420-FMT-NO
+                 SET 0420-DET-YES              TO TRUE
+                 PERFORM S000-WRITE-FDQ0420
+              END-IF
+      *
+              MOVE 0420A-ACCT-TYPE             TO WS-D05-ACCT-TYPE
+              MOVE 0420A-VOL-NO                TO WS-D05-VOL-NO
+              MOVE 0420A-SEQ-NO                TO WS-D05-SEQ-NO
+              MOVE 0420A-CCY                   TO WS-D05-CCY
+              COMPUTE WS-D05-AMT ROUNDED = 0420A-CURR-BAL
+              END-COMPUTE
+              MOVE WS-D05-AMT                  TO WS-D05-CERT-AMT
+              MOVE 0420A-INT-RATE              TO WS-D05-INT-RATE
+              COMPUTE WS-D05-PAID ROUNDED = 0420A-INT-PAID
+              END-COMPUTE
+              MOVE WS-D05-PAID                 TO WS-D05-INT-PAID
+              MOVE 0420A-INT-FROM              TO WS-D05-INT-FROM
+              MOVE 0420A-INT-TO                TO WS-D05-INT-TO
+      *
+              MOVE SPACE                       TO 0420-TXT
+              MOVE 05                          TO 0420-FMT-NO
+              SET 0420-DET-YES                 TO TRUE
+              DISPLAY "WS-D05-DATA:" WS-D05-DATA
+              MOVE WS-D05-DATA                 TO 0420-TXT
+              DISPLAY "0420-TXT:" 0420-TXT
+              PERFORM S000-WRITE-FDQ0420
+      *       MOVE 0420A-TRF-AC-NO             TO WS-D06-TRF-AC
+              IF 0420A-TRF-AC-NO = ZERO
+              THEN
+                 MOVE SPACE                    TO WS-D06-TRF-AC
+                 MOVE ZERO                     TO WS-D06-EXCH-RATE
+                 COMPUTE WS-D06-AMT ROUNDED = 0420A-INT-TRF
+                 END-COMPUTE
+                 MOVE WS-D06-AMT               TO WS-D06-TRF-AMT
+                 MOVE 0420A-CCY-NO             TO WS-D06-TRF-CCY
+              ELSE
+R31737           IF 0420A-TRF-AC-NO(1:1) = '9'
+R31737              MOVE 0420A-TRF-AC-NO       TO WS-D06-TRF-AC
+R31737           ELSE
+                    MOVE 0420A-TRF-AC-NO       TO WK-FORM-AC-FROM
+                    PERFORM S00-FORMAT-CBS-AC
+                    MOVE WK-FORM-AC-TO         TO WS-D06-TRF-AC
+R31737           END-IF
+XF0323*          PERFORM B200-READ-INVM
+XF0323*             THRU B200-READ-INVM-EXIT
+XF0323*          PERFORM B300-EX-CCY-DIG
+XF0323*             THRU B300-EX-CCY-DIG-EXIT
+XF0323*          MOVE CCYM-CURRENCY-CODE-DIG   TO WS-D06-TRF-CCY
+XF0323           MOVE 0420A-CCY-NO             TO WS-D06-TRF-CCY
+XF0313           MOVE 0420A-EXCH-RATE          TO WS-D06-EXCH-RATE
+      *          MOVE 0420A-INT-TRF            TO WS-D06-AMT
+                 COMPUTE WS-D06-AMT ROUNDED = 0420A-INT-TRF
+                 END-COMPUTE
+                 MOVE WS-D06-AMT               TO WS-D06-TRF-AMT
+      *          PERFORM B600-GET-EX-INFOR
+      *             THRU B600-GET-EX-INFOR-EXIT
+XF0313*          IF INVM-CURRENCY = 0420A-CCY
+XF0313*          THEN
+XF0313*             MOVE ZERO                  TO WS-D06-EXCH-RATE
+XF0313*          ELSE
+XF0313*             INITIALIZE ZFXCBINQ
+XF0313*             MOVE 0420A-CCY             TO BINQ-FX-BUY-CCY
+XF0313*             MOVE INVM-CURRENCY         TO BINQ-FX-SEL-CCY
+XF0313*             PERFORM B400-CALL-EXCHANGE-INQ
+XF0313*                THRU B400-CALL-EXCHANGE-INQ-EXIT
+XF0313*             MOVE BINQ-FX-RATE          TO WS-D06-EXCH-RATE
+XF0313*          END-IF
+XF0320*          IF INVM-CURRENCY = 0420A-CCY
+XF0320*          THEN
+XF0320*             COMPUTE WS-D06-AMT ROUNDED = 0420A-INT-TRF
+XF0320*             END-COMPUTE
+XF0320*             MOVE WS-D06-AMT            TO WS-D06-TRF-AMT
+XF0320*          ELSE
+XF0320*             PERFORM B500-CALL-EXCHANGE
+XF0320*                THRU B500-CALL-EXCHANGE-EXIT
+XF0320*             DISPLAY "INCT-01-AMOUNT:" INCT-01-AMOUNT
+ZL0316*             COMPUTE WS-D06-AMT ROUNDED = INCT-01-AMOUNT
+XF0320*             END-COMPUTE
+XF0320*             MOVE WS-D06-AMT            TO WS-D06-TRF-AMT
+XF0320*          END-IF
+              END-IF
+      *
+              MOVE SPACE                       TO 0420-TXT
+              MOVE 06                          TO 0420-FMT-NO
+              SET 0420-DET-YES                 TO TRUE
+              MOVE WS-D06-DATA                 TO 0420-TXT
+              PERFORM S000-WRITE-FDQ0420
+      *
+              MOVE SPACE                       TO 0420-TXT
+              MOVE 10                          TO 0420-FMT-NO
+              SET 0420-DET-YES                 TO TRUE
+              PERFORM S000-WRITE-FDQ0420
+      *
+              PERFORM S000-READ-FDQ0420A
+           END-PERFORM
+           .
+           EXIT.
+      *****************************************************************
+      *   PRINT BRANCH SUMMARY DATA TO REPORT FILE                    *
+      *****************************************************************
+       B180-PRINT-BRANCH-SUM.
+      *
+           MOVE SPACE                          TO 0420-TXT
+           MOVE 'Y'                            TO 0420-SPECIAL-PAGE
+           MOVE 10                             TO 0420-FMT-NO
+           SET 0420-SUM-YES                    TO TRUE
+           PERFORM S000-WRITE-FDQ0420
+           MOVE SPACE                          TO 0420-SPECIAL-PAGE
+           MOVE SPACE                          TO 0420-TXT
+           MOVE 07                             TO 0420-FMT-NO
+           SET 0420-SUM-YES                    TO TRUE
+           PERFORM S000-WRITE-FDQ0420
+           MOVE SPACE                          TO 0420-TXT
+           MOVE 08                             TO 0420-FMT-NO
+           SET 0420-SUM-YES                    TO TRUE
+           PERFORM S000-WRITE-FDQ0420
+      *
+           PERFORM VARYING WS-I FROM 1 BY 1
+              UNTIL ( WS-I > K-CCY-COUNT ) OR ( WS-CCY9(WS-I) = SPACE )
+              IF ( WS-CCY9(WS-I) NOT = 0420B-CCY ) OR
+                 ( 0420B-BR-NO(2:2) NOT = WS-CONTROL-BR(2:2) ) OR
+                 EOF-0420B
+              THEN
+                 CONTINUE
+              ELSE
+                 PERFORM UNTIL ( 0420B-CCY NOT = WS-CCY9(WS-I) ) OR
+                      ( 0420B-BR-NO(2:2) NOT = WS-CONTROL-BR(2:2) ) OR
+                               EOF-0420B
+                    COMPUTE WS-TOTAL-INT-PAID = WS-TOTAL-INT-PAID
+                                                + 0420B-INT-PAID
+                    END-COMPUTE
+                    PERFORM S000-READ-FDQ0420B
+                 END-PERFORM
+              END-IF
+              MOVE WS-CCY9(WS-I)               TO WS-D09-CCY9
+              MOVE WS-CCYX(WS-I)               TO WS-D09-CCYX
+              COMPUTE WS-D09-TOT ROUNDED = WS-TOTAL-INT-PAID
+              END-COMPUTE
+              MOVE WS-D09-TOT                  TO WS-D09-AMT-TOT
+              MOVE SPACE                       TO 0420-TXT
+              MOVE 09                          TO 0420-FMT-NO
+              SET 0420-SUM-YES                 TO TRUE
+              MOVE WS-D09-DATA                 TO 0420-TXT
+              PERFORM S000-WRITE-FDQ0420
+              MOVE SPACE                       TO WS-D09-CCY9
+                                                  WS-D09-CCYX
+              MOVE ZERO                        TO WS-D09-AMT-TOT
+                                                  WS-TOTAL-INT-PAID
+           END-PERFORM
+           .
+           EXIT.
+      *****************************************************************
+      *  OUTPUT BANK SUMMARY DATA TO REPORT FILE                      *
+      *****************************************************************
+       B190-PROC-BANK-SUMMARY.
+      *
+           MOVE SPACE                          TO WS-CONTROL-BR
+           MOVE SPACE                          TO 0420-TXT
+           MOVE 08                             TO 0420-FMT-NO
+           SET 0420-SUM-YES                    TO TRUE
+           PERFORM S000-WRITE-FDQ0420
+      *
+           PERFORM VARYING WS-I FROM 1 BY 1
+              UNTIL WS-I > K-CCY-COUNT OR WS-CCY9(WS-I) = SPACE
+              IF ( 0420C-CCY NOT = WS-CCY9(WS-I) ) OR EOF-0420C
+              THEN
+                 MOVE ZERO                     TO WS-D09-AMT-TOT
+              ELSE
+                 PERFORM UNTIL ( 0420C-CCY NOT = WS-CCY9(WS-I) ) OR
+                               EOF-0420C
+                    COMPUTE WS-TOTAL-INT-PAID = WS-TOTAL-INT-PAID
+                                                + 0420C-INT-PAID
+                    END-COMPUTE
+                    PERFORM S000-READ-FDQ0420C
+                 END-PERFORM
+              END-IF
+              MOVE WS-CCY9(WS-I)               TO WS-D09-CCY9
+              MOVE WS-CCYX(WS-I)               TO WS-D09-CCYX
+              COMPUTE WS-D09-TOT ROUNDED = WS-TOTAL-INT-PAID
+              END-COMPUTE
+              MOVE WS-D09-TOT                  TO WS-D09-AMT-TOT
+              MOVE SPACE                       TO 0420-TXT
+              MOVE 09                          TO 0420-FMT-NO
+              SET 0420-SUM-YES                 TO TRUE
+              MOVE WS-D09-DATA                 TO 0420-TXT
+              PERFORM S000-WRITE-FDQ0420
+              MOVE SPACE                       TO WS-D09-CCY9
+                                                  WS-D09-CCYX
+              MOVE ZERO                        TO WS-D09-AMT-TOT
+                                                  WS-TOTAL-INT-PAID
+           END-PERFORM
+           .
+           EXIT.
+      *****************************************************************
+      *   DEFINE CURSOR -  GET BRANCH DATA  ALL                       *
+      *****************************************************************
+       B110-DEC-CUR-BR.
+      *
+           EXEC SQL
+              DECLARE  CUR_BR
+              CURSOR   FOR
+              SELECT   BRHM.KEY_1
+              FROM     BRHM
+              ORDER BY SUBSTR(BRHM.KEY_1,15,5)
+           END-EXEC.
+      *
+           EVALUATE TRUE
+              WHEN SQLCODE = ZERO
+              WHEN SQLCODE = 100
+                 CONTINUE
+              WHEN OTHER
+                  DISPLAY 'THE ERROR PROGRAM NAME :' WK-PROG-NAME
+                  DISPLAY 'B110-DEC-CUR-BR'
+                  DISPLAY 'THE ERROR TABLE1  NAME :' WK-TABLE-BRHM
+                  DISPLAY 'THE ERROR KEY1  RECORD :' BRHM-KEY-1
+                  DISPLAY 'THE DECLARE SQLCODE    :' SQLCODE
+                  DISPLAY 'THE DECLARE SQLSTATE   :' SQLSTATE
+                 MOVE ERROR-RC                  TO RETURN-CODE
+      *          DISPLAY 'DECLARE CUR_BR ERROR SQLCODE= '
+      *          SQLCODE
+                 PERFORM Z000-RETURN
+                    THRU Z000-RETURN-EXIT
+           END-EVALUATE
+           .
+           EXIT.
+      *
+       B120-OPEN-CUR-BR.
+      *
+           EXEC SQL
+              OPEN CUR_BR
+           END-EXEC.
+      *
+           EVALUATE TRUE
+              WHEN SQLCODE = ZERO
+                 CONTINUE
+              WHEN SQLCODE = 100
+                 SET WS-END-Y            TO TRUE
+              WHEN OTHER
+                  DISPLAY 'THE ERROR PROGRAM NAME :' WK-PROG-NAME
+                  DISPLAY 'B120-OPEN-CUR-BR '
+                  DISPLAY 'THE ERROR TABLE1  NAME :' WK-TABLE-BRHM
+                  DISPLAY 'THE ERROR KEY1  RECORD :' BRHM-KEY-1
+                  DISPLAY 'THE OPEN    SQLCODE    :' SQLCODE
+                  DISPLAY 'THE OPEN    SQLSTATE   :' SQLSTATE
+                MOVE ERROR-RC                  TO RETURN-CODE
+      *         DISPLAY 'OPEN CUR_BR ERROR SQLCODE= '
+      *         SQLCODE
+                PERFORM Z000-RETURN
+                   THRU Z000-RETURN-EXIT
+           END-EVALUATE
+           .
+           EXIT.
+      *
+       B130-FETCH-CUR-BR.
+      *
+           EXEC SQL
+              FETCH CUR_BR INTO
+                    :BRHM-KEY-1
+           END-EXEC.
+      *
+           EVALUATE TRUE
+              WHEN SQLCODE = ZERO
+                 MOVE BRHM-KEY-1(15:5)         TO WS-CONTROL-BR
+              WHEN SQLCODE = 100
+                 SET   WS-END-Y                TO TRUE
+              WHEN OTHER
+                  DISPLAY 'THE ERROR PROGRAM NAME :' WK-PROG-NAME
+                  DISPLAY 'B130-FETCH-CUR-BR'
+                  DISPLAY 'THE ERROR TABLE1  NAME :' WK-TABLE-BRHM
+                  DISPLAY 'THE ERROR KEY1  RECORD :' BRHM-KEY-1
+                  DISPLAY 'THE FETCH   SQLCODE    :' SQLCODE
+                  DISPLAY 'THE FETCH   SQLSTATE   :' SQLSTATE
+                MOVE ERROR-RC                  TO RETURN-CODE
+                DISPLAY 'FETCH CUR_BR ERROR SQLCODE= '
+                SQLCODE
+                PERFORM Z000-RETURN
+                   THRU Z000-RETURN-EXIT
+           END-EVALUATE
+           .
+           EXIT.
+      *****************************************************************
+      * CURSOR BRHM TABLE
+      *****************************************************************
+       B050-GET-ACDATE.
+      *
+           CALL "ZTCBQJPM" USING ZTCCJPRM
+           MOVE JPRM-AC-DATE                   TO WS-TODAY-AC-DATE
+      *
+           MOVE WS-TODAY-AC-DATE               TO UT0030-DATE-CCYYMMDD
+           MOVE 2                              TO UT0030-FUNCTION
+           CALL "UT0030" USING UT0030-FUNCTION                          10040004
+                               UT0030-DATE-AREA                         10050004
+                               UT0030-BINARY-DATE                       10060004
+           MOVE UT0030-BINARY-DATE             TO WS-TODAY-AC-DATE-B
+           .
+           EXIT.
+      *
+      *****************************************************************
+      *  LOAD CCY DATA                                                *
+      *****************************************************************
+       B070-LOAD-CCY.
+      *
+           SET WS-END-N                        TO TRUE
+           INITIALIZE                          WS-CCY-DATA
+           PERFORM B070-010-DEC-CUR-CCY
+           PERFORM B070-020-OPEN-CUR-CCY
+           PERFORM B070-030-FETCH-CUR-CCY
+           PERFORM VARYING WS-I FROM 1 BY 1
+                       UNTIL WS-I > K-CCY-COUNT OR WS-END-Y
+              IF CCYM-CODE = 'XXX' OR CCYM-CODE = 'TW1' OR
+                 CCYM-CODE = 'TW2' OR CCYM-CODE = 'US1' OR
+                 CCYM-CODE = 'US2' OR CCYM-CODE = 'US3' OR
+                 CCYM-CODE = '20K' OR CCYM-CODE = '5KN' OR
+                 CCYM-CODE = '4KN' OR CCYM-CODE = '979' OR
+                 CCYM-CODE = '2NG' OR CCYM-CODE = '4NG' OR
+                 CCYM-CODE = '10N' OR CCYM-CODE = '20N' OR
+                 CCYM-CODE = '4MP' OR CCYM-CODE = '10M' OR
+                 CCYM-CODE = '2MP'
+              THEN
+                 COMPUTE WS-I = WS-I - 1
+                 END-COMPUTE
+              ELSE
+                 MOVE CCYM-CURRENCY-CODE-DIG   TO WS-CCY9(WS-I)
+                 MOVE CCYM-CODE                TO WS-CCYX(WS-I)
+              END-IF
+              PERFORM B070-030-FETCH-CUR-CCY
+           END-PERFORM
+           PERFORM B070-040-CLOSE-CUR-CCY
+           .
+           EXIT.
+      *
+       B070-010-DEC-CUR-CCY.
+      *
+           EXEC SQL
+              DECLARE  CUR_CCY
+              CURSOR   FOR
+              SELECT   CCYM.CURRENCY_CODE_DIG,
+                       CCYM.CODE
+              FROM     CCYM
+              ORDER BY CCYM.CURRENCY_CODE_DIG
+           END-EXEC.
+      *
+           EVALUATE TRUE
+              WHEN SQLCODE = ZERO
+              WHEN SQLCODE = 100
+                 CONTINUE
+              WHEN OTHER
+                  DISPLAY 'THE ERROR PROGRAM NAME :' WK-PROG-NAME
+                  DISPLAY 'B070-010-DEC-CUR-CCY'
+                  DISPLAY 'THE ERROR TABLE1  NAME :' WK-TABLE-CCYM
+                  DISPLAY 'THE ERROR KEY1  RECORD :' CCYM-INST-NO
+                  DISPLAY 'THE ERROR KEY2  RECORD :' CCYM-CODE
+                  DISPLAY 'THE FETCH   SQLCODE    :' SQLCODE
+                  DISPLAY 'THE FETCH   SQLSTATE   :' SQLSTATE
+                 MOVE ERROR-RC                  TO RETURN-CODE
+      *          DISPLAY 'DECLARE CUR_CCY  ERROR SQLCODE= '
+      *          SQLCODE
+                 PERFORM Z000-RETURN
+                    THRU Z000-RETURN-EXIT
+           END-EVALUATE
+           .
+           EXIT.
+      *
+       B070-020-OPEN-CUR-CCY.
+      *
+           EXEC SQL
+              OPEN CUR_CCY
+           END-EXEC.
+      *
+           EVALUATE TRUE
+              WHEN SQLCODE = ZERO
+                 CONTINUE
+              WHEN SQLCODE = 100
+                 SET WS-END-Y            TO TRUE
+              WHEN OTHER
+                  DISPLAY 'THE ERROR PROGRAM NAME :' WK-PROG-NAME
+                  DISPLAY 'B070-020-OPEN-CUR-CCY '
+                  DISPLAY 'THE ERROR TABLE1  NAME :' WK-TABLE-CCYM
+                  DISPLAY 'THE ERROR KEY1  RECORD :' CCYM-INST-NO
+                  DISPLAY 'THE ERROR KEY2  RECORD :' CCYM-CODE
+                  DISPLAY 'THE OPEN    SQLCODE    :' SQLCODE
+                  DISPLAY 'THE OPEN    SQLSTATE   :' SQLSTATE
+                MOVE ERROR-RC                  TO RETURN-CODE
+      *         DISPLAY 'OPEN CUR_CCY  ERROR SQLCODE= '
+      *         SQLCODE
+                PERFORM Z000-RETURN
+                   THRU Z000-RETURN-EXIT
+           END-EVALUATE
+           .
+           EXIT.
+      *
+       B070-030-FETCH-CUR-CCY.
+      *
+           EXEC SQL
+              FETCH CUR_CCY INTO
+                    :CCYM-CURRENCY-CODE-DIG,
+                    :CCYM-CODE
+           END-EXEC.
+      *
+           EVALUATE TRUE
+              WHEN SQLCODE = ZERO
+                 CONTINUE
+              WHEN SQLCODE = 100
+                 SET   WS-END-Y                TO TRUE
+              WHEN OTHER
+                  DISPLAY 'THE ERROR PROGRAM NAME :' WK-PROG-NAME
+                  DISPLAY 'B070-030-FETCH-CUR-CCY'
+                  DISPLAY 'THE ERROR TABLE1  NAME :' WK-TABLE-CCYM
+                  DISPLAY 'THE ERROR KEY1  RECORD :' CCYM-INST-NO
+                  DISPLAY 'THE ERROR KEY2  RECORD :' CCYM-CODE
+                  DISPLAY 'THE FETCH   SQLCODE    :' SQLCODE
+                  DISPLAY 'THE FETCH   SQLSTATE   :' SQLSTATE
+                MOVE ERROR-RC                  TO RETURN-CODE
+      *         DISPLAY 'FETCH CUR_CCY  ERROR SQLCODE= '
+      *         SQLCODE
+                PERFORM Z000-RETURN
+                   THRU Z000-RETURN-EXIT
+           END-EVALUATE
+           .
+           EXIT.
+      *
+       B070-040-CLOSE-CUR-CCY.
+      *
+           EXEC SQL
+              CLOSE CUR_CCY
+           END-EXEC.
+      *
+           EVALUATE TRUE
+              WHEN SQLCODE = ZERO
+                 CONTINUE
+              WHEN OTHER
+                  DISPLAY 'THE ERROR PROGRAM NAME :' WK-PROG-NAME
+                  DISPLAY 'B070-040-CLOSE-CUR-CCY'
+                  DISPLAY 'THE ERROR TABLE1  NAME :' WK-TABLE-CCYM
+                  DISPLAY 'THE ERROR KEY1  RECORD :' CCYM-INST-NO
+                  DISPLAY 'THE ERROR KEY2  RECORD :' CCYM-CODE
+                  DISPLAY 'THE CLOSE   SQLCODE    :' SQLCODE
+                  DISPLAY 'THE CLOSE   SQLSTATE   :' SQLSTATE
+                 MOVE ERROR-RC                 TO RETURN-CODE
+      *          DISPLAY 'CLOSE CUR_CCY  ERROR SQLCODE= '
+      *          SQLCODE
+                 PERFORM Z000-RETURN
+                    THRU Z000-RETURN-EXIT
+           END-EVALUATE
+           .
+           EXIT.
+      *
+       B200-READ-INVM.
+      *
+           INITIALIZE INVM
+           MOVE '003'                     TO INVM-KEY-1(1:3)
+           MOVE 0420A-TRF-AC-NO           TO INVM-KEY-1(4:16)
+           EXEC SQL
+              SELECT  CURRENCY
+              INTO    :INVM-CURRENCY
+              FROM  INVM
+              WHERE  KEY_1 = :INVM-KEY-1
+           END-EXEC
+      *
+           EVALUATE TRUE
+              WHEN SQLCODE = ZERO
+                 SET WS-INVM-VALID-Y         TO TRUE
+              WHEN SQLCODE = 100
+                 SET WS-INVM-VALID-N         TO TRUE
+              WHEN OTHER
+                 MOVE ERROR-RC                 TO RETURN-CODE
+                 DISPLAY 'SELECT INVM ERROR SQLCODE= ' SQLCODE
+                 PERFORM Z000-RETURN
+                    THRU Z000-RETURN-EXIT
+           END-EVALUATE
+           .
+       B200-READ-INVM-EXIT.
+           EXIT.
+      *-----------------------------------------------------------------
+      * EXCHANGE CCY FROM CHAR TO NUMERIC
+      *-----------------------------------------------------------------
+       B300-EX-CCY-DIG.
+      *
+           MOVE INVM-CURRENCY                  TO WS-CCYM-X
+      *
+           EXEC SQL
+              SELECT CURRENCY_CODE_DIG
+                INTO :CCYM-CURRENCY-CODE-DIG
+                FROM CCYM
+              WHERE  CODE = :WS-CCYM-X
+           END-EXEC
+      *
+           EVALUATE TRUE
+              WHEN SQLCODE = ZERO
+                 CONTINUE
+              WHEN SQLCODE = 100
+                 MOVE SPACE                    TO CCYM-CURRENCY-CODE-DIG
+              WHEN OTHER
+                 MOVE ERROR-RC                 TO RETURN-CODE
+                 DISPLAY 'SELECT CCYM ERROR!'
+                 DISPLAY 'THE SELECT  SQLCODE    :' SQLCODE
+                 DISPLAY 'THE SELECT  SQLSTATE   :' SQLSTATE
+                 PERFORM Z000-RETURN
+                    THRU Z000-RETURN-EXIT
+           END-EVALUATE
+           .
+       B300-EX-CCY-DIG-EXIT.
+           EXIT.
+      *-----------------------------------------------------------------
+      * CALL EXCHANGE SUB-PGM
+      *-----------------------------------------------------------------
+       B400-CALL-EXCHANGE-INQ.
+      *
+           SET BINQ-FX-FUNC-INQ           TO TRUE
+           CALL WK-PGM-ZFXBINQ USING ZFXCBINQ
+XF0119*    IF BINQ-FX-RC NOT = ZERO
+XF0119*    THEN
+XF0119*       DISPLAY 'CALL  ZFXBINQ  ERROR,RETURN-CODE= ' BINQ-FX-RC
+XF0119*       MOVE ERROR-RC               TO RETURN-CODE
+XF0119*       PERFORM Z000-RETURN
+XF0119*          THRU Z000-RETURN-EXIT
+XF0119*    END-IF
+           .
+       B400-CALL-EXCHANGE-INQ-EXIT.
+           EXIT.
+      *-----------------------------------------------------------------
+      * CALL EXCHANGE SUB-PGM
+      *-----------------------------------------------------------------
+       B500-CALL-EXCHANGE.
+      *
+ZL0316     INITIALIZE INCT
+ZL0316     MOVE '003'                     TO INCT-INST-NO
+ZL0316     MOVE 0420A-TRF-AC-NO           TO INCT-ACCT-NO
+ZL0316     MOVE 0420A-JRNL-NO             TO INCT-JRNL-NO
+           MOVE 0420A-TRN-DATE            TO INCT-TRN-DATE
+ZL0316     EXEC SQL
+ZL0316        SELECT VAR_AREA
+ZL0316        INTO  :INCT-VAR-AREA
+ZL0316        FROM INCT
+ZL0316        WHERE INST_NO = :INCT-INST-NO  AND
+ZL0316              ACCT_NO = :INCT-ACCT-NO  AND
+ZL0316              JRNL_NO = :INCT-JRNL-NO  AND
+                    TRN_DATE = :INCT-TRN-DATE
+ZL0316     END-EXEC
+ZL0316     EVALUATE TRUE
+ZL0316        WHEN SQLCODE = ZERO
+                 CONTINUE
+                 SET WS-INCT-VALID-N      TO TRUE
+                 MOVE INCT-VAR-AREA       TO INCT-VAR-AREA1
+ZL0316        WHEN SQLCODE = 100
+                 DISPLAY "0420A-MAST-AC:" 0420A-MAST-AC
+                 DISPLAY "0420A-VOL-NO:" 0420A-VOL-NO
+                 DISPLAY "0420A-SEQ-NO:" 0420A-SEQ-NO
+ZL0316           DISPLAY "INCT-ACCT-NO:" INCT-ACCT-NO
+                 DISPLAY "INCT-JRNL-NO:" INCT-JRNL-NO
+                 SET WS-INCT-VALID-Y      TO TRUE
+                 MOVE ZERO                TO INCT-01-AMOUNT
+                 DISPLAY "INCT-01-AMOUNT:" INCT-01-AMOUNT
+ZL0316        WHEN OTHER
+ZL0316           DISPLAY 'THE ERROR PROGRAM NAME :' WK-PROG-NAME
+ZL0316           DISPLAY 'B500-CALL-EXCHANGE    '
+ZL0316           DISPLAY 'THE ERROR TABLE   NAME :' WK-TABLE-INCT
+ZL0316           DISPLAY 'THE ERROR KEY2  RECORD :' INCT-ACCT-NO
+ZL0316           DISPLAY 'THE DECLARE SQLCODE      :' SQLCODE
+ZL0316           DISPLAY 'THE DECLARE SQLSTATE     :' SQLSTATE
+ZL0316           MOVE ERROR-RC            TO RETURN-CODE
+ZL0316           DISPLAY 'DECLARE CUR_0410C ERROR SQLCODE= '
+ZL0316           SQLCODE
+ZL0316           PERFORM Z000-RETURN
+ZL0316              THRU Z000-RETURN-EXIT
+ZL0316     END-EVALUATE
+ZL0316*    SET BINQ-FX-FUNC-COM           TO TRUE
+ZL0316*    CALL WK-PGM-ZFXBINQ USING ZFXCBINQ
+XF0119*    IF BINQ-FX-RC NOT = ZERO
+XF0119*    THEN
+XF0119*       DISPLAY 'CALL  ZFXBINQ  ERROR,RETURN-CODE= ' BINQ-FX-RC
+XF0119*       MOVE ERROR-RC               TO RETURN-CODE
+XF0119*       PERFORM Z000-RETURN
+XF0119*          THRU Z000-RETURN-EXIT
+XF0119*    END-IF
+           .
+       B500-CALL-EXCHANGE-EXIT.
+           EXIT.
+      *****************************************************************
+      *  OPEN I-O FLIE                                                *
+      *****************************************************************
+       S000-OPEN-FILE.
+      *
+           OPEN INPUT   FDQ0420A
+                        FDQ0420B
+                        FDQ0420C
+                OUTPUT  FDQ0420
+           IF FILE-0420-STS NOT = ZEROS
+           THEN
+              MOVE ERROR-RC               TO RETURN-CODE
+              DISPLAY 'OPEN FDQ0420 ERROR, STATUS = ' FILE-0420-STS
+              PERFORM Z000-RETURN
+                 THRU Z000-RETURN-EXIT
+           END-IF
+           IF FILE-0420A-STS NOT = ZEROS
+           THEN
+              MOVE ERROR-RC               TO RETURN-CODE
+              DISPLAY 'OPEN FDQ0420A ERROR, STATUS = ' FILE-0420A-STS
+              PERFORM Z000-RETURN
+                 THRU Z000-RETURN-EXIT
+           END-IF
+           IF FILE-0420B-STS NOT = ZEROS
+           THEN
+              MOVE ERROR-RC               TO RETURN-CODE
+              DISPLAY 'OPEN FDQ0420B ERROR, STATUS = ' FILE-0420B-STS
+              PERFORM Z000-RETURN
+                 THRU Z000-RETURN-EXIT
+           END-IF
+           IF FILE-0420C-STS NOT = ZEROS
+           THEN
+              MOVE ERROR-RC               TO RETURN-CODE
+              DISPLAY 'OPEN FDQ0420C ERROR, STATUS = ' FILE-0420C-STS
+              PERFORM Z000-RETURN
+                 THRU Z000-RETURN-EXIT
+           END-IF
+      *
+           .
+           EXIT.
+      *****************************************************************
+      * CLOSE I-O FILE                                                *
+      *****************************************************************
+       S000-CLOSE-FILE.
+      *
+           CLOSE FDQ0420 FDQ0420A FDQ0420B FDQ0420C
+      *
+           IF FILE-0420-STS NOT = ZEROS
+           THEN
+              MOVE ERROR-RC               TO RETURN-CODE
+              DISPLAY 'CLOSE FDQ0420 ERROR, STATUS = ' FILE-0420-STS
+           END-IF
+           IF FILE-0420A-STS NOT = ZEROS
+           THEN
+              MOVE ERROR-RC               TO RETURN-CODE
+              DISPLAY 'CLOSE FDQ0420A ERROR, STATUS = ' FILE-0420A-STS
+           END-IF
+           IF FILE-0420B-STS NOT = ZEROS
+           THEN
+              MOVE ERROR-RC               TO RETURN-CODE
+              DISPLAY 'CLOSE FDQ0420B ERROR, STATUS = ' FILE-0420B-STS
+           END-IF
+           IF FILE-0420C-STS NOT = ZEROS
+           THEN
+              MOVE ERROR-RC               TO RETURN-CODE
+              DISPLAY 'CLOSE FDQ0420C ERROR, STATUS = ' FILE-0420C-STS
+           END-IF
+           .
+           EXIT.
+      *****************************************************************
+      *  WRITE QSAM FILE                                              *
+      *****************************************************************
+       S000-WRITE-FDQ0420.
+      *
+           MOVE 'DEPDFD0420'               TO 0420-RPT-NO
+           MOVE WS-CONTROL-BR              TO 0420-BR-DP
+           MOVE '000'                      TO 0420-CCY
+           WRITE RPC0420
+           IF FILE-0420-STS NOT = ZEROS
+           THEN
+              MOVE ERROR-RC               TO RETURN-CODE
+              DISPLAY 'WRITE RPC0420 ERROR, STATUS=' FILE-0420-STS
+              PERFORM Z000-RETURN
+                 THRU Z000-RETURN-EXIT
+           END-IF
+           .
+           EXIT.
+      *****************************************************************
+      *  READ FILE                                                    *
+      *****************************************************************
+       S000-READ-FDQ0420A.
+      *
+           READ FDQ0420A
+              AT END SET EOF-0420A            TO TRUE
+           END-READ
+           .
+           EXIT.
+      *
+       S000-READ-FDQ0420B.
+      *
+           READ FDQ0420B
+              AT END SET EOF-0420B            TO TRUE
+           END-READ
+           .
+           EXIT.
+      *
+       S000-READ-FDQ0420C.
+      *
+           READ FDQ0420C
+              AT END SET EOF-0420C            TO TRUE
+           END-READ
+           .
+           EXIT.
+      *
+       COPY RPRFMTAC.
+      *****************************************************************
+      *  RETURN PROGRAM                                               *
+      *****************************************************************
+      *
+       Z000-RETURN.
+           PERFORM S000-CLOSE-FILE
+           GOBACK
+           DISPLAY "Z000-EXIT"
+      *
+           .
+       Z000-RETURN-EXIT.
+           EXIT.
+      *********************
+      *  END PROGRAM      *
+      *********************
+       END PROGRAM FDB0420B.
+      *********************

@@ -1,0 +1,3220 @@
+      ******************************************************************
+      ***                                                            ***
+      ***  SYSTEM:-  BANCS                                           ***
+      ***                                                            ***
+      ***  PROGRAM:- FDB0406A                                        ***
+      ***                                                            ***
+      ***  PURPOSE:- REPORT PROGRAM FOR DEPOSIT                      ***
+      ***                                                            ***
+      ******************************************************************
+      *                                                                *
+      *                    PROGRAM HISTORY                             *
+      *                    ---------------                             *
+      *                                                                *
+      *****************************************************************
+      * PROGRAMMER : DATE :SPR NO : COMMENTS *
+      *-----------------------------------------------------------------
+      * CHENXINGZHANG: 20110728:        : NEW                          *
+      *-----------------------------------------------------------------
+      *-----------------------------------------------------------------
+120526* HEXIONGFFENG : 20120526:        : MODIFY (READ DPTM TO GET ADD *
+120526*                                   AND SUB AMT)                 *
+      *-----------------------------------------------------------------
+      *-----------------------------------------------------------------
+120528* HEXIONGFFENG : 20120528:        : MODIFY (ADD A JUDGEMENT WHEN *
+120528*                                   INVM-TRAP = 'T'              *
+      *-----------------------------------------------------------------
+120531* HEXIONGFFENG : 20120531:        : USE PROS_DT TO READ DPTM     *
+120531*-----------------------------------------------------------------
+      *-----------------------------------------------------------------
+120613* HEXIONGFENG  : 20120613:        : MODIFY (ADD A JUDGEMENT WHEN *
+120613*                                   INVM-TRAP = 'B') AND         *
+120613*                                   0406A-PRINCIPAL-NEW          *
+120613*-----------------------------------------------------------------
+120714* HEXIONGFENG  : 20120712:        : MODIFY 0406A-PRINCIPAL-NEW   *
+120714*                                   WHEN INVM-TRAP = 'T'         *
+120714*-----------------------------------------------------------------
+120717* HEXIONGFENG  : 20120717:        : ADD READING DJ01 TO GET DATA *
+120717*                                   WHEN INVM-TRAP = 'B'         *
+120717*-----------------------------------------------------------------
+120725* HEXIONGFENG  : 20120725:        : READ FXSM TO GET EXCHANGE    *
+120725*                                   AMOUNT WHEN 'A' OR 'S' OR 'B'*
+120725*-----------------------------------------------------------------
+120726* HEXIONGFENG  : 20120726:        : TRSF AMT =                   *
+120726*                                       PRINCIPAL + INTEREST PAID*
+120726*-----------------------------------------------------------------
+120815* HEXIONGFENG  : 20120815:    1   : USE CURR1_AMOUNT WHEN READ
+120815*                                   FXSM
+120815*                             2   : WHEN INVM-LAST-DIV-DATE =
+120815*                                        WS-PRV-AC-DATE
+120815*                                   PRINCIPAL-OLD = 01-AMOUNT -
+120815*                                                   DIV1 ;
+120815*                                   WHEN 'B'
+120815*                                   TRANSFER-ACCT IS TRF-ACCOUNT
+120815*                             3   : READ DJ01 AFTER READ DPTM
+120815*-----------------------------------------------------------------
+120822* HEXIONGFENG  : 20120822:    MOVE INCT1-01-AMOUNT TO TRSF-AMT
+120822*                             USE INCT1-01-TRAN-ACCT FOR 'B'
+120822*-----------------------------------------------------------------
+120912* HEXIONGFENG  : 20120912:    IF ADD AND SUB FAIL , OUTPUT THE
+120912*                             TRF-ACCT-NO TO REPORT
+120912*-----------------------------------------------------------------
+121016* HEXIONGFENG  : 20121016:    IF ROLL TYPE = N AND TRAN CODE = 40
+121016*                             MOVE 'R' TO ROLL TYPE
+121016*-----------------------------------------------------------------
+121016* HEXIONGFENG  : 20121016:    CHANGE :DUE DATE = INVM-TRM-FRM-DT
+121016*                             ADD :REC_NO TO SORT PRE_INCT
+121016*-----------------------------------------------------------------
+121016* HEXIONGFENG  : 20121016:    IF INVM-TRAP = 'T'
+121016*                             AND CURR_STATUS = 07
+121016*                                0406A-PRINCIPAL-NEW =
+121016*                                   40-TERM-VALUE - INVM-DIV1
+121016*-----------------------------------------------------------------
+121017* HEXIONGFENG  : 20121017:    GET DATA WHICH TRAN_TYPE = '40'
+121017*                             TO FDQ0405F
+121017*-----------------------------------------------------------------
+121031* HEXIONGFENG  : 20121031:    MODIFY FOR LOG 15342 AND 17148
+121031*                        :    WHEN INVM-TRAP = 'T'
+121031*                             EXCLUDE INT IN TRAN-CODE = 3055
+121031*                        :    INVM-LAST-DIV-DT = WS-PRV-AC-DATE OR
+121031*                                                WS-AC-DATE
+121031*-----------------------------------------------------------------
+121115* HEXIONGFENG  : 20121115:    MODIFY FOR VALUE DATE WHEN TRAP = B
+121115*-----------------------------------------------------------------
+121119* HEXIONGFENG  : 20121119:    FD RATE =
+121119*                          INVM-VAR-INT-RATE+INVM-ACCT-MARGIN-RATE
+121119*-----------------------------------------------------------------
+121126* HEXIONGFENG  : 20121126:    NEW REQUIREMENT FOR LOG : 15408
+121126*-----------------------------------------------------------------
+121127* HEXIONGFENG  : 20121127:    MODIFY FOR LOG 17628
+121127*-----------------------------------------------------------------
+130108* HEXIONGFENG  : 20130108:    MODIFY FOR LOG 17787 AND 17405
+130108*-----------------------------------------------------------------
+130124* HEXIONGFENG  : 20130124:    MODIFY FOR LOG 17787 BECAUSE OLD
+130124*                             PRINCIPAL HAVE INT FROM LAST 40 AND
+130124*                             FXSM RATE
+130124*-----------------------------------------------------------------
+130220* HEXIONGFENG  : 20130220:    MODIFY FOR FXSM RATE
+130220*                             NEW RATE = BASE_RATE1 * BASE_RATE2
+130220*-----------------------------------------------------------------
+130311* HEXIONGFENG  : 20130311:    MODIFY FOR LOG: 17787
+130311*-----------------------------------------------------------------
+T18289* HEXIONGFENG  : 20130923:    MODIFY FOR LOG: 18289 / 18010
+T18289*-----------------------------------------------------------------
+T18010* HEXIONGFENG  : 20131031:    MODIFY FOR LOG: 18289 / 18010
+T18010*-----------------------------------------------------------------
+R15962* VNBXXX :20150121:EV-PL 1.0: MODIFY FOR RQM 15962
+R15962*-----------------------------------------------------------------
+R18323* VNBXXX :20150508:VER1.0: MODIFY FOR RQM 18323
+R18323*-----------------------------------------------------------------
+R18323* VNBXXX :20150508:VER 1.1: MODIFY FOR RQM 18323
+R18323*-----------------------------------------------------------------
+R20617* VNBXZH :20160106:VER 1.2: MODIFY FOR RQM 20617
+R20617*-----------------------------------------------------------------
+R18443* VNBCG  :20160120:VER 1.3: MODIFY FOR RQM 18443
+R18443*-----------------------------------------------------------------
+R24624* VNBDJ  :20160331:VER 1.4: MODIFY FOR RQM 24624
+R24624*-----------------------------------------------------------------
+R18443* VNBHXF :20160623:VER 1.5: MODIFY FOR RQM 18443
+R18443*-----------------------------------------------------------------
+R18443* VNBDJ  :20161103:VER 1.6: MODIFY FOR RQM 18443
+R18443*-----------------------------------------------------------------
+R31274* VNBDJ  :20170215:VER 1.7: MODIFY FOR RQM 31274
+R31274*-----------------------------------------------------------------
+R31737* VNBZP  :20170413:VER 1.8: MODIFY FOR RQM 31737
+R31737*-----------------------------------------------------------------
+R36285* VNBHXF :20180426:VER 1.9: MODIFY FOR RQM 36285
+R36285*-----------------------------------------------------------------
+R95484* VNBLL : 20240116 : SELECT INVT
+R95484*-----------------------------------------------------------------
+      *
+       IDENTIFICATION DIVISION.
+      *
+       PROGRAM-ID.    FDB0406A.
+       AUTHOR.        VNBXXX.
+      *-----------------------------------------------------------------
+      *-----------------------------------------------------------------
+       INSTALLATION.
+       DATE-WRITTEN.  JULY 2011.
+      *
+      ******************************************************************
+       ENVIRONMENT   DIVISION.
+      ******************************************************************
+      *
+      ******************************************************************
+       CONFIGURATION SECTION.
+      ******************************************************************
+      *
+      ******************************************************************
+       INPUT-OUTPUT  SECTION.
+      ******************************************************************
+      *
+      ******************************************************************
+       FILE-CONTROL.
+      ******************************************************************
+      *
+           SELECT FDQ0406A ASSIGN TO    FDQ0406A
+                           ORGANIZATION IS SEQUENTIAL
+                           ACCESS MODE  IS SEQUENTIAL
+                           FILE STATUS  IS FILE-0406A-STS.
+           SELECT CIFCUSM  ASSIGN TO    CIFCUSM
+                           ORGANIZATION IS INDEXED
+                           ACCESS MODE  IS DYNAMIC
+                           RECORD KEY   IS CUSM-KEY
+                           FILE STATUS  IS FILE-CUSM-STS.
+121017     SELECT FDQ0405F ASSIGN TO    FDQ0405F
+121017                     ORGANIZATION IS SEQUENTIAL
+121017                     ACCESS MODE  IS SEQUENTIAL
+121017                     FILE STATUS  IS WS-0405F-STS.
+R15962     SELECT FDQ0001C ASSIGN TO    FDQ0001C
+R15962                     ORGANIZATION IS SEQUENTIAL
+R15962                     ACCESS MODE  IS SEQUENTIAL
+R15962                     FILE STATUS  IS FILE-0001C-STS.
+R18443     SELECT FNQ0001C ASSIGN TO    FNQ0001C
+R18443                     ORGANIZATION IS SEQUENTIAL
+R18443                     ACCESS MODE  IS SEQUENTIAL
+R18443                     FILE STATUS  IS FILE-0001N-STS.
+R15962     SELECT FDVINFD  ASSIGN TO    FDVINFD
+R15962                     ORGANIZATION IS INDEXED
+R15962                     ACCESS MODE  IS DYNAMIC
+R15962                     RECORD KEY   IS FDVI-KEY
+R15962                     FILE STATUS  IS FILE-INFD-STS.
+      *
+      ******************************************************************
+       DATA DIVISION.
+      ******************************************************************
+      *
+      ******************************************************************
+       FILE SECTION.
+      ******************************************************************
+       FD FDQ0406A RECORDING MODE IS F.
+          COPY FDC0406A IN LIBRYMIS.
+       FD CIFCUSM.
+          COPY CIRCUSM  IN LIBRYEXT.
+121017 FD FDQ0405F RECORDING MODE IS F.
+121017    COPY FDC0405A IN LIBRYMIS REPLACING ==:0405A:== BY ==0405F==.
+R15962 FD FDQ0001C RECORDING MODE IS F.
+R15962    COPY FDC00001 IN LIBRYMIS.
+R15962 FD FDVINFD.
+R15962 01 FDVINFD-DATA.
+R15962    10 FDVI-KEY.
+R15962       15 FDVI-AC           PIC X(16).
+R15962       15 FDVI-DUE-DATE     PIC X(8).
+R15962    10 FDVI-MAST-AC         PIC X(16).
+R15962    10 FDVI-VOLUME-NO       PIC X(3).
+R15962    10 FDVI-SEQUENCE-NO     PIC X(2).
+R15962    10 FDVI-VALUE-DATE      PIC X(8).
+R15962    10 FDVI-ACCT-TYPE       PIC X(4).
+R15962    10 FDVI-INT-CAT         PIC X(4).
+R15962    10 FDVI-RATE            PIC S9(6)V9(5) USAGE COMP-3.
+R15962    10 FDVI-AMOUNT          PIC S9(14)V9(3) USAGE COMP-3.
+R15962    10 FDVI-FILLER          PIC X(254).
+R18443 FD FNQ0001C .
+R18443 01 FNC0001-DATA.
+R18443    10 FN01-AC              PIC X(16).
+R18443    10 FN01-DUE-DATE        PIC X(8).
+R18443    10 FN01-MAST-AC         PIC X(16).
+R18443    10 FN01-VOLUME-NO       PIC X(3).
+R18443    10 FN01-SEQUENCE-NO     PIC X(2).
+R18443    10 FN01-VALUE-DATE      PIC X(8).
+R18443    10 FN01-ACCT-TYPE       PIC X(4).
+R18443    10 FN01-INT-CAT         PIC X(4).
+R18443    10 FN01-RATE            PIC S9(6)V9(5) USAGE COMP-3.
+R18443    10 FN01-AMOUNT          PIC S9(14)V9(3) USAGE COMP-3.
+R18443    10 FN01-FILLER1         PIC X(1).
+R18443    10 FN01-FILLER2         PIC X(16).
+R18443    10 FN01-FILLER3         PIC X(16).
+R18443    10 FN01-FILLER4         PIC S9(12)V9(5).
+R18443    10 FN01-FILLER5         PIC X(204).
+      ******************************************************************
+       WORKING-STORAGE SECTION.
+      ******************************************************************
+      **************************
+      * RECORD LAYOUT          *
+      **************************
+      *
+           EXEC SQL INCLUDE CPINVM   END-EXEC.
+           EXEC SQL INCLUDE CPINVT   END-EXEC.
+           EXEC SQL INCLUDE CPINCT   END-EXEC.
+           EXEC SQL INCLUDE CPACSN   END-EXEC.
+           EXEC SQL INCLUDE CPCUSVAA END-EXEC.
+           EXEC SQL INCLUDE CPCCYM   END-EXEC.
+120526     EXEC SQL INCLUDE CPDPTM   END-EXEC.
+120717     EXEC SQL INCLUDE CPDJ01   END-EXEC.
+120725     EXEC SQL INCLUDE CPFXSM   END-EXEC.
+           EXEC SQL INCLUDE SQLCA    END-EXEC.
+      *
+      **************************
+      * CONSTANT DECLARATION   *
+      **************************
+      *
+       77 WARNING-RC                      PIC 9(1) VALUE 4.
+       77 ERROR-RC                        PIC 9(1) VALUE 8.
+       77 K-PROGRAM-NAME                  PIC X(8) VALUE 'FDB0406A'.
+       77 PGM-ZTCBQJPM                    PIC X(8) VALUE 'ZTCBQJPM'.
+      *
+      ******************************
+      * PROGRAM VARIABLES          *
+      ******************************
+       01 WS-VARIABLES.
+          03  WS-INVM-KEY.
+            05 WS-INVM-SOC-NO                   PIC 999.
+            05 WS-INVM-MEMB-CUST-AC             PIC 9(16).
+          03 WS-INVT-AC                         PIC X(16).
+130311    03 WS-PRINCIPAL-NEW                   PIC S9(14)V9(3).
+R24624    03 WS-40-PAYMENT-METHOD               PIC XXXX.
+R24624    03 WS-40-ROLL-TYPE                    PIC X(01).
+R18443    03 WS-TEMP-DATE                       PIC S9(09) COMP-3.
+          03 WS-BINARY-DATE                     PIC S9(09) COMP-3.
+          03 WS-AC-DATE                         PIC S9(09) COMP-3.
+          03 WS-PRV-AC-DATE                     PIC S9(09) COMP-3.
+          03 WS-POST-DATE-OLD                   PIC S9(09) COMP-3.
+          03 WS-POST-DATE-NEW                   PIC S9(09) COMP-3.
+          03 WS-POST-DATE-42                    PIC S9(09) COMP-3.
+R15962    03 WS-INFD-DUE-DT                     PIC S9(09) COMP-3.
+R15962    03 WS-INFD-VALUE-DT                   PIC S9(09) COMP-3.
+120725    03 WS-FXSM-JRNL-NO                    PIC 9(9).
+120725    03 WS-FXSM-JRNL-NO-X REDEFINES WS-FXSM-JRNL-NO
+120725                                          PIC X(9).
+120725    03 WS-CCYM-X                          PIC X(3).
+121126    03 WS-CCYM-Y                          PIC X(3).
+121115    03 WS-REC-NO                          PIC 9(09).
+121115    03 WS-REC-NO-PRE                      PIC 9(09).
+T18289    03 WS-40-REC-NO                       PIC 9(09).
+T18289    03 WS-40-REC-NO-PRE                   PIC 9(09).
+121115    03 WS-INCT-ACCT-NO                    PIC X(16).
+T18289    03 WS-INCT-REC-NO                     PIC 9(09).
+T18289    03 WS-INCT-REC-NO-A                   PIC 9(09).
+T18289    03 WS-OLD-BALANCE                     PIC S9(14)V9(3).
+T18289    03 WS-INCT5-40-BAL                    PIC S9(14)V9(3).
+T18289    03 WS-INCT-01-BAL                     PIC S9(14)V9(3).
+T18289    03 WS-40-VALUE-BK                     PIC S9(14)V9(3).
+T18289    03 WS-A-VALUE-BK                      PIC S9(14)V9(3).
+T18289    03 WS-S-VALUE-BK                      PIC S9(14)V9(3).
+          03 WS-WRITE-0406A-CNT                 PIC 9(09).
+          03 WS-INVM-DIV1                       PIC S9(14)V9(3) COMP-3.
+          03 WS-DIV1                           PIC $,$$$,$$$,$$$,$$9.99.
+          03 WS-INVM-DIV2                       PIC S9(14)V9(3) COMP-3.
+          03 WS-DIV2                           PIC $,$$$,$$$,$$$,$$9.99.
+          03 WS-TEMP-AC                         PIC X(16).
+          03 WK-FORM-AC-FROM                 PIC X(16).
+          03 WK-FORM-AC-TO                   PIC X(16).
+R18443    03 WS-ACCT-FILLER1                 PIC X(16).
+R18443    03 WS-ACCT-FILLER2                 PIC X(16).
+          03 WK-AC-10-FORM.
+             05 WK-AC-10-HEADER              PIC X(03) VALUE SPACES.
+             05 WK-AC-10-CCY-BR              PIC X(03).
+             05 WK-AC-10-FMT1                PIC X(01) VALUE '-'.
+             05 WK-AC-10-SUB-SYS             PIC X(01).
+             05 WK-AC-10-FMT2                PIC X(01) VALUE '-'.
+             05 WK-AC-10-SSN                 PIC X(05).
+             05 WK-AC-10-FMT3                PIC X(01) VALUE '-'.
+             05 WK-AC-10-CHECK-D             PIC X(01).
+          03 WK-AC-12-FORM.
+             05 WK-AC-12-BR                  PIC X(02) .
+             05 WK-AC-12-FMT1                PIC X(01) VALUE '-'.
+             05 WK-AC-12-CCY                 PIC X(02).
+             05 WK-AC-12-FMT2                PIC X(01) VALUE '-'.
+             05 WK-AC-12-SUB-SYS             PIC X(01).
+             05 WK-AC-12-FMT3                PIC X(01) VALUE '-'.
+             05 WK-AC-12-SSN                 PIC X(06).
+             05 WK-AC-12-FMT4                PIC X(01) VALUE '-'.
+             05 WK-AC-12-CHECK-D             PIC X(01).
+      **************************
+      * FILE STATUS            *
+      **************************
+       01 WS-FILE-STS.
+          03 FILE-0406A-STS                   PIC 9(2).
+R15962    03 FILE-0001C-STS                   PIC 9(2).
+R18443    03 FILE-0001N-STS                   PIC 9(2).
+R15962    03 FILE-INFD-STS                    PIC 9(2).
+          01 FILE-CUSM-STS                    PIC 9(2).
+121017 01 WS-0405F-STS                        PIC X(2).
+121017    88 WS-0405F-SUCCESS                     VALUE '00'.
+121017    88 WS-0405F-END                         VALUE '10'.
+      **************************
+      * CONDITION DECLARATION  *
+      **************************
+       01 WS-FLIE-END.
+          03 TABLE-FETCH-FLG                  PIC X(1) VALUE SPACE.
+             88 WS-END-Y                               VALUE 'Y'.
+             88 WS-END-N                               VALUE 'N'.
+120717    03 TABLE-DJ01-FLG                   PIC X(1) VALUE SPACE.
+120717       88 WS-DJ01-Y                              VALUE 'Y'.
+120717       88 WS-DJ01-N                              VALUE 'N'.
+120717    03 TABLE-STAT-FLG                   PIC X(1) VALUE SPACE.
+120717       88 WS-STAT-Y                              VALUE 'Y'.
+120717       88 WS-STAT-N                              VALUE 'N'.
+120725    03 TABLE-INCT-A                     PIC X(1) VALUE SPACE.
+120725       88 WS-INCT-A-Y                            VALUE 'Y'.
+120725       88 WS-INCT-A-N                            VALUE 'N'.
+120725    03 TABLE-INCT-S                     PIC X(1) VALUE SPACE.
+120725       88 WS-INCT-S-Y                            VALUE 'Y'.
+120725       88 WS-INCT-S-N                            VALUE 'N'.
+120815    03 TABLE-DJ01-STAT                  PIC X(1) VALUE SPACE.
+120815       88 WS-DJ01-S-Y                            VALUE 'Y'.
+120815       88 WS-DJ01-S-N                            VALUE 'N'.
+          03 TABLE-INVM-FLG                   PIC X(1) VALUE SPACE.
+             88 WS-INVM-FOUND                          VALUE 'Y'.
+             88 WS-INVM-NOFOUND                        VALUE 'N'.
+          03 TABLE-INCT-FLG                   PIC X(1) VALUE SPACE.
+             88 WS-INCT-FOUND                          VALUE 'Y'.
+             88 WS-INCT-NOFOUND                        VALUE 'N'.
+          03 TABLE-INCT-STAT                  PIC X(1) VALUE SPACE.
+             88 WS-PRE-INCT-END                        VALUE 'Y'.
+             88 WS-PRE-INCT-CONTINUE                   VALUE 'N'.
+T18289    03 WS-PRE-40-FLAG                   PIC X(1) VALUE SPACE.
+T18289       88 WS-PRE-40-END                          VALUE 'Y'.
+T18289       88 WS-PRE-40-CONTINUE                     VALUE 'N'.
+          03 WS-INCT-42-END-FLG               PIC X(1) VALUE SPACE.
+             88 WS-INCT-42-END-Y                       VALUE 'Y'.
+             88 WS-INCT-42-END-N                       VALUE 'N'.
+VNBCXY    03 WS-VALID-INVT                    PIC X(1) VALUE SPACE.
+VNBCXY       88 WS-VALID-INVT-Y                        VALUE 'Y'.
+VNBCXY       88 WS-VALID-INVT-N                        VALUE 'N'.
+          03 FILE-END-CUSM                    PIC X(1) VALUE SPACE.
+             88 EOF-CUSM-Y                             VALUE 'Y'.
+             88 EOF-CUSM-N                             VALUE 'N'.
+          03 WS-INCT-FLAG                     PIC X(1) VALUE SPACE.
+             88 WS-INCT-Y                              VALUE 'Y'.
+             88 WS-INCT-N                              VALUE 'N'.
+T18289    03 WS-INCT-BAL-FLAG                 PIC X(1) VALUE SPACE.
+T18289       88 WS-INCT-BAL-Y                          VALUE 'Y'.
+T18289       88 WS-INCT-BAL-N                          VALUE 'N'.
+T18289    03 WS-OLD-BAL-FLAG                  PIC X(1) VALUE SPACE.
+T18289       88 WS-OLD-BAL-CONTINUE                    VALUE 'Y'.
+T18289       88 WS-OLD-BAL-END                         VALUE 'N'.
+T18289    03 WS-3055-FLAG                     PIC X(1) VALUE SPACE.
+T18289       88 WS-3055-Y                              VALUE 'Y'.
+T18289       88 WS-3055-N                              VALUE 'N'.
+          03 FILE-END-INFD                    PIC X(1) VALUE SPACE.
+R15962       88 EOF-INFD-Y                             VALUE 'Y'.
+R15962       88 EOF-INFD-N                             VALUE 'N'.
+R31737    03 WS-INCT-FOD-FLAG                 PIC X(1) VALUE SPACE.
+R31737       88 WS-INCT-FOD-Y                          VALUE 'Y'.
+R31737       88 WS-INCT-FOD-N                          VALUE 'N'.
+R31737    03 WS-INT-ACC-FLAG                  PIC X(1) VALUE SPACE.
+R31737       88 WS-INT-ACC-CONTINUE                    VALUE 'Y'.
+R31737       88 WS-INT-ACC-END                         VALUE 'N'.
+      *
+      *****************************************************************
+      *    COMMUNICATION AREA                                         *
+      *****************************************************************
+      *
+           COPY ZTCCJPRM IN LIBRYMIS.
+           COPY UT0030CA IN LIBRYMIS.
+           COPY UT0020CA IN LIBRYMIS.
+       01 WS-INVM-VAR-AREA.
+           COPY DPRINVM IN LIBRYMIS REPLACING ==(INVM)== BY ==INVM==.
+      *
+       01 WS-INCT-VAR-AREA.
+           COPY DPRINCT IN LIBRYMIS
+                        REPLACING ==(INCT)== BY ==INCT1==.
+121116 01 WS-INCT-VAR-AREA2.
+121116     COPY DPRINCT IN LIBRYMIS
+121116                  REPLACING ==(INCT)== BY ==INCT2==.
+T18289 01 WS-INCT-VAR-AREA3.
+T18289     COPY DPRINCT IN LIBRYMIS
+T18289                  REPLACING ==(INCT)== BY ==INCT3==.
+T18289 01 WS-INCT-VAR-AREA4.
+T18289     COPY DPRINCT IN LIBRYMIS
+T18289                  REPLACING ==(INCT)== BY ==INCT4==.
+T18289 01 WS-INCT-VAR-AREA5.
+T18289     COPY DPRINCT IN LIBRYMIS
+T18289                  REPLACING ==(INCT)== BY ==INCT5==.
+      *
+      **************************
+       PROCEDURE DIVISION.
+      **************************
+      *
+       A000-MAIN-PROC.
+           PERFORM A000-INITIALIZE
+           PERFORM B000-MAIN-PROC
+           PERFORM Z000-EXIT
+           .
+           EXIT.
+      *************************
+      * INITIALIZE VARIABLES  *
+      *************************
+       A000-INITIALIZE.
+      *
+           INITIALIZE                          WS-VARIABLES
+           PERFORM S000-CALL-ZTCBQJPM
+           INITIALIZE UT0030-FUNCTION
+                      UT0030-DATE-AREA
+                      UT0030-BINARY-DATE
+           SET FROM-CCYYMMDD            TO TRUE
+           MOVE JPRM-AC-DATE            TO UT0030-DATE-CCYYMMDD
+           CALL 'UT0030'             USING UT0030-FUNCTION
+                                           UT0030-DATE-AREA
+                                           UT0030-BINARY-DATE
+           MOVE UT0030-BINARY-DATE      TO WS-AC-DATE
+      *
+           SET FROM-CCYYMMDD            TO TRUE
+           MOVE JPRM-PRV-AC-DATE        TO UT0030-DATE-CCYYMMDD
+           CALL 'UT0030'             USING UT0030-FUNCTION
+                                           UT0030-DATE-AREA
+                                           UT0030-BINARY-DATE
+           MOVE UT0030-BINARY-DATE      TO WS-PRV-AC-DATE
+           PERFORM S000-OPEN-FILE
+           .
+           EXIT.
+      ****************************************************************
+      * MAIN PROGRAM                                                 *
+      ****************************************************************
+       B000-MAIN-PROC.
+      * GET LAON DATE AND PRINT DETAIL
+           SET WS-END-N            TO TRUE
+           DISPLAY 'WS-AC-DATE:' WS-AC-DATE
+           PERFORM B100-DEC-CUR
+           PERFORM B100-OPEN-CUR
+           PERFORM B100-FETCH-CUR
+           PERFORM B000-MAIN-LOGIC UNTIL WS-END-Y
+           PERFORM B100-CLOSE-CUR
+      *------------------------------------*
+      * READ DJ01 WHEN TRAP = 'B'          *
+      *------------------------------------*
+120717     PERFORM B400-DEC-CUR
+120717        THRU B400-DEC-CUR-EXIT
+120717     PERFORM B400-OPEN-CUR
+120717        THRU B400-OPEN-CUR-EXIT
+120717     PERFORM B400-FETCH-CUR
+120717        THRU B400-FETCH-CUR-EXIT
+120717     PERFORM B001-MAIN-LOGIC UNTIL WS-DJ01-N
+120717     PERFORM B400-CLOSE-CUR
+120717        THRU B400-CLOSE-CUR-EXIT
+           .
+           EXIT.
+      *--------------------------------------------*
+      * MAIN LOGIC                                 *
+      *--------------------------------------------*
+       B000-MAIN-LOGIC.
+      *
+VNBCXY     IF WS-VALID-INVT-Y                  THEN
+              INITIALIZE WS-INCT-VAR-AREA
+121126        INITIALIZE WS-INCT-VAR-AREA2
+T18289        INITIALIZE WS-INCT-VAR-AREA3
+T18289        INITIALIZE WS-INCT-VAR-AREA4
+T18010        INITIALIZE WS-INCT-VAR-AREA5
+              INITIALIZE FDC0406A
+ZL0315*       MOVE INCT-VAR-AREA               TO INCT1-VAR-AREA
+ZL0315        MOVE INCT-VAR-AREA       TO INCT1-VAR-AREA1
+R24624        MOVE INCT1-40-PAYMENT-METHOD
+R24624                                 TO WS-40-PAYMENT-METHOD
+R24624        MOVE INCT1-40-ROLL-TYPE  TO WS-40-ROLL-TYPE
+      *       IF INCT1-40-OP-AUTO-MAN  = 'A'   THEN
+              IF INCT-TRN-CODE = 2002 OR INCT-TRN-CODE = 2001
+              THEN
+                 DISPLAY 'INCT-TRN-CODE:' INCT-TRN-CODE
+                 MOVE INCT-INST-NO     TO 0406A-INST-NO
+                 MOVE INVT-MAST-ACCT   TO WK-FORM-AC-FROM
+                 PERFORM S00-FORMAT-CBS-AC
+                 MOVE WK-FORM-AC-TO    TO 0406A-ACCOUNT-NUM
+                 MOVE INVT-VOLUME-NO   TO 0406A-VOL-NO
+                 MOVE INVT-SEQUENCE-NO TO 0406A-SEQ-NO
+                 MOVE SPACE            TO 0406A-FIL
+                 MOVE INCT-ACCT-NO     TO WS-TEMP-AC
+120531           PERFORM B200-GET-ADD-SUB-INFO
+                 PERFORM S000-GET-AC-INFO
+                 IF WS-INVM-FOUND
+                 THEN
+      *            MOVE INVM-CURRENCY  TO 0406A-CURRENCY
+ZL0315              MOVE INVM-OD-VISA-AREA
+                                       TO INVM-TERM-AREA
+R18443              MOVE INCT1-40-START-DATE
+R18443                                 TO WS-TEMP-DATE
+R15962              PERFORM B340-GET-AC-INFD
+R15962                 THRU B340-GET-AC-INFD-EXIT
+      *
+                    INITIALIZE CCYM
+                    MOVE INVM-CURRENCY TO CCYM-CODE
+                    MOVE 003           TO CCYM-INST-NO
+                    EXEC SQL
+                         SELECT CURRENCY_CODE_DIG
+                         INTO :CCYM-CURRENCY-CODE-DIG
+                         FROM CCYM
+                         WHERE INST_NO = :CCYM-INST-NO AND
+                                CODE = :CCYM-CODE
+                    END-EXEC
+                    EVALUATE TRUE
+                       WHEN SQLCODE = ZERO
+                          MOVE CCYM-CURRENCY-CODE-DIG
+                                       TO 0406A-CURRENCY
+                       WHEN SQLCODE = 100
+                          DISPLAY 'CCY  NOT FOUND   ' INVM-CURRENCY     -STS
+                          MOVE WARNING-RC                               04570000
+                                       TO RETURN-CODE
+                       WHEN OTHER
+                          DISPLAY 'SELECT ERROR SQLCODE= ' SQLCODE      -STS
+                          MOVE ERROR-RC                                 04570000
+                                       TO RETURN-CODE
+                          PERFORM Z000-EXIT                             04580000
+                    END-EVALUATE
+      *
+                    MOVE INVM-BRANCH-NO
+                                       TO 0406A-BRANCH
+                 END-IF
+                 PERFORM S000-GET-AC-NAME
+                 MOVE ACSN-SHORT-NAME  TO 0406A-ACCOUNT-NAME
+                 IF 0406A-ACCOUNT-NAME = SPACE
+                 THEN
+                    PERFORM B340-GET-CUSM-NAME
+                       THRU B340-GET-CUSM-NAME-EXIT
+                 END-IF
+                 IF INCT1-40-ACCT-TYPE NOT = ZEROS
+                 THEN
+                    MOVE INCT1-40-ACCT-TYPE
+                                       TO 0406A-ACCT-TYPE
+                 ELSE
+                    MOVE INVM-ACCT-TYPE
+                                       TO 0406A-ACCT-TYPE
+                 END-IF
+R36285           IF INVM-TERM-AREA(182:8) = SPACE OR
+R36285              INVM-TERM-AREA(182:8) = LOW-VALUE
+R36285           THEN
+R36285              MOVE 0406A-ACCT-TYPE
+R36285                                 TO 0406A-PROD-CODE(1:4)
+R36285              MOVE SPACE         TO 0406A-PROD-CODE(5:4)
+R36285              MOVE '0'           TO 0406A-PROD-IND
+R36285           ELSE
+R36285              MOVE INVM-TERM-AREA(182:8)
+R36285                                 TO 0406A-PROD-CODE
+R36285              MOVE '1'           TO 0406A-PROD-IND
+R36285           END-IF
+##?   *          MOVE INCT1-40-INT-CAT        TO 0406A-INT-CAT
+ZL0315*          MOVE INCT1-40-ROLL-TYPE      TO 0406A-ROLL-TYPE
+      *          MOVE INVM-ACCT-TYPE          TO 0406A-ACCT-TYPE
+      *
+T18289           MOVE INCT1-40-TERM-VALUE     TO WS-40-VALUE-BK
+      *
+                 IF INVM-CURR-STATUS = "07"
+                 THEN
+R24624*121016       IF INVM-TRAP = 'T'
+R24624              IF WS-40-PAYMENT-METHOD(1:1) = 'T'
+121016              THEN
+121016                 COMPUTE 0406A-PRINCIPAL-NEW =
+121016                         INCT1-40-TERM-VALUE - INVM-DIV1
+121016                 END-COMPUTE
+130311                 MOVE INCT1-40-TERM-VALUE
+130311                                 TO WS-PRINCIPAL-NEW
+121016              ELSE
+121016                 MOVE INCT1-40-TERM-VALUE
+121016                                 TO 0406A-PRINCIPAL-NEW
+121016              END-IF
+                 ELSE
+LF0313              MOVE INVM-CURR-BAL TO 0406A-PRINCIPAL-NEW
+                 END-IF
+121119*          MOVE INCT1-40-INT-RATE       TO 0406A-INT-RATE-NEW
+121119           COMPUTE 0406A-INT-RATE-NEW = INVM-ACCT-MARGIN-RATE +
+121119                                        INVM-VAR-INT-RATE
+121119           END-COMPUTE
+                 MOVE INCT1-40-START-DATE
+                                       TO 0406A-VALUE-DATE-NEW
+                 MOVE INCT1-40-MATURITY-DATE
+                                       TO 0406A-DUE-DATE-NEW
+                 MOVE ZEROS            TO 0406A-EXCH-AMT
+                 MOVE 'SUCCESSFUL'     TO 0406A-REMARK
+##?              MOVE ZEROS            TO 0406A-MARKUP-AMT
+##?              MOVE ZEROS            TO 0406A-ACC-MARKUP-RATE
+##?              MOVE ZEROS            TO 0406A-STAFF-MARKUP-RATE
+##?              MOVE INVM-ACCT-MARGIN-RATE
+                                       TO 0406A-CERT-MARKUP-RATE
+##?              MOVE SPACE            TO 0406A-ROLL-INSTRUCTION
+                 MOVE 1                TO 0406A-NUM-OF-CERT
+121127*          IF INVM-TRF-ACCT-NO NOT = SPACE AND "0000000000000000"
+121127*          THEN
+121127*             MOVE INVM-TRF-ACCT-NO     TO WK-FORM-AC-FROM
+121127*             PERFORM S00-FORMAT-CBS-AC
+121127*             MOVE WK-FORM-AC-TO        TO 0406A-TRANSFER-ACCT
+121127*          ELSE
+120531              IF DPTM-TO-ACCT-NO NOT = SPACE AND
+120531                                               "0000000000000000"
+120531              THEN
+120531                 MOVE DPTM-TO-ACCT-NO
+120531                                 TO WK-FORM-AC-FROM
+R18443                 MOVE DPTM-TO-ACCT-NO
+R18443                                 TO WS-ACCT-FILLER2
+120531                 PERFORM S00-FORMAT-CBS-AC
+120531                 MOVE WK-FORM-AC-TO
+120531                                 TO 0406A-TRANSFER-ACCT
+120531              END-IF
+121127*          END-IF
+                 IF INVM-LAST-DIV-DATE = WS-PRV-AC-DATE
+121031              OR INVM-LAST-DIV-DATE = WS-AC-DATE
+121031           THEN
+VNBCZL              MOVE INVM-DIV1     TO 0406A-INT-PAID-OLD
+                 ELSE
+VNBCZL              MOVE ZEROS         TO 0406A-INT-PAID-OLD
+                 END-IF
+R15962*121126
+R15962*121126    IF INVM-TRAP = 'T'
+R15962*121126    THEN
+R15962*121126       PERFORM B300-SELECT-INCT
+R15962*121126       IF INCT2-01-TRAN-ACCT = ZERO
+R15962*121126       THEN
+R15962*121126          MOVE SPACE      TO 0406A-INT-ACCT
+R15962*121126       ELSE
+R15962*121126          MOVE INCT2-01-TRAN-ACCT
+R15962*121126                          TO WK-FORM-AC-FROM
+R15962*121126          PERFORM S00-FORMAT-CBS-AC
+R15962*121126          MOVE WK-FORM-AC-TO
+R15962*                                TO 0406A-INT-ACCT
+R15962*121126       END-IF
+R15962*121126    ELSE
+R15962*121126       MOVE SPACE         TO 0406A-INT-ACCT
+R15962*121126       MOVE ZERO          TO 0406A-INT-TRSF-AMT
+R15962*121126       MOVE ZERO          TO 0406A-INT-EXCH-AMT
+R15962*121126       MOVE SPACE         TO 0406A-INT-EXCH-CCY
+R15962*121126       MOVE ZERO          TO 0406A-INT-EXCH-RATE
+R15962*121126    END-IF
+R15962* GET INT INFORMATION
+R15962*R18323    PERFORM B850-GET-INT-ACCT
+R15962*R18323       THRU B850-GET-INT-ACCT-EXIT
+R15962*
+121126*
+121126*          IF WS-INCT-FLAG = 'Y'
+121126*          THEN
+121126*             MOVE INVM-DIV1            TO 0406A-INT-PAID-NEW
+121126*          ELSE
+121126*             MOVE ZEROS                TO 0406A-INT-PAID-NEW
+121126*          END-IF
+R18323*          PERFORM B200-GET-PRE-INCT
+ZL0512*          IF 0406A-ADD-SUB-IND = 'SUB'
+  |   *          COMPUTE 0406A-PRINCIPAL-OLD =
+  |   *               0406A-PRINCIPAL-NEW  + 0406A-ADD-SUB-AMT +
+      *               0406A-INT-PAID-NEW - 0406A-INT-PAID-OLD
+      *          END-COMPUTE
+      *          END-IF
+      *          IF 0406A-ADD-SUB-IND = 'ADD'
+      *          COMPUTE 0406A-PRINCIPAL-OLD =
+      *               0406A-PRINCIPAL-NEW  - 0406A-ADD-SUB-AMT +
+      *               0406A-INT-PAID-NEW - 0406A-INT-PAID-OLD
+      *          END-COMPUTE
+      *          END-IF
+      *          IF 0406A-ADD-SUB-IND = SPACE
+      *          COMPUTE 0406A-PRINCIPAL-OLD =
+      *               0406A-PRINCIPAL-NEW  +
+      *               0406A-INT-PAID-NEW - 0406A-INT-PAID-OLD
+      *          END-COMPUTE
+      *          END-IF
+      *          COMPUTE 0406A-DIFFERENCE   =
+  |   *               0406A-PRINCIPAL-NEW   -
+  |   *               0406A-PRINCIPAL-OLD
+ZL0512*          END-COMPUTE
+R24624*121016    IF INVM-TRM-RLLOVR-TY = 'N'
+R24624           IF WS-40-ROLL-TYPE = 'N'
+121016           THEN
+R24624*121016       MOVE 'R'           TO INVM-TRM-RLLOVR-TY
+R24624              MOVE 'R'           TO WS-40-ROLL-TYPE
+121016           END-IF
+121016*
+R24624*ZL0315    IF INVM-TRM-RLLOVR-TY = 'N' OR
+R24624*  |          INVM-TRM-RLLOVR-TY = SPACES
+R24624           IF WS-40-ROLL-TYPE = 'N' OR WS-40-ROLL-TYPE = SPACES
+                 THEN
+120528*             IF INVM-RATE-IND NOT = 'M'
+120528*             THEN
+120528*                IF INVM-TRAP = 'T'
+120528*                THEN
+120528*                   MOVE 'T'              TO 0406A-ROLL-TYPE
+120528*                ELSE
+120528*                   MOVE 'N'              TO 0406A-ROLL-TYPE
+120528*                END-IF
+120528*             ELSE
+121016              MOVE 'N'           TO 0406A-ROLL-TYPE
+120528*             END-IF
+                 ELSE
+R24624*             IF INVM-TRAP = 'T'
+R24624              IF WS-40-PAYMENT-METHOD(1:1) = 'T'
+                    THEN
+120528                 IF DPTM-TO-FROM-CODE = 'TO'
+120528                 THEN
+120528                    MOVE 'S'     TO 0406A-ROLL-TYPE
+120528                 ELSE
+120528                    IF DPTM-TO-FROM-CODE = 'FR'
+120528                    THEN
+120528                       MOVE 'A'  TO 0406A-ROLL-TYPE
+120528                    ELSE
+120528                       MOVE 'T'  TO 0406A-ROLL-TYPE
+120528                    END-IF
+120528                 END-IF
+120528*                MOVE 'T'                 TO 0406A-ROLL-TYPE
+                    ELSE
+120526                 IF DPTM-TO-FROM-CODE = 'TO'
+                       THEN
+R31274*120613             IF DPTM-AMOUNT = ZERO
+R31274                    IF DPTM-AMOUNT = ZERO AND WS-DJ01-S-Y
+120613                    THEN
+120613                       MOVE 'B'  TO 0406A-ROLL-TYPE
+120613                    ELSE
+120613                       MOVE 'S'  TO 0406A-ROLL-TYPE
+120613                    END-IF
+                       ELSE
+120526                    IF DPTM-TO-FROM-CODE = 'FR'
+                          THEN
+                             MOVE 'A'  TO 0406A-ROLL-TYPE
+                          ELSE
+                             MOVE 'R'  TO 0406A-ROLL-TYPE
+                          END-IF
+                       END-IF
+  |                 END-IF
+ZL0315           END-IF
+R18323           PERFORM B850-GET-INT-ACCT
+R18323              THRU B850-GET-INT-ACCT-EXIT
+R18323           PERFORM B200-GET-PRE-INCT
+ZL0512           EVALUATE 0406A-ROLL-TYPE
+  |                 WHEN 'A'
+130108                 IF INVM-CURR-STATUS = "07"
+130108                 THEN
+130108                    COMPUTE 0406A-PRINCIPAL-NEW =
+130311*                       0406A-PRINCIPAL-NEW + 0406A-ADD-SUB-AMT
+130311                        WS-PRINCIPAL-NEW + 0406A-ADD-SUB-AMT
+130108                    END-COMPUTE
+R24624*130108             IF INVM-TRAP = 'I' OR INVM-TRAP = 'T'
+R24624                    IF WS-40-PAYMENT-METHOD(1:1) = 'I' OR
+R24624                       WS-40-PAYMENT-METHOD(1:1) = 'T'
+130108                    THEN
+130311*                      MOVE 0406A-PRINCIPAL-NEW
+R15962*130311                MOVE WS-PRINCIPAL-NEW
+R15962*130311                          TO 0406A-PRINCIPAL-OLD
+R15962                       MOVE FDVI-AMOUNT
+R15962                                 TO 0406A-PRINCIPAL-OLD
+130108                    ELSE
+R24624*130108                IF INVM-TRAP = 'R'
+R24624                       IF WS-40-PAYMENT-METHOD(1:1) = 'R'
+130108                       THEN
+R15962*130108                   COMPUTE 0406A-PRINCIPAL-OLD =
+R15962*130108                           0406A-PRINCIPAL-NEW -
+R15962*130124                           0406A-ADD-SUB-AMT -
+R15962*130124                           0406A-INT-PAID-OLD
+R15962*130108                   END-COMPUTE
+R15962                          MOVE FDVI-AMOUNT
+R15962                                    TO 0406A-PRINCIPAL-OLD
+130108                       END-IF
+130108                    END-IF
+130108                 ELSE
+R24624*120528             IF INVM-TRAP = 'I' OR INVM-TRAP = 'T'
+R24624                    IF WS-40-PAYMENT-METHOD(1:1) = 'I' OR
+R24624                       WS-40-PAYMENT-METHOD(1:1) = 'T'
+                          THEN
+R15962*                      COMPUTE 0406A-PRINCIPAL-OLD =
+R15962*                              0406A-PRINCIPAL-NEW -
+R15962*                              0406A-ADD-SUB-AMT
+R15962*                      END-COMPUTE
+R15962                          MOVE FDVI-AMOUNT
+R15962                                    TO 0406A-PRINCIPAL-OLD
+                          ELSE
+R24624*                      IF INVM-TRAP = 'R'
+R24624                       IF WS-40-PAYMENT-METHOD(1:1) = 'R'
+                             THEN
+R15962*                         COMPUTE 0406A-PRINCIPAL-OLD =
+R15962*                                 0406A-PRINCIPAL-NEW -
+R15962*                                 0406A-ADD-SUB-AMT -
+R15962*                                 0406A-INT-PAID-OLD
+R15962*                         END-COMPUTE
+R15962                          MOVE FDVI-AMOUNT
+R15962                                    TO 0406A-PRINCIPAL-OLD
+                             END-IF
+                          END-IF
+130108                 END-IF
+120725                 PERFORM B910-READ-INCT-FOR-A
+120725                    THRU B910-READ-INCT-FOR-A-EXIT
+                    WHEN 'S'
+130108                 IF INVM-CURR-STATUS = "07"
+130108                 THEN
+130311                    COMPUTE 0406A-PRINCIPAL-NEW =
+130311                        WS-PRINCIPAL-NEW - 0406A-ADD-SUB-AMT
+130311                    END-COMPUTE
+R24624*130108             IF INVM-TRAP = 'I' OR INVM-TRAP = 'T'
+R24624                    IF WS-40-PAYMENT-METHOD(1:1) = 'I' OR
+R24624                       WS-40-PAYMENT-METHOD(1:1) = 'T'
+130108                    THEN
+130311*                      MOVE 0406A-PRINCIPAL-NEW
+R15962*130311                MOVE WS-PRINCIPAL-NEW
+R15962*130108                          TO 0406A-PRINCIPAL-OLD
+R15962                          MOVE FDVI-AMOUNT
+R15962                                    TO 0406A-PRINCIPAL-OLD
+130108                    ELSE
+R24624*130108                IF INVM-TRAP = 'R'
+R24624                       IF WS-40-PAYMENT-METHOD(1:1) = 'R'
+130108                       THEN
+R15962*130108                   COMPUTE 0406A-PRINCIPAL-OLD =
+R15962*130108                           0406A-PRINCIPAL-NEW +
+R15962*130124                           0406A-ADD-SUB-AMT -
+R15962*130124                           0406A-INT-PAID-OLD
+R15962*130108                   END-COMPUTE
+R15962                          MOVE FDVI-AMOUNT
+R15962                                    TO 0406A-PRINCIPAL-OLD
+130108                       END-IF
+130108                    END-IF
+130108                 ELSE
+R24624*120528             IF INVM-TRAP = 'I' OR INVM-TRAP = 'T'
+R24624                    IF WS-40-PAYMENT-METHOD(1:1) = 'I' OR
+R24624                       WS-40-PAYMENT-METHOD(1:1) = 'T'
+                          THEN
+R15962*                      COMPUTE 0406A-PRINCIPAL-OLD =
+R15962*                              0406A-PRINCIPAL-NEW +
+R15962*                              0406A-ADD-SUB-AMT
+R15962*                      END-COMPUTE
+R15962                       MOVE FDVI-AMOUNT
+R15962                                    TO 0406A-PRINCIPAL-OLD
+                          ELSE
+R24624*                      IF INVM-TRAP = 'R'
+R24624                       IF WS-40-PAYMENT-METHOD(1:1) = 'R'
+                             THEN
+R15962*                         COMPUTE 0406A-PRINCIPAL-OLD =
+R15962*                                 0406A-PRINCIPAL-NEW +
+R15962*                                 0406A-ADD-SUB-AMT -
+R15962*                                 0406A-INT-PAID-OLD
+R15962*                         END-COMPUTE
+R15962                          MOVE FDVI-AMOUNT
+R15962                                    TO 0406A-PRINCIPAL-OLD
+                             END-IF
+                          END-IF
+130108                 END-IF
+120725                 PERFORM B920-READ-INCT-FOR-S
+120725                    THRU B920-READ-INCT-FOR-S-EXIT
+                    WHEN 'T'
+R15962*120712          MOVE 0406A-PRINCIPAL-NEW
+R15962*120712                          TO  0406A-PRINCIPAL-OLD
+R15962                 MOVE FDVI-AMOUNT
+R15962                                 TO 0406A-PRINCIPAL-OLD
+120613              WHEN 'B'
+120613                 IF INVM-LAST-DIV-DATE = WS-PRV-AC-DATE
+120613                 THEN
+120613                    COMPUTE 0406A-PRINCIPAL-NEW =
+120613                            0406A-PRINCIPAL-NEW - INVM-DIV1
+120613                    END-COMPUTE
+120613                 END-IF
+R15962*120613          MOVE 0406A-PRINCIPAL-NEW
+R15962*120613                          TO  0406A-PRINCIPAL-OLD
+R15962                 MOVE FDVI-AMOUNT
+R15962                                 TO 0406A-PRINCIPAL-OLD
+                    WHEN 'R'
+R15962*                COMPUTE 0406A-PRINCIPAL-OLD =
+R15962*                        0406A-PRINCIPAL-NEW -
+R15962*                        0406A-INT-PAID-OLD
+R15962*                END-COMPUTE
+R15962                 MOVE FDVI-AMOUNT
+R15962                                 TO 0406A-PRINCIPAL-OLD
+                 END-EVALUATE
+T18289*
+R24624*T18289    IF INVM-CURR-STATUS = "07" AND INVM-TRAP = 'T'
+R24624           IF INVM-CURR-STATUS = "07" AND
+R24624              WS-40-PAYMENT-METHOD(1:1) = 'T'
+T18289           THEN
+T18289              PERFORM B980-READ-INCT-3055
+T18289                 THRU B980-READ-INCT-3055-EXIT
+T18289              IF WS-3055-Y
+T18289              THEN
+T18289                 EVALUATE 0406A-ROLL-TYPE
+T18289                    WHEN 'A'
+T18289                       COMPUTE WS-A-VALUE-BK = WS-40-VALUE-BK +
+T18289                                               0406A-ADD-SUB-AMT
+T18289                       END-COMPUTE
+T18289                       IF WS-A-VALUE-BK = WS-INCT-01-BAL
+T18289                       THEN
+T18289                          MOVE WS-INCT-01-BAL
+T18289                                 TO 0406A-PRINCIPAL-NEW
+T18289                       END-IF
+T18289                    WHEN 'S'
+T18289                       COMPUTE WS-S-VALUE-BK = WS-40-VALUE-BK -
+T18289                                               0406A-ADD-SUB-AMT
+T18289                       END-COMPUTE
+T18289                       IF WS-INCT-01-BAL < 0
+T18289                       THEN
+T18289                          COMPUTE WS-INCT-01-BAL =
+T18289                                         WS-INCT-01-BAL * -1
+T18289                          END-COMPUTE
+T18289                       END-IF
+T18289                       IF WS-S-VALUE-BK = WS-INCT-01-BAL
+T18289                       THEN
+T18289                          MOVE WS-INCT-01-BAL
+T18289                                 TO 0406A-PRINCIPAL-NEW
+T18289                       END-IF
+T18289                    WHEN 'T'
+T18289                       IF WS-INCT-01-BAL < ZERO
+T18289                       THEN
+T18289                          COMPUTE WS-INCT-01-BAL =
+T18289                                  WS-INCT-01-BAL * -1
+T18289                          END-COMPUTE
+T18289                       END-IF
+T18289                       IF WS-40-VALUE-BK = WS-INCT-01-BAL
+T18289                       THEN
+T18289                          MOVE WS-INCT-01-BAL
+T18289                                 TO 0406A-PRINCIPAL-NEW
+T18289                       END-IF
+T18289                 END-EVALUATE
+T18289              END-IF
+T18289           END-IF
+T18289*
+R15962*T18289    PERFORM B990-PRE-40-INCT
+R15962*T18289       THRU B990-PRE-40-INCT-EXIT
+R15962*T18289    IF WS-PRE-40-END
+R15962*T18289    THEN
+R15962*T18289       PERFORM B960-PRE-FIN-BAL
+R15962*T18289          THRU B960-PRE-FIN-BAL-EXIT
+R15962*T18289    END-IF
+T18289*
+                 COMPUTE 0406A-DIFFERENCE   =
+  |                   0406A-PRINCIPAL-NEW   -
+  |                   0406A-PRINCIPAL-OLD
+ZL0512           END-COMPUTE
+120717*
+120717           IF 0406A-ROLL-TYPE = 'B'
+120717           THEN
+120717              CONTINUE
+120717           ELSE
+121017              PERFORM B405-GET-DATA-TO-FD0405
+121017                 THRU B405-GET-DATA-TO-FD0405-EXIT
+R15962              INITIALIZE FDC0001-DATA
+R15962              MOVE INVM-KEY-1(4:16)       TO FD01-AC
+R15962              INITIALIZE UT0020-FUNCTION
+R15962                         UT0020-DATE-AREA
+R15962                         UT0020-BINARY-DATE
+R15962              MOVE 0406A-DUE-DATE-NEW     TO UT0020-BINARY-DATE
+R15962              SET TO-CCYYMMDD             TO TRUE
+R15962              CALL "UT0020"            USING UT0020-FUNCTION
+R15962                                             UT0020-DATE-AREA
+R15962                                             UT0020-BINARY-DATE
+R15962              MOVE UT0020-DATE-CCYYMMDD   TO FD01-DUE-DATE
+R15962              MOVE INVT-MAST-ACCT         TO FD01-MAST-AC
+R15962              MOVE INVT-VOLUME-NO         TO FD01-VOLUME-NO
+R15962              MOVE 0406A-SEQ-NO           TO FD01-SEQUENCE-NO
+R15962              INITIALIZE UT0020-FUNCTION
+R15962                         UT0020-DATE-AREA
+R15962                         UT0020-BINARY-DATE
+R15962              MOVE 0406A-VALUE-DATE-NEW   TO UT0020-BINARY-DATE
+R15962              SET TO-CCYYMMDD             TO TRUE
+R15962              CALL "UT0020"            USING UT0020-FUNCTION
+R15962                                             UT0020-DATE-AREA
+R15962                                             UT0020-BINARY-DATE
+R15962              MOVE UT0020-DATE-CCYYMMDD   TO FD01-VALUE-DATE
+R15962              MOVE INVM-ACCT-TYPE         TO FD01-ACCT-TYPE
+R15962              MOVE INVM-INT-CAT           TO FD01-INT-CAT
+R15962              MOVE 0406A-INT-RATE-NEW     TO FD01-RATE
+R15962              MOVE 0406A-PRINCIPAL-NEW    TO FD01-AMOUNT
+R18443*120717       PERFORM S000-WRITE-FDQ0406A
+R15962              PERFORM S000-WRITE-FDQ0001C
+R18443*
+R18443              INITIALIZE FNC0001-DATA
+R18443              MOVE INVM-KEY-1(4:16)       TO FN01-AC
+R18443              INITIALIZE UT0020-FUNCTION
+R18443                         UT0020-DATE-AREA
+R18443                         UT0020-BINARY-DATE
+R18443              MOVE 0406A-DUE-DATE-OLD     TO UT0020-BINARY-DATE
+R18443              SET TO-CCYYMMDD             TO TRUE
+R18443              CALL "UT0020"            USING UT0020-FUNCTION
+R18443                                             UT0020-DATE-AREA
+R18443                                             UT0020-BINARY-DATE
+R18443              MOVE UT0020-DATE-CCYYMMDD   TO FN01-DUE-DATE
+R18443              MOVE INVT-MAST-ACCT         TO FN01-MAST-AC
+R18443              MOVE INVT-VOLUME-NO         TO FN01-VOLUME-NO
+R18443              MOVE 0406A-SEQ-NO           TO FN01-SEQUENCE-NO
+R18443              INITIALIZE UT0020-FUNCTION
+R18443                         UT0020-DATE-AREA
+R18443                         UT0020-BINARY-DATE
+R18443              MOVE 0406A-VALUE-DATE-OLD   TO UT0020-BINARY-DATE
+R18443              SET TO-CCYYMMDD             TO TRUE
+R18443              CALL "UT0020"            USING UT0020-FUNCTION
+R18443                                             UT0020-DATE-AREA
+R18443                                             UT0020-BINARY-DATE
+R18443              MOVE UT0020-DATE-CCYYMMDD   TO FN01-VALUE-DATE
+R18443              MOVE INVM-ACCT-TYPE         TO FN01-ACCT-TYPE
+R18443              MOVE INVM-INT-CAT           TO FN01-INT-CAT
+R18443              MOVE 0406A-INT-RATE-NEW     TO FN01-RATE
+R18443              MOVE 0406A-PRINCIPAL-NEW    TO FN01-AMOUNT
+R18443              MOVE 0406A-ROLL-TYPE        TO FN01-FILLER1
+R18443*             MOVE 0406A-INT-ACCT         TO FN01-FILLER2
+R18443              MOVE WS-ACCT-FILLER1        TO FN01-FILLER2
+R18443*             MOVE 0406A-TRANSFER-ACCT    TO FN01-FILLER3
+R18443              MOVE WS-ACCT-FILLER2        TO FN01-FILLER3
+R18443              MOVE 0406A-INT-PAID-OLD     TO FN01-FILLER4
+R18443              PERFORM S000-WRITE-FNQ0001C
+R18443              PERFORM S000-WRITE-FDQ0406A
+R18443              MOVE SPACE                  TO WS-ACCT-FILLER1
+R18443              MOVE SPACE                  TO WS-ACCT-FILLER2
+R18443*
+120717           END-IF
+120717*
+              END-IF
+           END-IF
+           PERFORM B100-FETCH-CUR
+           .
+           EXIT.
+120717*
+120717 B001-MAIN-LOGIC.
+120717     IF WS-STAT-Y
+120717     THEN
+120717        INITIALIZE FDC0406A
+121126*
+121126        MOVE INCT-ACCT-NO        TO WS-TEMP-AC
+121126*
+120717        MOVE '003'               TO 0406A-INST-NO
+120717        MOVE INVT-MAST-ACCT      TO WK-FORM-AC-FROM
+120717        PERFORM S00-FORMAT-CBS-AC
+120717        MOVE WK-FORM-AC-TO       TO 0406A-ACCOUNT-NUM
+120822        IF INCT1-01-TRAN-ACCT = '0000000000000000'
+120815        THEN
+120815           MOVE SPACE            TO 0406A-TRANSFER-ACCT
+120815        ELSE
+120822           MOVE INCT1-01-TRAN-ACCT
+120822                                 TO WK-FORM-AC-FROM
+R18443           MOVE INCT1-01-TRAN-ACCT
+R18443                                 TO WS-ACCT-FILLER2
+120815           PERFORM S00-FORMAT-CBS-AC
+120815           MOVE WK-FORM-AC-TO    TO 0406A-TRANSFER-ACCT
+120815        END-IF
+120717        MOVE INVT-VOLUME-NO      TO 0406A-VOL-NO
+120717        MOVE INVT-SEQUENCE-NO    TO 0406A-SEQ-NO
+120717        MOVE SPACE               TO 0406A-FIL
+120717        MOVE INVM-OD-VISA-AREA   TO INVM-TERM-AREA
+R18443        MOVE INVM-TRM-FRM-DT     TO WS-TEMP-DATE
+R15962        PERFORM B340-GET-AC-INFD
+R15962           THRU B340-GET-AC-INFD-EXIT
+120717        PERFORM B800-READ-CCYM
+120717           THRU B800-READ-CCYM-EXIT
+120717        MOVE CCYM-CURRENCY-CODE-DIG
+120717                                 TO 0406A-CURRENCY
+120717        MOVE INVM-BRANCH-NO      TO 0406A-BRANCH
+120717        PERFORM S000-GET-AC-NAME
+120717        MOVE ACSN-SHORT-NAME     TO 0406A-ACCOUNT-NAME
+120717        IF 0406A-ACCOUNT-NAME = SPACE
+120717        THEN
+120717           PERFORM B340-GET-CUSM-NAME
+120717              THRU B340-GET-CUSM-NAME-EXIT
+120717        END-IF
+120717        MOVE INVM-ACCT-TYPE      TO 0406A-ACCT-TYPE
+R36285        IF INVM-TERM-AREA(182:8) = SPACE OR
+R36285           INVM-TERM-AREA(182:8) = LOW-VALUE
+R36285        THEN
+R36285           MOVE 0406A-ACCT-TYPE  TO 0406A-PROD-CODE(1:4)
+R36285           MOVE SPACE            TO 0406A-PROD-CODE(5:4)
+R36285           MOVE '0'              TO 0406A-PROD-IND
+R36285        ELSE
+R36285           MOVE INVM-TERM-AREA(182:8)
+R36285                                 TO 0406A-PROD-CODE
+R36285           MOVE '1'              TO 0406A-PROD-IND
+R36285        END-IF
+120717        MOVE ZERO                TO 0406A-PRINCIPAL-NEW
+120717        MOVE ZERO                TO 0406A-INT-RATE-NEW
+120717        MOVE ZERO                TO 0406A-VALUE-DATE-NEW
+120717        MOVE ZERO                TO 0406A-DUE-DATE-NEW
+120717        MOVE ZEROS               TO 0406A-EXCH-AMT
+120717        MOVE 'SUCCESSFUL'        TO 0406A-REMARK
+120717        MOVE ZEROS               TO 0406A-MARKUP-AMT
+120717        MOVE ZEROS               TO 0406A-ACC-MARKUP-RATE
+120717        MOVE ZEROS               TO 0406A-STAFF-MARKUP-RATE
+120717        MOVE INVM-ACCT-MARGIN-RATE
+120717                                 TO 0406A-CERT-MARKUP-RATE
+R15962*120717 MOVE INVM-VAR-INT-RATE   TO 0406A-INT-RATE-OLD
+R15962*120717 ADD  INVM-ACCT-MARGIN-RATE
+R15962*120717                          TO 0406A-INT-RATE-OLD
+R15962        MOVE FDVI-RATE           TO 0406A-INT-RATE-OLD
+120717        MOVE SPACE               TO 0406A-ROLL-INSTRUCTION
+120717        MOVE 1                   TO 0406A-NUM-OF-CERT
+120815*       MOVE INCT1-01-AMOUNT     TO 0406A-PRINCIPAL-OLD
+120717        IF INVM-LAST-DIV-DATE = WS-PRV-AC-DATE
+121031           OR INVM-LAST-DIV-DATE = WS-AC-DATE
+121031        THEN
+120717           MOVE INVM-DIV1        TO 0406A-INT-PAID-OLD
+121031           IF INVM-TRAP = 'T'
+121031           THEN
+R15962*121031       MOVE INCT1-01-AMOUNT
+R15962*121031                          TO 0406A-PRINCIPAL-OLD
+R15962              MOVE FDVI-AMOUNT
+R15962                                 TO 0406A-PRINCIPAL-OLD
+121031           ELSE
+120815              IF INCT1-01-AMOUNT > ZERO
+120815              THEN
+R15962*120815          COMPUTE 0406A-PRINCIPAL-OLD ROUNDED =
+R15962*120815                  INCT1-01-AMOUNT - INVM-DIV1
+120815*120815          END-COMPUTE
+R15962              MOVE FDVI-AMOUNT
+R15962                                 TO 0406A-PRINCIPAL-OLD
+120815              ELSE
+R15962*120815          COMPUTE 0406A-PRINCIPAL-OLD ROUNDED =
+R15962*120815                  INCT1-01-AMOUNT + INVM-DIV1
+120815*120815          END-COMPUTE
+R15962                 MOVE FDVI-AMOUNT
+R15962                                 TO 0406A-PRINCIPAL-OLD
+120815              END-IF
+121031           END-IF
+120717        ELSE
+120717           MOVE ZEROS            TO 0406A-INT-PAID-OLD
+R15962*120815    MOVE INCT1-01-AMOUNT  TO 0406A-PRINCIPAL-OLD
+R15962           MOVE FDVI-AMOUNT      TO 0406A-PRINCIPAL-OLD
+120717        END-IF
+120717        MOVE ZERO                TO 0406A-INT-PAID-NEW
+120717        MOVE 'B'                 TO 0406A-ROLL-TYPE
+121016*       MOVE INVM-MAT-DT         TO 0406A-DUE-DATE-OLD
+R15962*121016 MOVE INVM-TRM-FRM-DT     TO 0406A-DUE-DATE-OLD
+R15962        MOVE WS-INFD-DUE-DT      TO 0406A-DUE-DATE-OLD
+120717        MOVE SPACE               TO 0406A-ADD-SUB-IND
+120822*       MOVE 0406A-PRINCIPAL-OLD TO 0406A-ADD-SUB-AMT
+120822        MOVE INCT1-01-AMOUNT     TO 0406A-ADD-SUB-AMT
+120717        COMPUTE 0406A-DIFFERENCE  ROUNDED =
+120717             0406A-PRINCIPAL-NEW   -  0406A-PRINCIPAL-OLD
+120717        END-COMPUTE
+120725*
+121127        MOVE INCT-JRNL-NO        TO WS-FXSM-JRNL-NO
+120725        PERFORM B930-READ-FXSM
+120725           THRU B930-READ-FXSM-EXIT
+120725*
+R20617        PERFORM B850-GET-INT-ACCT
+R20617           THRU B850-GET-INT-ACCT-EXIT
+R20617*
+121115        PERFORM B940-PRE-40-INCT
+121115           THRU B940-PRE-40-INCT-EXIT
+121115*
+R15962*121115 IF WS-PRE-INCT-END
+R15962*121115 THEN
+R15962*121115    MOVE INCT1-40-START-DATE
+R15962*121115                          TO 0406A-VALUE-DATE-OLD
+R15962*121115 ELSE
+R15962*121115    MOVE INVM-ACCT-OPEN-DT
+R15962*121115                          TO 0406A-VALUE-DATE-OLD
+R15962*121115 END-IF
+R15962        MOVE WS-INFD-VALUE-DT    TO 0406A-VALUE-DATE-OLD
+T18289*
+R15962*T18289 PERFORM B990-PRE-40-INCT
+R15962*T18289    THRU B990-PRE-40-INCT-EXIT
+R15962*T18289 IF WS-PRE-40-END
+R15962*T18289 THEN
+R15962*T18289    PERFORM B960-PRE-FIN-BAL
+R15962*T18289       THRU B960-PRE-FIN-BAL-EXIT
+R15962*T18289 END-IF
+121126*
+R15962*121126 IF INVM-TRAP = 'T'
+R15962*121126 THEN
+R15962*121126    PERFORM B300-SELECT-INCT
+R15962*121126    IF INCT2-01-TRAN-ACCT = ZERO
+R15962*121126    THEN
+R15962*121126       MOVE SPACE         TO 0406A-INT-ACCT
+R15962*121126    ELSE
+R15962*121126       MOVE INCT2-01-TRAN-ACCT
+R15962*121126                          TO WK-FORM-AC-FROM
+R15962*121126       PERFORM S00-FORMAT-CBS-AC
+R15962*121126       MOVE WK-FORM-AC-TO TO 0406A-INT-ACCT
+R15962*121126    END-IF
+R15962*121126 ELSE
+R15962*121126    MOVE SPACE            TO 0406A-INT-ACCT
+R15962*121126    MOVE ZERO             TO 0406A-INT-TRSF-AMT
+R15962*121126    MOVE ZERO             TO 0406A-INT-EXCH-AMT
+R15962*121126    MOVE SPACE            TO 0406A-INT-EXCH-CCY
+R15962*121126    MOVE ZERO             TO 0406A-INT-EXCH-RATE
+R15962*121126 END-IF
+121126*
+R15962* GET INT INFORMATION
+R20617*R15962 PERFORM B850-GET-INT-ACCT
+R20617*R15962    THRU B850-GET-INT-ACCT-EXIT
+R15962*
+121017        PERFORM B405-GET-DATA-TO-FD0405
+121017           THRU B405-GET-DATA-TO-FD0405-EXIT
+R15962        INITIALIZE FDC0001-DATA
+R15962        MOVE INVM-KEY-1(4:16)    TO FD01-AC
+R15962        INITIALIZE UT0020-FUNCTION
+R15962                   UT0020-DATE-AREA
+R15962                   UT0020-BINARY-DATE
+R15962        MOVE 0406A-DUE-DATE-NEW  TO UT0020-BINARY-DATE
+R15962        SET  TO-CCYYMMDD         TO TRUE
+R15962        CALL "UT0020"         USING UT0020-FUNCTION
+R15962                                    UT0020-DATE-AREA
+R15962                                    UT0020-BINARY-DATE
+R15962        MOVE UT0020-DATE-CCYYMMDD
+R15962                                 TO FD01-DUE-DATE
+R15962        MOVE INVT-MAST-ACCT      TO FD01-MAST-AC
+R15962        MOVE INVT-VOLUME-NO      TO FD01-VOLUME-NO
+R15962        MOVE 0406A-SEQ-NO        TO FD01-SEQUENCE-NO
+R15962        INITIALIZE UT0020-FUNCTION
+R15962                   UT0020-DATE-AREA
+R15962                   UT0020-BINARY-DATE
+R15962        MOVE 0406A-VALUE-DATE-NEW
+R15962                                 TO UT0020-BINARY-DATE
+R15962        SET  TO-CCYYMMDD         TO TRUE
+R15962        CALL "UT0020"         USING UT0020-FUNCTION
+R15962                                    UT0020-DATE-AREA
+R15962                                    UT0020-BINARY-DATE
+R15962        MOVE UT0020-DATE-CCYYMMDD
+R15962                                 TO FD01-VALUE-DATE
+R15962        MOVE INVM-ACCT-TYPE      TO FD01-ACCT-TYPE
+R15962        MOVE INVM-INT-CAT        TO FD01-INT-CAT
+R15962        MOVE 0406A-INT-RATE-NEW  TO FD01-RATE
+R15962        MOVE 0406A-PRINCIPAL-NEW TO FD01-AMOUNT
+R15962        PERFORM S000-WRITE-FDQ0001C
+R18443*120717 PERFORM S000-WRITE-FDQ0406A
+R18443*
+R18443        INITIALIZE FNC0001-DATA
+R18443        MOVE INVM-KEY-1(4:16)       TO FN01-AC
+R18443        INITIALIZE UT0020-FUNCTION
+R18443                   UT0020-DATE-AREA
+R18443                   UT0020-BINARY-DATE
+R18443        MOVE 0406A-DUE-DATE-OLD     TO UT0020-BINARY-DATE
+R18443        SET TO-CCYYMMDD             TO TRUE
+R18443        CALL "UT0020"            USING UT0020-FUNCTION
+R18443                                       UT0020-DATE-AREA
+R18443                                       UT0020-BINARY-DATE
+R18443        MOVE UT0020-DATE-CCYYMMDD   TO FN01-DUE-DATE
+R18443        MOVE INVT-MAST-ACCT         TO FN01-MAST-AC
+R18443        MOVE INVT-VOLUME-NO         TO FN01-VOLUME-NO
+R18443        MOVE 0406A-SEQ-NO           TO FN01-SEQUENCE-NO
+R18443        INITIALIZE UT0020-FUNCTION
+R18443                   UT0020-DATE-AREA
+R18443                   UT0020-BINARY-DATE
+R18443        MOVE 0406A-VALUE-DATE-OLD   TO UT0020-BINARY-DATE
+R18443        SET TO-CCYYMMDD             TO TRUE
+R18443        CALL "UT0020"            USING UT0020-FUNCTION
+R18443                                       UT0020-DATE-AREA
+R18443                                       UT0020-BINARY-DATE
+R18443        MOVE UT0020-DATE-CCYYMMDD   TO FN01-VALUE-DATE
+R18443        MOVE INVM-ACCT-TYPE         TO FN01-ACCT-TYPE
+R18443        MOVE INVM-INT-CAT           TO FN01-INT-CAT
+R18443        MOVE 0406A-INT-RATE-NEW     TO FN01-RATE
+R18443        MOVE 0406A-PRINCIPAL-NEW    TO FN01-AMOUNT
+R18443        MOVE 0406A-ROLL-TYPE        TO FN01-FILLER1
+R18443*       MOVE 0406A-INT-ACCT         TO FN01-FILLER2
+R18443        MOVE WS-ACCT-FILLER1        TO FN01-FILLER2
+R18443*       MOVE 0406A-TRANSFER-ACCT    TO FN01-FILLER3
+R18443        MOVE WS-ACCT-FILLER2        TO FN01-FILLER3
+R18443        MOVE 0406A-INT-PAID-OLD     TO FN01-FILLER4
+R18443        PERFORM S000-WRITE-FNQ0001C
+R18443        PERFORM S000-WRITE-FDQ0406A
+R18443        MOVE SPACE                  TO WS-ACCT-FILLER1
+R18443        MOVE SPACE                  TO WS-ACCT-FILLER2
+R18443*
+120717     END-IF
+120717     PERFORM B400-FETCH-CUR
+120717        THRU B400-FETCH-CUR-EXIT
+120717     .
+120717     EXIT.
+      *****************************************************************
+      *   DEFINE CURSOR -  GET TODAY STOP CERT
+      *****************************************************************
+       B200-GET-PRE-INCT.
+      *
+           INITIALIZE  INCT
+           PERFORM S000-SELECT-INCT-PRE
+           MOVE ZEROS                     TO WS-POST-DATE-OLD
+DJTEST     DISPLAY " FDVI-KEY : " FDVI-KEY
+           IF WS-INCT-FOUND
+           THEN
+DJTEST        DISPLAY " AAAAAAA "
+              INITIALIZE           WS-INCT-VAR-AREA
+              MOVE INCT-TRN-DATE               TO WS-POST-DATE-OLD
+ZL0315*       MOVE INCT-VAR-AREA               TO INCT1-VAR-AREA
+ZL0315        MOVE INCT-VAR-AREA               TO INCT1-VAR-AREA1
+ZL0315*       MOVE INCT1-40-TERM-VALUE         TO 0406A-PRINCIPAL-OLD
+R15962*       MOVE INCT1-40-START-DATE         TO 0406A-VALUE-DATE-OLD
+R15962*       MOVE INCT1-40-MATURITY-DATE      TO 0406A-DUE-DATE-OLD
+R15962        MOVE FDVI-RATE                   TO 0406A-INT-RATE-OLD
+R15962        MOVE WS-INFD-VALUE-DT            TO 0406A-VALUE-DATE-OLD
+R15962        MOVE WS-INFD-DUE-DT              TO 0406A-DUE-DATE-OLD
+           ELSE
+R15962*       MOVE INVM-VAR-INT-RATE           TO 0406A-INT-RATE-OLD
+R15962*       ADD  INVM-ACCT-MARGIN-RATE       TO 0406A-INT-RATE-OLD
+R15962*       MOVE INVM-ACCT-OPEN-DT           TO 0406A-VALUE-DATE-OLD
+R15962*       MOVE 0406A-VALUE-DATE-NEW        TO 0406A-DUE-DATE-OLD
+R15962        MOVE FDVI-RATE                   TO 0406A-INT-RATE-OLD
+R15962        MOVE WS-INFD-VALUE-DT            TO 0406A-VALUE-DATE-OLD
+R15962        MOVE WS-INFD-DUE-DT              TO 0406A-DUE-DATE-OLD
+           END-IF
+           .
+           EXIT.
+      *****************************************************************
+VNBCZL B300-SELECT-INCT.
+VNBCZL     INITIALIZE INCT
+           SET WS-INCT-N                       TO TRUE
+VNBCZL     MOVE WS-AC-DATE                     TO INCT-TRN-DATE
+VNBCZL     MOVE '003'                          TO INCT-INST-NO
+VNBCZL     MOVE WS-TEMP-AC             TO INCT-ACCT-NO
+121126     MOVE '1055'                 TO INCT-TRN-CODE
+121126*    IF INVM-CURR-STATUS  = '07'
+121126*    THEN
+121126*       MOVE '3055'                      TO INCT-TRN-CODE
+121126*    ELSE
+121126*       MOVE '1055'                      TO INCT-TRN-CODE
+121126*    END-IF
+VNBCZL*
+VNBCZL     EXEC SQL
+VNBCZL        SELECT  TRN_CODE,
+121126                JRNL_NO,
+VNBCZL                VAR_AREA
+VNBCZL        INTO    :INCT-TRN-CODE,
+121126                :INCT-JRNL-NO,
+VNBCZL                :INCT-VAR-AREA
+VNBCZL        FROM    INCT
+VNBCZL        WHERE   TRN_DATE   = :INCT-TRN-DATE  AND
+VNBCZL                INST_NO    = :INCT-INST-NO   AND
+VNBCZL                ACCT_NO    = :INCT-ACCT-NO   AND
+VNBCZL                TRN_CODE   = :INCT-TRN-CODE
+VNBCZL        ORDER BY REC_NO
+VNBCZL        FETCH FIRST 1 ROWS ONLY
+VNBCZL     END-EXEC
+VNBCZL*
+VNBCZL     EVALUATE TRUE
+VNBCZL        WHEN SQLCODE = ZERO
+121126           INITIALIZE WS-INCT-VAR-AREA2
+121126           MOVE INCT-VAR-AREA    TO WS-INCT-VAR-AREA2
+121126           IF INCT2-01-CORRECTION = ZERO
+121126           THEN
+121126              MOVE INCT2-01-AMOUNT
+121126                                 TO 0406A-INT-TRSF-AMT
+121126              MOVE INCT-JRNL-NO  TO WS-FXSM-JRNL-NO
+121126              PERFORM B310-READ-FXSM
+121126                 THRU B310-READ-FXSM-EXIT
+121126*             SET WS-INCT-Y        TO TRUE
+121126           ELSE
+121126              MOVE ZERO          TO INCT2-01-TRAN-ACCT
+121126              MOVE ZERO          TO 0406A-INT-TRSF-AMT
+121126              MOVE ZERO          TO 0406A-INT-EXCH-AMT
+121126              MOVE ZERO          TO 0406A-INT-EXCH-RATE
+121126              MOVE SPACE         TO 0406A-INT-EXCH-CCY
+121126           END-IF
+VNBCZL        WHEN SQLCODE = 100
+121126           MOVE ZERO             TO INCT2-01-TRAN-ACCT
+121126           MOVE ZERO             TO 0406A-INT-TRSF-AMT
+121126           MOVE ZERO             TO 0406A-INT-EXCH-AMT
+121126           MOVE ZERO             TO 0406A-INT-EXCH-RATE
+121126           MOVE SPACE            TO 0406A-INT-EXCH-CCY
+121126*          SET WS-INCT-N           TO TRUE
+VNBCZL        WHEN OTHER
+VNBCZL           MOVE ERROR-RC         TO RETURN-CODE
+VNBCZL           DISPLAY 'SELECT INCT  ERROR SQLCODE= '
+VNBCZL           SQLCODE
+VNBCZL           PERFORM Z000-EXIT
+VNBCZL     END-EVALUATE
+VNBCZL     .
+VNBCZL     EXIT.
+121126*
+121126 B310-READ-FXSM.
+121126*
+121126     INITIALIZE DCLFXSM
+121126     EXEC SQL
+121126        SELECT CURR1_CODE,
+121126               CURR2_CODE,
+121126               CURR1_AMOUNT,
+121126               CURR2_AMOUNT,
+121126               BASE_RATE1,
+121126               BASE_RATE2,
+121126               TXN_RATE1,
+121126               TXN_RATE2
+121126        INTO   :FXSM-FROM-CURR-CODE,
+121126               :FXSM-TO-CURR-CODE,
+121126               :FXSM-FROM-CURR-AMOUNT,
+121126               :FXSM-TO-CURR-AMOUNT,
+121126               :FXSM-BASE-RATE1,
+121126               :FXSM-BASE-RATE2,
+121126               :FXSM-TXN-RATE1,
+121126               :FXSM-TXN-RATE2
+121126        FROM FXSM
+121126        WHERE FXSM.INST_NO = '003' AND
+121126              FXSM.TRAN_DATE = :INCT-TRN-DATE AND
+121126              FXSM.JRNL_NO = :WS-FXSM-JRNL-NO-X AND
+121126              FXSM.SEQUENCE_NO = '01'
+121126     END-EXEC
+121126*
+121126     EVALUATE TRUE
+121126        WHEN SQLCODE = ZERO
+121126           IF  FXSM-FROM-CURR-CODE = WS-CCYM-X
+121126           THEN
+121126              MOVE FXSM-TO-CURR-AMOUNT
+121126                                 TO 0406A-INT-EXCH-AMT
+130220*             MOVE FXSM-BASE-RATE1
+130220*                                TO 0406A-INT-EXCH-RATE
+121126              MOVE FXSM-TO-CURR-CODE
+121126                                 TO 0406A-INT-EXCH-CCY
+130220*             MOVE FXSM-TO-CURR-CODE
+130220*                                TO WS-CCYM-Y
+130220*             IF WS-CCYM-Y = 'MOP'
+130220*             THEN
+130220*                COMPUTE 0406A-INT-EXCH-RATE = FXSM-BASE-RATE1
+130220*                                   * FXSM-BASE-RATE2
+130220*                END-COMPUTE
+130220*             END-IF
+130311              IF FXSM-FROM-CURR-CODE = 'HKD' OR
+130311                 FXSM-FROM-CURR-CODE = 'MOP' OR
+130311                 FXSM-TO-CURR-CODE   = 'HKD' OR
+130311                 FXSM-TO-CURR-CODE   = 'MOP'
+130311              THEN
+130220                 COMPUTE 0406A-INT-EXCH-RATE ROUNDED =
+130220                             FXSM-BASE-RATE1 * FXSM-BASE-RATE2
+130220                 END-COMPUTE
+130311              ELSE
+130311                 IF FXSM-FROM-CURR-AMOUNT NOT = ZEROS
+130311                 THEN
+130311                    COMPUTE 0406A-INT-EXCH-RATE ROUNDED =
+130311                            FXSM-TO-CURR-AMOUNT /
+130311                            FXSM-FROM-CURR-AMOUNT
+130311                    END-COMPUTE
+130311                 END-IF
+130311              END-IF
+130220*             IF FXSM-FROM-CURR-CODE = 'HKD'
+130220*                AND FXSM-TO-CURR-CODE = 'MOP'
+130220*             THEN
+130220*                MOVE FXSM-BASE-RATE2
+130220*                                TO 0406A-INT-EXCH-RATE
+130220*             END-IF
+130220*             IF FXSM-FROM-CURR-CODE = 'MOP'
+130220*                AND FXSM-TO-CURR-CODE = 'HKD'
+130220*             THEN
+130220*                MOVE FXSM-BASE-RATE1
+130220*                                TO 0406A-INT-EXCH-RATE
+130220*             END-IF
+121126           ELSE
+121126              MOVE FXSM-FROM-CURR-AMOUNT
+121126                                 TO 0406A-INT-EXCH-AMT
+130220*             MOVE FXSM-BASE-RATE2
+130220*                                TO 0406A-INT-EXCH-RATE
+121126              MOVE FXSM-FROM-CURR-CODE
+121126                                 TO 0406A-INT-EXCH-CCY
+130311              IF FXSM-FROM-CURR-CODE = 'HKD' OR
+130311                 FXSM-FROM-CURR-CODE = 'MOP' OR
+130311                 FXSM-TO-CURR-CODE   = 'HKD' OR
+130311                 FXSM-TO-CURR-CODE   = 'MOP'
+130311              THEN
+130220                 COMPUTE 0406A-INT-EXCH-RATE ROUNDED =
+130220                         FXSM-BASE-RATE1 * FXSM-BASE-RATE2
+130220                 END-COMPUTE
+130311              ELSE
+130311                 IF FXSM-TO-CURR-AMOUNT NOT = ZEROS
+130311                 THEN
+130311                    COMPUTE 0406A-INT-EXCH-RATE ROUNDED =
+130311                            FXSM-FROM-CURR-AMOUNT /
+130311                            FXSM-TO-CURR-AMOUNT
+130311                    END-COMPUTE
+130311                 END-IF
+130311              END-IF
+130220*             MOVE FXSM-FROM-CURR-CODE
+130220*                                TO WS-CCYM-Y
+130220*             IF WS-CCYM-Y = 'MOP'
+130220*             THEN
+130220*                COMPUTE 0406A-INT-EXCH-RATE = FXSM-BASE-RATE2
+130220*                                       * FXSM-BASE-RATE1
+130220*             END-IF
+130220*             IF FXSM-FROM-CURR-CODE = 'HKD'
+130220*                AND FXSM-TO-CURR-CODE = 'MOP'
+130220*             THEN
+130220*                MOVE FXSM-TXN-RATE2
+130220*                                TO 0406A-INT-EXCH-RATE
+130220*             END-IF
+130220*             IF FXSM-FROM-CURR-CODE = 'MOP'
+130220*                AND FXSM-TO-CURR-CODE = 'HKD'
+130220*             THEN
+130220*                MOVE FXSM-TXN-RATE1
+130220*                                TO 0406A-INT-EXCH-RATE
+130220*             END-IF
+121126           END-IF
+121126        WHEN SQLCODE = 100
+121126           MOVE ZERO             TO 0406A-INT-EXCH-AMT
+121126           MOVE ZERO             TO 0406A-INT-EXCH-RATE
+121126           MOVE SPACE            TO 0406A-INT-EXCH-CCY
+121126        WHEN OTHER
+121126           MOVE ERROR-RC         TO RETURN-CODE
+121126           DISPLAY 'THE SELECT  SQLCODE    :' SQLCODE
+121126           DISPLAY 'THE SELECT  SQLSTATE   :' SQLSTATE
+121126           PERFORM Z000-EXIT
+121126     END-EVALUATE
+121126     .
+121126 B310-READ-FXSM-EXIT.
+121126     EXIT.
+      *****************************************************************
+      *   DEFINE CURSOR -  GET TODAY STOP CERT
+      *****************************************************************
+       B200-GET-ADD-SUB-INFO.
+      *
+120526     INITIALIZE  DPTM
+120526     MOVE WS-TEMP-AC                TO DPTM-FROM-ACCT-NO
+120526     MOVE 2003                      TO DPTM-TRAN-CODE
+120526     MOVE '003'                     TO DPTM-INST-NO
+120531     MOVE JPRM-AC-DATE              TO DPTM-PROS-YYYYMMDD
+      *
+120526     EXEC SQL
+120526        SELECT OTHER,
+120815               REC_TIME,
+120526               TO_FROM_CODE,
+120531               AMOUNT,
+120531               TO_ACCT_NO
+120526          INTO :DPTM-OTHER,
+120815               :DPTM-REC-TIME,
+120526               :DPTM-TO-FROM-CODE,
+120531               :DPTM-AMOUNT,
+120531               :DPTM-TO-ACCT-NO
+120526          FROM  DPTM
+120526          WHERE FROM_ACCT_NO = :DPTM-FROM-ACCT-NO AND
+120526                TRAN_CODE    = :DPTM-TRAN-CODE    AND
+120531                INST_NO      = :DPTM-INST-NO      AND
+120531                PROS_YYYYMMDD = :DPTM-PROS-YYYYMMDD
+120526          ORDER  BY PROS_YYYYMMDD DESC , REC_TIME DESC
+120526        FETCH FIRST 1 ROWS ONLY
+120526     END-EXEC
+           .
+      *
+           EVALUATE TRUE
+              WHEN SQLCODE = ZERO
+120815           PERFORM B210-READ-DJ01-FOR-DPTM
+120815              THRU B210-READ-DJ01-FOR-DPTM-EXIT
+120815*
+120815           IF WS-DJ01-S-Y
+120815           THEN
+120815              PERFORM B200-DEAL-DPTM
+120815           ELSE
+120815              MOVE ZERO               TO 0406A-ADD-SUB-AMT
+120815              MOVE SPACE              TO 0406A-ADD-SUB-IND
+120912*             MOVE SPACE              TO DPTM-TO-ACCT-NO
+120815              MOVE ZERO               TO DPTM-AMOUNT
+120815           END-IF
+              WHEN SQLCODE = 100
+                 DISPLAY 'DPTM-TO-FROM-NO-FOUND'
+                 MOVE ZERO                  TO 0406A-ADD-SUB-AMT
+120526           MOVE SPACE                 TO 0406A-ADD-SUB-IND
+120531           MOVE SPACE                 TO DPTM-TO-ACCT-NO
+120613           MOVE ZERO                  TO DPTM-AMOUNT
+      *          DISPLAY 'RECORD NOT FOUND IN INCT,KEY IS'
+      *          INCT1-KEY
+120526*          MOVE WARNING-RC               TO RETURN-CODE
+              WHEN OTHER
+                 MOVE ERROR-RC                  TO RETURN-CODE
+                 DISPLAY 'SELECT INCT  ERROR SQLCODE= '
+                 SQLCODE
+                 PERFORM Z000-EXIT
+           END-EVALUATE
+           .
+           EXIT.
+      *
+      *****************************************************************
+      *
+      *****************************************************************
+120526 B200-DEAL-DPTM.
+120526     IF DPTM-TO-FROM-CODE = 'TO'
+           THEN
+              MOVE 'SUB'                 TO 0406A-ADD-SUB-IND
+120526        MOVE DPTM-AMOUNT           TO 0406A-ADD-SUB-AMT
+           END-IF
+120526     IF DPTM-TO-FROM-CODE = 'FR'
+           THEN
+              MOVE 'ADD'                 TO 0406A-ADD-SUB-IND
+120526        MOVE DPTM-AMOUNT           TO 0406A-ADD-SUB-AMT
+           END-IF
+           .
+           EXIT.
+120815*
+120815 B210-READ-DJ01-FOR-DPTM.
+120815*
+120815     INITIALIZE  DJ01
+120815     MOVE DPTM-REC-TIME             TO DJ01-TIME
+120815     MOVE JPRM-AC-DATE              TO DJ01-DT
+120815*
+120815     EXEC SQL
+120815        SELECT STAT,
+120815               ERR_CODE,
+120815               TIME,
+120815               AREA_TRN_NO,
+120815               EXTERNAL_MSG1
+120815          INTO :DJ01-STAT,
+120815               :DJ01-ERR-CODE,
+120815               :DJ01-TIME,
+120815               :DJ01-AREA-TRN-NO,
+120815               :DJ01-EXTERNAL-MSG1
+120815          FROM  DJ01
+120815          WHERE INST_NO = '003'       AND
+120815                DT = :DJ01-DT AND
+120815                TIME = :DJ01-TIME
+120815        FETCH FIRST 1 ROWS ONLY
+120815     END-EXEC
+120815     .
+120815*
+120815     EVALUATE TRUE
+120815        WHEN SQLCODE = ZERO
+120815           IF DJ01-STAT = '4' OR DJ01-STAT = '5'
+120815           THEN
+120815              SET WS-DJ01-S-Y             TO TRUE
+120815           ELSE
+120815              SET WS-DJ01-S-N             TO TRUE
+120815           END-IF
+120815        WHEN SQLCODE = 100
+120815           DISPLAY 'DJ01 NOT FOUND'
+120815           SET WS-DJ01-S-N                TO TRUE
+120815        WHEN OTHER
+120815           MOVE ERROR-RC                  TO RETURN-CODE
+120815           DISPLAY 'SELECT DJ01  ERROR SQLCODE= '
+120815           SQLCODE
+120815           PERFORM Z000-EXIT
+120815     END-EVALUATE
+120815     .
+120815 B210-READ-DJ01-FOR-DPTM-EXIT.
+120815     EXIT.
+      *
+      *****************************************************************
+      *
+      *****************************************************************
+       B100-DEC-CUR.
+      *
+           MOVE WS-AC-DATE                     TO INCT-TRN-DATE
+           MOVE '40'                           TO INCT-TRAN-TYPE
+VNBCXY     MOVE '003'                          TO INCT-INST-NO
+  |   *
+  |        EXEC SQL
+  |           DECLARE  CUR_INCT_40
+              CURSOR   FOR
+              SELECT   INCT.*
+              FROM     INCT
+              WHERE         INCT.TRN_DATE    = :INCT-TRN-DATE
+                      AND   INCT.TRAN_TYPE   = :INCT-TRAN-TYPE
+                      AND   INCT.INST_NO     = :INCT-INST-NO
+              ORDER BY INCT.TRN_DATE,
+                       INCT.JRNL_NO,
+                       INCT.INST_NO,
+                       INCT.ACCT_NO
+           END-EXEC
+      *
+           EVALUATE TRUE
+              WHEN SQLCODE = ZERO
+              WHEN SQLCODE = 100
+                 CONTINUE
+              WHEN OTHER
+                 MOVE ERROR-RC                  TO RETURN-CODE
+                 DISPLAY 'DECLARE CUR_INCT_40 ERROR SQLCODE= '
+                 SQLCODE
+                 PERFORM Z000-EXIT
+           END-EVALUATE
+           .
+           EXIT.
+       B100-OPEN-CUR.
+      *
+           EXEC SQL
+              OPEN CUR_INCT_40
+           END-EXEC
+      *
+           EVALUATE TRUE
+              WHEN SQLCODE = ZERO
+                 CONTINUE
+              WHEN SQLCODE = 100
+                 SET WS-END-Y            TO TRUE
+              WHEN OTHER
+                MOVE ERROR-RC                  TO RETURN-CODE
+                DISPLAY 'OPEN CUR_INCT_40 ERROR SQLCODE= '
+                SQLCODE
+                PERFORM Z000-EXIT
+           END-EVALUATE
+           .
+           EXIT.
+      *
+       B100-FETCH-CUR.
+      *
+           EXEC SQL
+              FETCH CUR_INCT_40 INTO
+                    :INCT
+           END-EXEC
+      *
+           EVALUATE TRUE
+              WHEN SQLCODE = ZERO
+VNBCXY             PERFORM B200-SELECT-ACC
+VNBCXY                THRU B200-SELECT-ACC-EXIT
+T18289           DISPLAY "INCT-REC-NO:" INCT-REC-NO
+T18289           MOVE INCT-REC-NO      TO WS-40-REC-NO
+              WHEN SQLCODE = 100
+                 SET   WS-END-Y                TO TRUE
+              WHEN OTHER
+                MOVE ERROR-RC                  TO RETURN-CODE
+                DISPLAY 'FETCH CUR_INCT_40 ERROR SQLCODE= '
+                SQLCODE
+                PERFORM Z000-EXIT
+           END-EVALUATE
+           .
+           EXIT.
+      *
+VNBCXY B200-SELECT-ACC.
+   |  *
+           MOVE INCT-ACCT-NO          TO WS-INVT-AC
+   |       EXEC SQL
+R95484*       SELECT INVT.*
+R95484*|          INTO   :INVT
+R95484        SELECT SOC_NO         ,
+R95484               MAST_ACCT      ,
+R95484               VOLUME_NO      ,
+R95484               SEQUENCE_NO    ,
+R95484               PB_NO          ,
+R95484               SUB_ACCT_NO    ,
+R95484               CURRENCY       ,
+R95484               ACTIVE_FLAG    ,
+R95484               FIL01          ,
+R95484               LAST_MAINT_DATE ,
+R95484               LAST_MAINT_STAT
+R95484          INTO :INVT-SOC-NO         ,
+R95484               :INVT-MAST-ACCT      ,
+R95484               :INVT-VOLUME-NO      ,
+R95484               :INVT-SEQUENCE-NO    ,
+R95484               :INVT-PB-NO          ,
+R95484               :INVT-SUB-ACCT-NO    ,
+R95484               :INVT-CURRENCY       ,
+R95484               :INVT-ACTIVE-FLAG    ,
+R95484               :INVT-FIL01          ,
+R95484               :INVT-LAST-MAINT-DATE ,
+R95484               :INVT-LAST-MAINT-STAT
+              FROM   INVT
+              WHERE  INVT.SOC_NO      = '003'  AND
+                     INVT.SUB_ACCT_NO = :WS-INVT-AC AND
+                     ACTIVE_FLAG = '0'
+   |       END-EXEC
+      *
+   |       EVALUATE TRUE
+              WHEN SQLCODE = ZERO
+                 SET WS-VALID-INVT-Y   TO TRUE
+              WHEN SQLCODE = 100
+                 SET WS-VALID-INVT-N   TO TRUE
+              WHEN OTHER
+   |             MOVE ERROR-RC         TO RETURN-CODE
+                 DISPLAY 'SELECT INVT ERROR SQLCODE= ' SQLCODE
+   |             PERFORM Z000-EXIT
+   |       END-EVALUATE
+           .
+   |   B200-SELECT-ACC-EXIT.
+VNBCXY     EXIT.
+      *
+      *
+      *--------------------------------------------*
+      * CLOSE CURSOR GLKK                          *
+      *--------------------------------------------*
+       B100-CLOSE-CUR.
+           EXEC SQL
+              CLOSE CUR_INCT_40
+           END-EXEC
+            EVALUATE TRUE
+               WHEN SQLCODE = ZERO
+                  CONTINUE
+               WHEN OTHER
+                 MOVE ERROR-RC                 TO RETURN-CODE
+                 DISPLAY 'CLOSE CUR_INCT_40 ERROR SQLCODE= '
+                 SQLCODE
+                 PERFORM Z000-EXIT
+            END-EVALUATE.
+            EXIT.
+      *
+      *--------------------------------------------*
+      * GET CUSM NAME                              *
+      *--------------------------------------------*
+       B340-GET-CUSM-NAME.
+           MOVE INVM-CUSTOMER-NO               TO CUSM-CUST-NO
+           SET EOF-CUSM-N TO TRUE
+           READ  CIFCUSM   KEY IS CUSM-KEY
+           EVALUATE TRUE
+              WHEN  FILE-CUSM-STS = ZEROS
+                   CONTINUE
+              WHEN  FILE-CUSM-STS = 10 OR 14 OR 23
+                   SET EOF-CUSM-Y              TO TRUE
+              WHEN OTHER
+                 MOVE ERROR-RC                 TO RETURN-CODE
+                 DISPLAY 'READ CIFCUSM ERROR, STATUS = '
+                  FILE-CUSM-STS
+                  PERFORM Z000-EXIT
+           END-EVALUATE
+           IF EOF-CUSM-N
+           THEN
+              IF CUSM-CHINESE-NAME NOT = SPACES
+              THEN
+                 MOVE CUSM-CHINESE-NAME         TO 0406A-ACCOUNT-NAME
+              ELSE
+                 MOVE CUSM-ENGLISH-NAME         TO 0406A-ACCOUNT-NAME
+              END-IF
+           END-IF
+           .
+       B340-GET-CUSM-NAME-EXIT.
+           EXIT.
+R15962*--------------------------------------------*
+R15962* READ FILE FDVINFD                        *
+R15962*--------------------------------------------*
+R15962 B340-GET-AC-INFD.
+R15962     INITIALIZE FDVINFD-DATA
+R15962                WS-INFD-DUE-DT
+R15962                WS-INFD-VALUE-DT
+R15962     MOVE INVM-KEY-1(4:16)       TO FDVI-AC
+R15962     INITIALIZE UT0020-FUNCTION
+R15962                UT0020-DATE-AREA
+R15962                UT0020-BINARY-DATE
+R18443     MOVE WS-TEMP-DATE           TO UT0020-BINARY-DATE
+R18443*    MOVE INVM-TRM-FRM-DT        TO UT0020-BINARY-DATE
+R15962     SET TO-CCYYMMDD             TO TRUE
+R15962     CALL "UT0020"            USING UT0020-FUNCTION
+R15962                                    UT0020-DATE-AREA
+R15962                                    UT0020-BINARY-DATE
+R15962     MOVE UT0020-DATE-CCYYMMDD   TO FDVI-DUE-DATE
+R15962     SET EOF-INFD-N TO TRUE
+R15962     READ FDVINFD KEY IS FDVI-KEY
+R15962     EVALUATE TRUE
+R15962        WHEN  FILE-INFD-STS = ZEROS
+R15962           INITIALIZE UT0030-FUNCTION
+R15962                      UT0030-DATE-AREA
+R15962                      UT0030-BINARY-DATE
+R15962           SET FROM-CCYYMMDD     TO TRUE
+R15962           MOVE FDVI-VALUE-DATE  TO UT0030-DATE-CCYYMMDD
+R15962           CALL 'UT0030'      USING UT0030-FUNCTION
+R15962                                    UT0030-DATE-AREA
+R15962                                    UT0030-BINARY-DATE
+R15962           MOVE UT0030-BINARY-DATE
+R15962                                 TO WS-INFD-VALUE-DT
+R15962*
+R15962           INITIALIZE UT0030-FUNCTION
+R15962                     UT0030-DATE-AREA
+R15962                      UT0030-BINARY-DATE
+R15962           SET FROM-CCYYMMDD     TO TRUE
+R15962           MOVE FDVI-DUE-DATE    TO UT0030-DATE-CCYYMMDD
+R15962           CALL 'UT0030'      USING UT0030-FUNCTION
+R15962                                    UT0030-DATE-AREA
+R15962                                    UT0030-BINARY-DATE
+R15962           MOVE UT0030-BINARY-DATE
+R15962                                 TO WS-INFD-DUE-DT
+R15962        WHEN  FILE-INFD-STS = 10 OR 14 OR 23
+R15962           SET EOF-INFD-Y        TO TRUE
+R15962           DISPLAY "NOT FOUND IN INFD"
+R15962           DISPLAY "FDVI-KEY:" FDVI-KEY
+R15962        WHEN OTHER
+R15962           MOVE ERROR-RC         TO RETURN-CODE
+R15962           DISPLAY 'READ FDVINFD ERROR, STATUS = '
+R15962           FILE-INFD-STS
+R15962           PERFORM Z000-EXIT
+R15962     END-EVALUATE
+R15962     .
+R15962 B340-GET-AC-INFD-EXIT.
+R15962     EXIT.
+120717*
+120717 B400-DEC-CUR.
+120717     INITIALIZE  DJ01
+120717     MOVE JPRM-AC-DATE              TO DJ01-DT
+120717     EXEC SQL
+120717        DECLARE CUR_DAYJ
+120717        CURSOR FOR
+120717        SELECT STAT,
+120717               ERR_CODE,
+120717               TIME,
+120717               AREA_TRN_NO,
+120717               EXTERNAL_MSG1
+120717        FROM  DJ01
+120717        WHERE INST_NO = '003'       AND
+120717              DT = :DJ01-DT
+120717     END-EXEC.
+120717     EVALUATE TRUE
+120717        WHEN SQLCODE = ZERO
+120717        WHEN SQLCODE = 100
+120717           CONTINUE
+120717        WHEN OTHER
+120717          MOVE ERROR-RC            TO RETURN-CODE
+120717          DISPLAY 'DECLARE CUR_DJ01 ERROR SQLCODE= '
+120717          SQLCODE
+120717          PERFORM Z000-EXIT
+120717     END-EVALUATE
+120717     .
+120717 B400-DEC-CUR-EXIT.
+120717     EXIT.
+120717*
+120717 B400-OPEN-CUR.
+120717     EXEC SQL
+120717        OPEN CUR_DAYJ
+120717     END-EXEC.
+120717*
+120717     EVALUATE TRUE
+120717        WHEN SQLCODE = ZERO
+120717           CONTINUE
+120717        WHEN SQLCODE = 100
+120717           SET WS-DJ01-N           TO TRUE
+120717        WHEN OTHER
+120717          MOVE ERROR-RC            TO RETURN-CODE
+120717          DISPLAY 'OPEN CUR_DJ01 ERROR SQLCODE= '
+120717          SQLCODE
+120717          PERFORM Z000-EXIT
+120717     END-EVALUATE
+120717     .
+120717 B400-OPEN-CUR-EXIT.
+120717     EXIT.
+120717*
+120717 B400-FETCH-CUR.
+120717*
+120717     EXEC SQL
+120717        FETCH CUR_DAYJ   INTO
+120717               :DJ01-STAT,
+120717               :DJ01-ERR-CODE,
+120717               :DJ01-TIME,
+120717               :DJ01-AREA-TRN-NO,
+120717               :DJ01-EXTERNAL-MSG1
+120717     END-EXEC.
+120717*
+120717     EVALUATE TRUE
+120717        WHEN SQLCODE = ZERO
+120717           IF DJ01-STAT = '4' OR DJ01-STAT = '5'
+120717           THEN
+120717              PERFORM B500-READ-DPTM
+120717                 THRU B500-READ-DPTM-EXIT
+120717           ELSE
+120717              SET WS-STAT-N             TO TRUE
+120717           END-IF
+120717        WHEN SQLCODE = 100
+120717           SET WS-DJ01-N                TO TRUE
+120717        WHEN OTHER
+120717           MOVE ERROR-RC                TO RETURN-CODE
+120717           DISPLAY 'FETCH CUR_DJ01 ERROR SQLCODE= ' SQLCODE
+120717           PERFORM Z000-EXIT
+120717     END-EVALUATE
+120717     .
+120717 B400-FETCH-CUR-EXIT.
+120717     EXIT.
+120717*
+120717 B400-CLOSE-CUR.
+120717     EXEC SQL
+120717        CLOSE CUR_DAYJ
+120717     END-EXEC.
+120717*
+120717     EVALUATE TRUE
+120717        WHEN SQLCODE = ZERO
+120717           CONTINUE
+120717        WHEN OTHER
+120717          MOVE ERROR-RC            TO RETURN-CODE
+120717          DISPLAY 'CLOSE CUR_DJ01 ERROR SQLCODE= '
+120717          SQLCODE
+120717          PERFORM Z000-EXIT
+120717     END-EVALUATE
+120717     .
+120717 B400-CLOSE-CUR-EXIT.
+120717     EXIT.
+120717*
+120717 B500-READ-DPTM.
+120717     INITIALIZE DPTM
+120717     MOVE '003'                     TO DPTM-INST-NO
+120717     MOVE 2003                      TO DPTM-TRAN-CODE
+120717     MOVE JPRM-AC-DATE              TO DPTM-PROS-YYYYMMDD
+120717     EXEC SQL
+120717        SELECT TO_FROM_CODE,
+120717               FROM_ACCT_NO,
+120717               TO_ACCT_NO,
+120717               TRAN_CODE,
+120717               TRANSFER_DET,
+120717               AMOUNT
+120717        INTO   :DPTM-TO-FROM-CODE,
+120717               :DPTM-FROM-ACCT-NO,
+120717               :DPTM-TO-ACCT-NO,
+120717               :DPTM-TRAN-CODE,
+120717               :DPTM-TRANSFER-DET,
+120717               :DPTM-AMOUNT
+120717        FROM   DPTM
+120717        WHERE  DPTM.INST_NO = :DPTM-INST-NO       AND
+120717               DPTM.PROS_YYYYMMDD = :DPTM-PROS-YYYYMMDD AND
+120717               DPTM.REC_TIME = :DJ01-TIME         AND
+120717               DPTM.TRAN_CODE = :DPTM-TRAN-CODE
+120717     END-EXEC.
+120717*
+120717      EVALUATE TRUE
+120717         WHEN SQLCODE = ZERO
+120717            IF DPTM-TO-FROM-CODE = 'TO' AND
+120717               DPTM-AMOUNT = ZERO
+120717            THEN
+120717               PERFORM B600-READ-INVT
+120717                  THRU B600-READ-INVT-EXIT
+120717            ELSE
+120717               SET WS-STAT-N                 TO TRUE
+120717            END-IF
+120717         WHEN SQLCODE = 100
+120717            SET WS-STAT-N                    TO TRUE
+120717         WHEN OTHER
+120717            MOVE ERROR-RC                    TO RETURN-CODE
+120717            DISPLAY 'READ DPTM ERROR SQLCODE= ' SQLCODE
+120717            PERFORM Z000-EXIT
+120717      END-EVALUATE
+120717     .
+120717 B500-READ-DPTM-EXIT.
+120717     EXIT.
+120717*
+120717 B600-READ-INVT.
+120717*
+120717     INITIALIZE INVT
+120717     MOVE DPTM-FROM-ACCT-NO              TO WS-INVT-AC
+120717     EXEC SQL
+R95484*120717        SELECT INVT.*
+R95484*120717        INTO   :INVT
+R95484        SELECT SOC_NO         ,
+R95484               MAST_ACCT      ,
+R95484               VOLUME_NO      ,
+R95484               SEQUENCE_NO    ,
+R95484               PB_NO          ,
+R95484               SUB_ACCT_NO    ,
+R95484               CURRENCY       ,
+R95484               ACTIVE_FLAG    ,
+R95484               FIL01          ,
+R95484               LAST_MAINT_DATE ,
+R95484               LAST_MAINT_STAT
+R95484          INTO :INVT-SOC-NO         ,
+R95484               :INVT-MAST-ACCT      ,
+R95484               :INVT-VOLUME-NO      ,
+R95484               :INVT-SEQUENCE-NO    ,
+R95484               :INVT-PB-NO          ,
+R95484               :INVT-SUB-ACCT-NO    ,
+R95484               :INVT-CURRENCY       ,
+R95484               :INVT-ACTIVE-FLAG    ,
+R95484               :INVT-FIL01          ,
+R95484               :INVT-LAST-MAINT-DATE ,
+R95484               :INVT-LAST-MAINT-STAT
+120717        FROM   INVT
+120717        WHERE  INVT.SOC_NO      = '003'  AND
+120717               INVT.SUB_ACCT_NO = :WS-INVT-AC AND
+120717               ACTIVE_FLAG = '0'
+120717     END-EXEC
+120717*
+120717     EVALUATE TRUE
+120717        WHEN SQLCODE = ZERO
+120717           PERFORM B700-READ-INVM
+120717              THRU B700-READ-INVM-EXIT
+120717        WHEN SQLCODE = 100
+120717           SET WS-STAT-N                 TO TRUE
+120717        WHEN OTHER
+120717           MOVE ERROR-RC         TO RETURN-CODE
+120717           DISPLAY 'READ INVT ERROR SQLCODE= ' SQLCODE
+120717           PERFORM Z000-EXIT
+120717     END-EVALUATE
+120717     .
+120717 B600-READ-INVT-EXIT.
+120717     EXIT.
+120717*
+120717 B700-READ-INVM.
+120717     INITIALIZE INVM
+120717     MOVE '003'                         TO INVM-KEY-1(1:3)
+120717     MOVE DPTM-FROM-ACCT-NO             TO INVM-KEY-1(4:16)
+120717     EXEC SQL
+120717        SELECT KEY_1 ,
+120717               SYS  ,
+120717               BRANCH_NO ,
+120717               CURRENCY,
+120717               CUSTOMER_NO,
+120717               ACCT_TYPE,
+R15962               INT_CAT,
+120717               INT_AVAILABLE,
+120717               ACCT_MARGIN_RATE,
+120717               OD_VISA_AREA,
+120717               TRF_ACCT_NO,
+120717               DIV1,
+120717               TRAP,
+120717               CURR_BAL,
+120717               LAST_DIV_DATE,
+120717               INT_FRM_DT,
+120717               CURR_STATUS,
+120717               VAR_INT_RATE,
+120717               ACCT_OPEN_DT
+120717        INTO  :INVM-KEY-1,
+120717              :INVM-SYS  ,
+120717              :INVM-BRANCH-NO ,
+120717              :INVM-CURRENCY,
+120717              :INVM-CUSTOMER-NO,
+120717              :INVM-ACCT-TYPE,
+R15962              :INVM-INT-CAT,
+120717              :INVM-INT-AVAILABLE,
+120717              :INVM-ACCT-MARGIN-RATE,
+120717              :INVM-OD-VISA-AREA,
+120717              :INVM-TRF-ACCT-NO,
+120717              :INVM-DIV1,
+120717              :INVM-TRAP,
+120717              :INVM-CURR-BAL,
+120717              :INVM-LAST-DIV-DATE,
+120717              :INVM-INT-FRM-DT,
+120717              :INVM-CURR-STATUS,
+120717              :INVM-VAR-INT-RATE,
+120717              :INVM-ACCT-OPEN-DT
+120717        FROM INVM
+120717        WHERE  KEY_1  =  :INVM-KEY-1
+120717     END-EXEC
+120717*
+120717     EVALUATE TRUE
+120717        WHEN SQLCODE = ZERO
+120717           IF INVM-CURR-STATUS = '07'
+120717           THEN
+120725              MOVE INVM-CURRENCY         TO WS-CCYM-X
+120717              PERFORM B900-READ-INCT-AMOUNT
+120717                 THRU B900-READ-INCT-AMOUNT-EXIT
+120717           ELSE
+120717              SET WS-STAT-N              TO TRUE
+120717           END-IF
+120717        WHEN SQLCODE = 100
+120717           SET WS-STAT-N                 TO TRUE
+120717           DISPLAY 'RECORD NOT FOUND IN INVM,KEY IS'
+120717           WS-INVM-KEY
+120717           MOVE WARNING-RC               TO RETURN-CODE
+120717        WHEN OTHER
+120717          MOVE ERROR-RC                  TO RETURN-CODE
+120717          DISPLAY 'READ INVM  ERROR SQLCODE= '
+120717          SQLCODE
+120717          PERFORM Z000-EXIT
+120717     END-EVALUATE
+120717     .
+120717 B700-READ-INVM-EXIT.
+120717     EXIT.
+120717*
+120717 B800-READ-CCYM.
+120717     INITIALIZE CCYM
+120717     MOVE INVM-CURRENCY                  TO CCYM-CODE
+120717     MOVE 003                            TO CCYM-INST-NO
+120717     EXEC SQL
+120717          SELECT CURRENCY_CODE_DIG
+120717          INTO :CCYM-CURRENCY-CODE-DIG
+120717          FROM CCYM
+120717          WHERE INST_NO = :CCYM-INST-NO AND
+120717                 CODE = :CCYM-CODE
+120717     END-EXEC
+120717     EVALUATE TRUE
+120717        WHEN SQLCODE = ZERO
+120717           CONTINUE
+120717        WHEN SQLCODE = 100
+120717           DISPLAY 'CCY  NOT FOUND   ' INVM-CURRENCY              -STS
+120717           MOVE WARNING-RC               TO RETURN-CODE           04570000
+120717        WHEN OTHER
+120717           DISPLAY 'SELECT ERROR SQLCODE= ' SQLCODE               -STS
+120717           MOVE ERROR-RC                 TO RETURN-CODE           04570000
+120717           PERFORM Z000-EXIT                                      04580000
+120717     END-EVALUATE
+120717     .
+120717 B800-READ-CCYM-EXIT.
+120717     EXIT.
+120717*
+120717 B900-READ-INCT-AMOUNT.
+120717     MOVE INVM-KEY-1(4:16)            TO INCT-ACCT-NO
+120717     MOVE '003'                       TO INCT-INST-NO
+120717     MOVE 3055                        TO INCT-TRN-CODE
+120717     MOVE WS-AC-DATE                  TO INCT-TRN-DATE
+120717*
+120717     EXEC SQL
+120717        SELECT   INCT.*
+120717        INTO     :INCT
+120717        FROM     INCT
+120717        WHERE         INCT.TRN_DATE    = :INCT-TRN-DATE
+120717                AND   INCT.TRN_CODE    = :INCT-TRN-CODE
+120717                AND   INCT.INST_NO     = :INCT-INST-NO
+120717                AND   INCT.ACCT_NO     = :INCT-ACCT-NO
+120717        ORDER BY INCT.JRNL_NO DESC
+120717        FETCH FIRST 1 ROWS ONLY
+120717     END-EXEC
+120717*
+120717     EVALUATE TRUE
+120717        WHEN SQLCODE = ZERO
+120717           SET WS-STAT-Y         TO TRUE
+121115           SET WS-PRE-INCT-CONTINUE
+121115                                 TO TRUE
+121115           MOVE INCT-REC-NO      TO WS-REC-NO
+121115           MOVE INCT-ACCT-NO     TO WS-INCT-ACCT-NO
+120717           MOVE INCT-VAR-AREA    TO INCT1-VAR-AREA1
+120717        WHEN SQLCODE = 100
+120717           SET WS-STAT-N         TO TRUE
+120717           DISPLAY 'RECORD NOT FOUND IN INCT,KEY IS'
+120717           INCT-ACCT-NO
+120717           MOVE WARNING-RC       TO RETURN-CODE
+120717        WHEN OTHER
+120717           MOVE ERROR-RC         TO RETURN-CODE
+120717           DISPLAY 'READ INCT  ERROR SQLCODE= '
+120717           SQLCODE
+120717           PERFORM Z000-EXIT
+120717     END-EVALUATE
+120717     .
+120717 B900-READ-INCT-AMOUNT-EXIT.
+120717     EXIT.
+120725*
+120725 B910-READ-INCT-FOR-A.
+120725     MOVE INVM-KEY-1(4:16)            TO INCT-ACCT-NO
+120725     MOVE '003'                       TO INCT-INST-NO
+120725     MOVE 1045                        TO INCT-TRN-CODE
+120725     MOVE WS-AC-DATE                  TO INCT-TRN-DATE
+120725*
+120725     EXEC SQL
+120725        SELECT   INCT.*
+120725        INTO     :INCT
+120725        FROM     INCT
+120725        WHERE         INCT.TRN_DATE    = :INCT-TRN-DATE
+120725                AND   INCT.TRN_CODE    = :INCT-TRN-CODE
+120725                AND   INCT.INST_NO     = :INCT-INST-NO
+120725                AND   INCT.ACCT_NO     = :INCT-ACCT-NO
+120725        ORDER BY INCT.JRNL_NO DESC
+120725        FETCH FIRST 1 ROWS ONLY
+120725     END-EXEC
+120725*
+120725     EVALUATE TRUE
+120725        WHEN SQLCODE = ZERO
+120725           MOVE INCT-JRNL-NO             TO WS-FXSM-JRNL-NO
+120725           PERFORM B930-READ-FXSM
+120725              THRU B930-READ-FXSM-EXIT
+120725           SET WS-INCT-A-Y               TO TRUE
+120725        WHEN SQLCODE = 100
+120725           SET WS-INCT-A-N               TO TRUE
+120725           DISPLAY 'RECORD NOT FOUND IN INCT FOR A,KEY IS'
+120725           INCT-ACCT-NO
+120725           MOVE WARNING-RC               TO RETURN-CODE
+120725        WHEN OTHER
+120725           MOVE ERROR-RC                 TO RETURN-CODE
+120725           DISPLAY 'READ INCT  ERROR SQLCODE= '
+120725           SQLCODE
+120725           PERFORM Z000-EXIT
+120725     END-EVALUATE
+120725     .
+120725 B910-READ-INCT-FOR-A-EXIT.
+120725     EXIT.
+120725*
+120725 B920-READ-INCT-FOR-S.
+120725     MOVE INVM-KEY-1(4:16)            TO INCT-ACCT-NO
+120725     MOVE '003'                       TO INCT-INST-NO
+120725     MOVE 1355                        TO INCT-TRN-CODE
+120725     MOVE WS-AC-DATE                  TO INCT-TRN-DATE
+120725*
+120725     EXEC SQL
+120725        SELECT   INCT.*
+120725        INTO     :INCT
+120725        FROM     INCT
+120725        WHERE         INCT.TRN_DATE    = :INCT-TRN-DATE
+120725                AND   INCT.TRN_CODE    = :INCT-TRN-CODE
+120725                AND   INCT.INST_NO     = :INCT-INST-NO
+120725                AND   INCT.ACCT_NO     = :INCT-ACCT-NO
+120725        ORDER BY INCT.JRNL_NO DESC
+120725        FETCH FIRST 1 ROWS ONLY
+120725     END-EXEC
+120725*
+120725     EVALUATE TRUE
+120725        WHEN SQLCODE = ZERO
+120725           MOVE INCT-JRNL-NO             TO WS-FXSM-JRNL-NO
+120725           SET WS-INCT-S-Y               TO TRUE
+120725           PERFORM B930-READ-FXSM
+120725              THRU B930-READ-FXSM-EXIT
+120725        WHEN SQLCODE = 100
+120725           SET WS-INCT-S-N               TO TRUE
+120725           DISPLAY 'RECORD NOT FOUND IN INCT FOR S,KEY IS'
+120725           INCT-ACCT-NO
+120725           MOVE WARNING-RC               TO RETURN-CODE
+120725        WHEN OTHER
+120725           MOVE ERROR-RC                 TO RETURN-CODE
+120725           DISPLAY 'READ INCT  ERROR SQLCODE= '
+120725           SQLCODE
+120725           PERFORM Z000-EXIT
+120725     END-EVALUATE
+120725     .
+120725 B920-READ-INCT-FOR-S-EXIT.
+120725     EXIT.
+120725*
+120725 B930-READ-FXSM.
+120725*
+120725     EXEC SQL
+120725        SELECT CURR1_CODE,
+120725               CURR2_CODE,
+120725               CURR1_AMOUNT,
+120725               CURR2_AMOUNT,
+120725               BASE_RATE1,
+120725               BASE_RATE2,
+120725               TXN_RATE1,
+120725               TXN_RATE2
+120725        INTO   :FXSM-FROM-CURR-CODE,
+120725               :FXSM-TO-CURR-CODE,
+120725               :FXSM-FROM-CURR-AMOUNT,
+120725               :FXSM-TO-CURR-AMOUNT,
+120725               :FXSM-BASE-RATE1,
+120725               :FXSM-BASE-RATE2,
+120725               :FXSM-TXN-RATE1,
+120725               :FXSM-TXN-RATE2
+120725        FROM FXSM
+120725        WHERE FXSM.INST_NO = '003' AND
+120725              FXSM.TRAN_DATE = :INCT-TRN-DATE AND
+120725              FXSM.JRNL_NO = :WS-FXSM-JRNL-NO-X AND
+120725              FXSM.SEQUENCE_NO = '01'
+120725     END-EXEC
+120725*
+120725     EVALUATE TRUE
+120725        WHEN SQLCODE = ZERO
+120725           IF  FXSM-FROM-CURR-CODE = WS-CCYM-X
+120725           THEN
+120815              MOVE FXSM-TO-CURR-AMOUNT
+120815                                 TO 0406A-EXCH-AMT
+130220*             MOVE FXSM-BASE-RATE1
+130220*                                TO 0406A-EXCH-RATE
+121126              MOVE FXSM-TO-CURR-CODE
+121126                                 TO 0406A-EXCH-CCY
+130311              IF FXSM-FROM-CURR-CODE = 'HKD' OR
+130311                 FXSM-FROM-CURR-CODE = 'MOP' OR
+130311                 FXSM-TO-CURR-CODE   = 'HKD' OR
+130311                 FXSM-TO-CURR-CODE   = 'MOP'
+130311              THEN
+130220                 COMPUTE 0406A-EXCH-RATE ROUNDED =
+130220                         FXSM-BASE-RATE1 * FXSM-BASE-RATE2
+130220                 END-COMPUTE
+130311              ELSE
+130311                 IF FXSM-FROM-CURR-AMOUNT NOT = ZEROS
+130311                 THEN
+130311                    COMPUTE 0406A-EXCH-RATE ROUNDED =
+130311                            FXSM-TO-CURR-AMOUNT /
+130311                            FXSM-FROM-CURR-AMOUNT
+130311                    END-COMPUTE
+130311                 END-IF
+130311              END-IF
+130220*             MOVE FXSM-TO-CURR-CODE
+130220*                                TO WS-CCYM-Y
+130220*             IF WS-CCYM-Y = 'MOP' OR WS-CCYM-Y = 'HKD'
+130220*             THEN
+130220*                COMPUTE 0406A-EXCH-RATE = FXSM-BASE-RATE1
+130220*                                   * FXSM-BASE-RATE2
+130220*                END-COMPUTE
+130220*             END-IF
+130220*             IF FXSM-FROM-CURR-CODE = 'HKD'
+130220*                AND FXSM-TO-CURR-CODE = 'MOP'
+130220*             THEN
+130220*                MOVE FXSM-BASE-RATE2
+130220*                                TO 0406A-EXCH-RATE
+130220*             END-IF
+130220*             IF FXSM-FROM-CURR-CODE = 'MOP'
+130220*                AND FXSM-TO-CURR-CODE = 'HKD'
+130220*             THEN
+130220*                MOVE FXSM-BASE-RATE1
+130220*                                TO 0406A-EXCH-RATE
+130220*             END-IF
+120815           ELSE
+120815              MOVE FXSM-FROM-CURR-AMOUNT
+120815                                 TO 0406A-EXCH-AMT
+130220*             MOVE FXSM-BASE-RATE2
+130220*                                TO 0406A-EXCH-RATE
+121126              MOVE FXSM-FROM-CURR-CODE
+121126                                 TO 0406A-EXCH-CCY
+130311              IF FXSM-FROM-CURR-CODE = 'HKD' OR
+130311                 FXSM-FROM-CURR-CODE = 'MOP' OR
+130311                 FXSM-TO-CURR-CODE   = 'HKD' OR
+130311                 FXSM-TO-CURR-CODE   = 'MOP'
+130311              THEN
+130220                 COMPUTE 0406A-EXCH-RATE ROUNDED =
+130220                         FXSM-BASE-RATE1 * FXSM-BASE-RATE2
+130220                 END-COMPUTE
+130311              ELSE
+130311                 IF FXSM-TO-CURR-AMOUNT NOT = ZEROS
+130311                 THEN
+130311                    COMPUTE 0406A-EXCH-RATE ROUNDED =
+130311                            FXSM-FROM-CURR-AMOUNT /
+130311                            FXSM-TO-CURR-AMOUNT
+130311                    END-COMPUTE
+130311                 END-IF
+130311              END-IF
+130220*             MOVE FXSM-FROM-CURR-CODE
+130220*                                TO WS-CCYM-Y
+130220*             IF WS-CCYM-Y = 'MOP' OR WS-CCYM-Y = 'HKD'
+130220*             THEN
+130220*                COMPUTE 0406A-EXCH-RATE = FXSM-BASE-RATE1
+130220*                                   * FXSM-BASE-RATE2
+130220*                END-COMPUTE
+130220*             END-IF
+130220*             IF FXSM-FROM-CURR-CODE = 'HKD'
+130220*                AND FXSM-TO-CURR-CODE = 'MOP'
+130220*             THEN
+130220*                MOVE FXSM-TXN-RATE2
+130220*                                TO 0406A-EXCH-RATE
+130220*             END-IF
+130220*             IF FXSM-FROM-CURR-CODE = 'MOP'
+130220*                AND FXSM-TO-CURR-CODE = 'HKD'
+130220*             THEN
+130220*                MOVE FXSM-TXN-RATE1
+130220*                                TO 0406A-EXCH-RATE
+130220*             END-IF
+120815           END-IF
+120725        WHEN SQLCODE = 100
+120725           MOVE ZERO             TO 0406A-EXCH-AMT
+121126           MOVE ZERO             TO 0406A-EXCH-RATE
+121126           MOVE SPACE            TO 0406A-EXCH-CCY
+120725        WHEN OTHER
+120725           MOVE ERROR-RC         TO RETURN-CODE
+120725           DISPLAY 'THE SELECT  SQLCODE    :' SQLCODE
+120725           DISPLAY 'THE SELECT  SQLSTATE   :' SQLSTATE
+120725           PERFORM Z000-EXIT
+120725     END-EVALUATE
+120725     .
+120725 B930-READ-FXSM-EXIT.
+120725     EXIT.
+121115*
+121115 B940-PRE-40-INCT.
+121115     INITIALIZE INCT
+121115     PERFORM UNTIL WS-PRE-INCT-END OR WS-REC-NO > 999999997
+121115        COMPUTE WS-REC-NO-PRE = WS-REC-NO + 1
+121115        END-COMPUTE
+121115        PERFORM B950-PRE-40-INCT
+121115           THRU B950-PRE-40-INCT-EXIT
+121115        MOVE WS-REC-NO-PRE       TO WS-REC-NO
+121115     END-PERFORM
+121115     .
+121115 B940-PRE-40-INCT-EXIT.
+121115     EXIT.
+121115*
+121115 B950-PRE-40-INCT.
+121115*
+121115     MOVE 0406A-INST-NO                  TO INCT-INST-NO
+121115     MOVE WS-INCT-ACCT-NO                TO INCT-ACCT-NO
+121115     MOVE WS-REC-NO-PRE                  TO INCT-REC-NO
+121115*
+121115     EXEC SQL
+121115        SELECT   INCT.*
+121115        INTO     :INCT
+121115        FROM     INCT
+121115        WHERE         INCT.REC_NO      = :INCT-REC-NO
+121115                AND   INCT.INST_NO     = :INCT-INST-NO
+121115                AND   INCT.ACCT_NO     = :INCT-ACCT-NO
+121115        FETCH FIRST 1 ROWS ONLY
+121115     END-EXEC
+121115*
+121115     EVALUATE TRUE
+121115        WHEN SQLCODE = ZERO
+121115           IF INCT-TRAN-TYPE = '40' AND
+121115            ( INCT-TRN-CODE = 2002 OR INCT-TRN-CODE = 2001 )
+121115           THEN
+121115              SET WS-PRE-INCT-END
+121115                                 TO TRUE
+121115              MOVE INCT-VAR-AREA TO INCT1-VAR-AREA1
+121115           ELSE
+121115              SET WS-PRE-INCT-CONTINUE
+121115                                 TO TRUE
+121115           END-IF
+121115        WHEN SQLCODE = 100
+121115           MOVE 999999999        TO WS-REC-NO-PRE
+121115           MOVE WARNING-RC       TO RETURN-CODE
+121115        WHEN OTHER
+121115           MOVE ERROR-RC         TO RETURN-CODE
+121115           DISPLAY 'PRE-40-INCT  ERROR SQLCODE= '
+121115           SQLCODE
+121115           PERFORM Z000-EXIT
+121115     END-EVALUATE
+121115     .
+121115 B950-PRE-40-INCT-EXIT.
+121115     EXIT.
+T18289*
+T18289 B960-PRE-FIN-BAL.
+T18289*
+T18289     MOVE SPACE                  TO WS-OLD-BAL-FLAG
+T18289     SET WS-INCT-BAL-N           TO TRUE
+T18289     PERFORM UNTIL WS-OLD-BAL-END OR WS-INCT-BAL-Y
+T18289        IF WS-OLD-BAL-CONTINUE
+T18289        THEN
+T18289           COMPUTE WS-INCT-REC-NO = WS-INCT-REC-NO-A + 1
+T18289           END-COMPUTE
+T18289        END-IF
+T18289        PERFORM B970-OLD-BAL-INCT
+T18289           THRU B970-OLD-BAL-INCT-EXIT
+T18289     END-PERFORM
+T18289     IF WS-INCT-BAL-Y
+T18289     THEN
+T18289        INITIALIZE 0406A-PRINCIPAL-OLD
+T18289        MOVE WS-OLD-BALANCE      TO 0406A-PRINCIPAL-OLD
+T18289     ELSE
+T18289        IF INVM-TRAP = 'T'
+T18289        THEN
+T18289           INITIALIZE 0406A-PRINCIPAL-OLD
+T18289           MOVE WS-INCT5-40-BAL  TO 0406A-PRINCIPAL-OLD
+T18289        END-IF
+T18289     END-IF
+T18289     .
+T18289 B960-PRE-FIN-BAL-EXIT.
+T18289     EXIT.
+T18289*
+T18289 B970-OLD-BAL-INCT.
+T18289     MOVE 0406A-INST-NO                  TO INCT-INST-NO
+T18289     IF WS-OLD-BAL-CONTINUE
+T18289     THEN
+T18289        MOVE WS-INCT-REC-NO              TO INCT-REC-NO
+T18289     END-IF
+T18289*
+T18289     IF WS-OLD-BAL-CONTINUE
+T18289     THEN
+T18289        EXEC SQL
+T18289           SELECT INCT.*
+T18289           INTO  :INCT
+T18289           FROM  INCT
+T18289           WHERE       INCT.INST_NO    = :INCT-INST-NO
+T18289                   AND INCT.ACCT_NO    = :INCT-ACCT-NO
+T18289                   AND INCT.TRN_DATE   = :INCT-TRN-DATE
+T18289                   AND INCT.REC_NO     = :INCT-REC-NO
+T18289           ORDER BY INCT.REC_NO
+T18289           FETCH FIRST 1 ROWS ONLY
+T18289        END-EXEC
+T18289     ELSE
+T18289        EXEC SQL
+T18289           SELECT INCT.*
+T18289           INTO  :INCT
+T18289           FROM  INCT
+T18289           WHERE       INCT.INST_NO    = :INCT-INST-NO
+T18289                   AND INCT.ACCT_NO    = :INCT-ACCT-NO
+T18289                   AND INCT.TRN_DATE   = :INCT-TRN-DATE
+T18289           ORDER BY INCT.REC_NO
+T18289           FETCH FIRST 1 ROWS ONLY
+T18289        END-EXEC
+T18289     END-IF
+T18289*
+T18289     EVALUATE TRUE
+T18289        WHEN SQLCODE = ZERO
+T18289           MOVE INCT-REC-NO      TO WS-INCT-REC-NO-A
+T18289           IF INCT-TRAN-TYPE = '01'
+T18289           THEN
+T18289              INITIALIZE INCT3-VAR-AREA1
+T18289              MOVE INCT-VAR-AREA TO INCT3-VAR-AREA1
+T18289              MOVE INCT3-01-BALANCE
+T18289                                 TO WS-OLD-BALANCE
+T18289              SET WS-INCT-BAL-Y  TO TRUE
+T18289           ELSE
+T18289              SET WS-INCT-BAL-N  TO TRUE
+T18289           END-IF
+T18289           SET WS-OLD-BAL-CONTINUE
+T18289                                 TO TRUE
+T18289        WHEN SQLCODE = 100
+T18289           SET WS-OLD-BAL-END    TO TRUE
+T18289        WHEN OTHER
+T18289           MOVE ERROR-RC         TO RETURN-CODE
+T18289           DISPLAY 'PRE-40-INCT  ERROR SQLCODE= '
+T18289           SQLCODE
+T18289           PERFORM Z000-EXIT
+T18289     END-EVALUATE
+T18289     .
+T18289 B970-OLD-BAL-INCT-EXIT.
+T18289     EXIT.
+T18289*
+T18289 B980-READ-INCT-3055.
+T18289     MOVE INVM-KEY-1(4:16)            TO INCT-ACCT-NO
+T18289     MOVE '003'                       TO INCT-INST-NO
+T18289     MOVE 3055                        TO INCT-TRN-CODE
+T18289     MOVE WS-AC-DATE                  TO INCT-TRN-DATE
+T18289*
+T18289     EXEC SQL
+T18289        SELECT   INCT.*
+T18289        INTO     :INCT
+T18289        FROM     INCT
+T18289        WHERE         INCT.TRN_DATE    = :INCT-TRN-DATE
+T18289                AND   INCT.TRN_CODE    = :INCT-TRN-CODE
+T18289                AND   INCT.INST_NO     = :INCT-INST-NO
+T18289                AND   INCT.ACCT_NO     = :INCT-ACCT-NO
+T18289        ORDER BY INCT.JRNL_NO DESC
+T18289        FETCH FIRST 1 ROWS ONLY
+T18289     END-EXEC
+T18289*
+T18289     EVALUATE TRUE
+T18289        WHEN SQLCODE = ZERO
+T18289           SET WS-3055-Y         TO TRUE
+T18289           MOVE INCT-VAR-AREA    TO INCT4-VAR-AREA1
+T18289           MOVE INCT4-01-AMOUNT  TO WS-INCT-01-BAL
+T18289        WHEN SQLCODE = 100
+T18289           SET WS-3055-N         TO TRUE
+T18289           DISPLAY '3055 RECORD NOT FOUND IN INCT ,KEY IS'
+T18289           INCT-ACCT-NO
+T18289        WHEN OTHER
+T18289           MOVE ERROR-RC         TO RETURN-CODE
+T18289           DISPLAY 'B980-READ-INCT-3055 ERROR , SQLCODE IS'
+T18289           SQLCODE
+T18289           PERFORM Z000-EXIT
+T18289     END-EVALUATE
+T18289     .
+T18289 B980-READ-INCT-3055-EXIT.
+T18289     EXIT.
+T18289*
+T18289 B990-PRE-40-INCT.
+T18289     DISPLAY 'B990-PRE-40-INCT'
+T18289     INITIALIZE INCT
+T18289     MOVE SPACE                  TO WS-PRE-40-FLAG
+T18010     PERFORM UNTIL WS-PRE-40-END OR WS-40-REC-NO >= 999999999
+T18289        COMPUTE WS-40-REC-NO-PRE = WS-40-REC-NO + 1
+T18289        END-COMPUTE
+T18289        PERFORM B991-PRE-40-INCT
+T18289           THRU B991-PRE-40-INCT-EXIT
+T18289        MOVE WS-40-REC-NO-PRE    TO WS-40-REC-NO
+T18289     END-PERFORM
+T18289     .
+T18289 B990-PRE-40-INCT-EXIT.
+T18289     EXIT.
+T18289*
+T18289 B991-PRE-40-INCT.
+T18289*
+T18289     MOVE 0406A-INST-NO                  TO INCT-INST-NO
+T18289     MOVE INVM-KEY-1(4:16)               TO INCT-ACCT-NO
+T18289     MOVE WS-40-REC-NO-PRE               TO INCT-REC-NO
+T18289*
+T18289     EXEC SQL
+T18289        SELECT   INCT.*
+T18289        INTO     :INCT
+T18289        FROM     INCT
+T18289        WHERE         INCT.REC_NO      = :INCT-REC-NO
+T18289                AND   INCT.INST_NO     = :INCT-INST-NO
+T18289                AND   INCT.ACCT_NO     = :INCT-ACCT-NO
+T18289        FETCH FIRST 1 ROWS ONLY
+T18289     END-EXEC
+T18289*
+T18289     EVALUATE TRUE
+T18289        WHEN SQLCODE = ZERO
+T18289           IF INCT-TRAN-TYPE = '40' AND
+T18010            ( INCT-TRN-CODE = 2002 OR INCT-TRN-CODE = 2001 OR
+T18010              INCT-TRN-CODE = 2000  )
+T18289           THEN
+T18289              SET WS-PRE-40-END  TO TRUE
+T18289              MOVE INCT-REC-NO   TO WS-INCT-REC-NO-A
+T18289              INITIALIZE INCT5-VAR-AREA1
+T18289              MOVE INCT-VAR-AREA TO INCT5-VAR-AREA1
+T18010              MOVE INCT5-40-TERM-VALUE
+T18289                                 TO WS-INCT5-40-BAL
+T18289           ELSE
+T18289              SET WS-PRE-40-CONTINUE
+T18289                                 TO TRUE
+T18289           END-IF
+T18289        WHEN SQLCODE = 100
+T18289           MOVE 999999999        TO WS-40-REC-NO-PRE
+T18289           MOVE WARNING-RC       TO RETURN-CODE
+T18289        WHEN OTHER
+T18289           MOVE ERROR-RC         TO RETURN-CODE
+T18289           DISPLAY 'B991-PRE-40-INCT ERROR SQLCODE= '
+T18289           SQLCODE
+T18289           PERFORM Z000-EXIT
+T18289     END-EVALUATE
+T18289     .
+T18289 B991-PRE-40-INCT-EXIT.
+T18289     EXIT.
+121017*
+121017 B405-GET-DATA-TO-FD0405.
+121017     INITIALIZE FDC0405F
+121017     MOVE INVM-BRANCH-NO                 TO 0405F-BRN
+121017     IF INVM-BRANCH-NO(4:2) NOT = '00'
+121017     THEN
+121017        MOVE '00'                        TO 0405F-BRN(4:2)
+121017     END-IF
+121017     MOVE 0406A-CURRENCY                 TO 0405F-CCY
+121017     MOVE INVM-CURRENCY                  TO 0405F-CCY-CHAR
+121017     MOVE INVM-ACCT-TYPE                 TO 0405F-AC-TYPE
+R36285     IF INVM-OD-VISA-AREA(182:8) = SPACE OR
+R36285        INVM-OD-VISA-AREA(182:8) = LOW-VALUE
+R36285     THEN
+R36285        MOVE INVM-ACCT-TYPE              TO 0405F-PROD-CODE(1:4)
+R36285        MOVE SPACE                       TO 0405F-PROD-CODE(5:4)
+R36285        MOVE '0'                         TO 0405F-PROD-IND
+R36285     ELSE
+R36285        MOVE INVM-OD-VISA-AREA(182:8)    TO 0405F-PROD-CODE
+R36285        MOVE '1'                         TO 0405F-PROD-IND
+R36285     END-IF
+121017     MOVE 0406A-INT-PAID-OLD             TO 0405F-AUT-INT-PAID
+121017     MOVE 1                              TO 0405F-AUT-CNT
+121017     MOVE 0406A-PRINCIPAL-NEW            TO 0405F-AUT-NEW-AMT
+121017     MOVE 1                              TO 0405F-AUT-SETL-CNT
+121017     MOVE 0406A-PRINCIPAL-OLD            TO 0405F-AUT-SETL-AMT
+121017     PERFORM S000-WRITE-FDQ0405F
+121017        THRU S000-WRITE-FDQ0405F-EXIT
+121017     .
+121017 B405-GET-DATA-TO-FD0405-EXIT.
+121017     EXIT.
+R15962*
+R15962 B850-GET-INT-ACCT.
+R15962     INITIALIZE DPTM
+R15962     MOVE '003'                  TO DPTM-INST-NO
+R15962     MOVE JPRM-AC-DATE           TO DPTM-PROS-YYYYMMDD
+R15962     MOVE WS-TEMP-AC             TO DPTM-FROM-ACCT-NO
+R15962     MOVE 999997                 TO DPTM-TRAN-CODE
+R31737     DISPLAY"DPTM-PROS-YYYYMMDD:"DPTM-PROS-YYYYMMDD
+R31737     DISPLAY"INCT-ACCT-NO:"INCT-ACCT-NO
+R31737     DISPLAY"INCT-TRN-DATE:"INCT-TRN-DATE
+R15962*
+R15962     EXEC SQL
+R15962        SELECT OTHER,
+R15962               REC_TIME,
+R15962               TO_FROM_CODE,
+R15962               AMOUNT,
+R15962               TO_ACCT_NO,
+R15962               JNO
+R15962          INTO :DPTM-OTHER,
+R15962               :DPTM-REC-TIME,
+R15962               :DPTM-TO-FROM-CODE,
+R15962               :DPTM-AMOUNT,
+R15962               :DPTM-TO-ACCT-NO,
+R15962               :DPTM-JNO
+R15962          FROM  DPTM
+R15962          WHERE FROM_ACCT_NO = :DPTM-FROM-ACCT-NO AND
+R15962                TRAN_CODE    = :DPTM-TRAN-CODE    AND
+R15962                INST_NO      = :DPTM-INST-NO      AND
+R15962                PROS_YYYYMMDD = :DPTM-PROS-YYYYMMDD
+R15962          ORDER  BY PROS_YYYYMMDD DESC , REC_TIME DESC
+R15962        FETCH FIRST 1 ROWS ONLY
+R15962     END-EXEC
+R15962*
+R15962     EVALUATE TRUE
+R15962        WHEN SQLCODE = ZERO
+R15962           PERFORM B860-READ-DJ01-FOR-DPTM
+R15962              THRU B860-READ-DJ01-FOR-DPTM-EXIT
+R15962        WHEN SQLCODE = 100
+R15962           DISPLAY 'DPTM INT NO FOUND'
+R15962           DISPLAY 'DPTM-INST-NO:'       DPTM-INST-NO
+R15962           DISPLAY 'DPTM-PROS-YYYYMMDD:' DPTM-PROS-YYYYMMDD
+R15962           DISPLAY 'DPTM-FROM-ACCT-NO:'  DPTM-FROM-ACCT-NO
+R15962           DISPLAY 'DPTM-TRAN-CODE:'     DPTM-TRAN-CODE
+R15962        WHEN OTHER
+R15962           MOVE ERROR-RC                  TO RETURN-CODE
+R15962           DISPLAY 'SELECT INCT  ERROR SQLCODE= '
+R15962           SQLCODE
+R15962           PERFORM Z000-EXIT
+R15962     END-EVALUATE
+R15962     .
+R15962 B850-GET-INT-ACCT-EXIT.
+R15962     EXIT.
+R15962*
+R15962 B860-READ-DJ01-FOR-DPTM.
+R15962*
+R15962     INITIALIZE  DJ01
+R15962     MOVE DPTM-REC-TIME             TO DJ01-TIME
+R15962     MOVE JPRM-AC-DATE              TO DJ01-DT
+R15962*
+R15962     EXEC SQL
+R15962        SELECT STAT,
+R15962               ERR_CODE,
+R15962               TIME,
+R15962               AREA_TRN_NO,
+R15962               EXTERNAL_MSG1
+R15962          INTO :DJ01-STAT,
+R15962               :DJ01-ERR-CODE,
+R15962               :DJ01-TIME,
+R15962               :DJ01-AREA-TRN-NO,
+R15962               :DJ01-EXTERNAL-MSG1
+R15962          FROM  DJ01
+R15962          WHERE INST_NO = '003'       AND
+R15962                DT = :DJ01-DT AND
+R15962                TIME = :DJ01-TIME
+R15962        FETCH FIRST 1 ROWS ONLY
+R15962     END-EXEC
+R15962*
+R31737     DISPLAY " READ DJ01(B860) SQLCODE = " SQLCODE
+R15962     EVALUATE TRUE
+R15962        WHEN SQLCODE = ZERO
+R15962           IF DJ01-STAT = '7'
+R15962           THEN
+R15962              MOVE ZERO          TO 0406A-INT-TRSF-AMT
+R15962              MOVE ZERO          TO 0406A-INT-EXCH-AMT
+R15962              MOVE ZERO          TO 0406A-INT-EXCH-RATE
+R15962              MOVE SPACE         TO 0406A-INT-EXCH-CCY
+R15962           ELSE
+R15962              MOVE DPTM-AMOUNT   TO 0406A-INT-TRSF-AMT
+R15962              MOVE DPTM-JNO      TO WS-FXSM-JRNL-NO
+R15962              PERFORM B310-READ-FXSM
+R15962                 THRU B310-READ-FXSM-EXIT
+R15962           END-IF
+R18443           MOVE DPTM-TO-ACCT-NO  TO WS-ACCT-FILLER1
+R15962           MOVE DPTM-TO-ACCT-NO  TO WK-FORM-AC-FROM
+R31737                 WK-FORM-AC-FROM
+R15962           PERFORM S00-FORMAT-CBS-AC
+R31737           PERFORM M100-INT-ACC-GET
+R31737              THRU M100-INT-ACC-GET-EXIT
+R31737           IF INCT3-01-TRAN-ACCT(1:1) = '9'
+R31737              MOVE INCT3-01-TRAN-ACCT TO 0406A-INT-ACCT
+R31737           ELSE
+R15962              MOVE WK-FORM-AC-TO TO 0406A-INT-ACCT
+R31737           END-IF
+R15962        WHEN SQLCODE = 100
+R15962           DISPLAY 'DJ01 NOT FOUND'
+R15962           DISPLAY 'DJ01-DT:' DJ01-DT
+R15962           DISPLAY 'DJ01-TIME:' DJ01-TIME
+R15962        WHEN OTHER
+R15962           MOVE ERROR-RC                  TO RETURN-CODE
+R15962           DISPLAY 'SELECT DJ01  ERROR SQLCODE= '
+R15962           SQLCODE
+R15962           PERFORM Z000-EXIT
+R15962     END-EVALUATE
+R15962     .
+R15962 B860-READ-DJ01-FOR-DPTM-EXIT.
+R15962     EXIT.
+R31737 M100-INT-ACC-GET.
+R31737*
+R31737     MOVE SPACE                  TO WS-INT-ACC-FLAG
+R31737     SET WS-INCT-FOD-N           TO TRUE
+R31737     PERFORM UNTIL WS-INT-ACC-END OR WS-INCT-FOD-Y
+R31737        IF WS-INT-ACC-CONTINUE
+R31737        THEN
+R31737           COMPUTE WS-INCT-REC-NO = WS-INCT-REC-NO-A + 1
+R31737           END-COMPUTE
+R31737        END-IF
+R31737        PERFORM M110-INT-ACC-INCT
+R31737           THRU M110-INT-ACC-INCT-EXIT
+R31737     END-PERFORM
+R31737     .
+R31737 M100-INT-ACC-GET-EXIT.
+R31737     EXIT.
+R31737*
+R31737 M110-INT-ACC-INCT.
+R31737     MOVE 0406A-INST-NO                  TO INCT-INST-NO
+R31737     IF WS-INT-ACC-CONTINUE
+R31737     THEN
+R31737        MOVE WS-INCT-REC-NO              TO INCT-REC-NO
+R31737     END-IF
+R31737*
+R31737     IF WS-INT-ACC-CONTINUE
+R31737     THEN
+R31737        EXEC SQL
+R31737           SELECT INCT.*
+R31737           INTO  :INCT
+R31737           FROM  INCT
+R31737           WHERE       INCT.INST_NO    = :INCT-INST-NO
+R31737                   AND INCT.ACCT_NO    = :INCT-ACCT-NO
+R31737                   AND INCT.TRN_DATE   = :INCT-TRN-DATE
+R31737                   AND INCT.REC_NO     = :INCT-REC-NO
+R31737           ORDER BY INCT.REC_NO
+R31737           FETCH FIRST 1 ROWS ONLY
+R31737        END-EXEC
+R31737     ELSE
+R31737        EXEC SQL
+R31737           SELECT INCT.*
+R31737           INTO  :INCT
+R31737           FROM  INCT
+R31737           WHERE       INCT.INST_NO    = :INCT-INST-NO
+R31737                   AND INCT.ACCT_NO    = :INCT-ACCT-NO
+R31737                   AND INCT.TRN_DATE   = :INCT-TRN-DATE
+R31737           ORDER BY INCT.REC_NO
+R31737           FETCH FIRST 1 ROWS ONLY
+R31737        END-EXEC
+R31737     END-IF
+R31737*
+R31737     EVALUATE TRUE
+R31737        WHEN SQLCODE = ZERO
+R31737           MOVE INCT-REC-NO      TO WS-INCT-REC-NO-A
+R31737           IF INCT-TRAN-TYPE = '01' AND INCT-TRN-CODE = 1055
+R31737           THEN
+R31737              INITIALIZE INCT3-VAR-AREA1
+R31737              MOVE INCT-VAR-AREA TO INCT3-VAR-AREA1
+R31737              SET WS-INCT-FOD-Y  TO TRUE
+R31737           ELSE
+R31737              SET WS-INCT-FOD-N  TO TRUE
+R31737           END-IF
+R31737           SET WS-INT-ACC-CONTINUE
+R31737                                 TO TRUE
+R31737        WHEN SQLCODE = 100
+R31737           SET WS-INT-ACC-END    TO TRUE
+R31737        WHEN OTHER
+R31737           MOVE ERROR-RC         TO RETURN-CODE
+R31737           DISPLAY 'GET-01-INCT  ERROR SQLCODE= '
+R31737           SQLCODE
+R31737           PERFORM Z000-EXIT
+R31737     END-EVALUATE
+R31737     .
+R31737 M110-INT-ACC-INCT-EXIT.
+R31737     EXIT.
+R31737*
+      *****************************************************************
+      * S0000 START
+      *****************************************************************
+       S000-SELECT-INCT-PRE.
+      *
+           SET  WS-INCT-FOUND                  TO TRUE
+           MOVE WS-AC-DATE                     TO INCT-TRN-DATE
+           MOVE '40'                           TO INCT-TRAN-TYPE
+           MOVE 0406A-INST-NO                  TO INCT-INST-NO
+           MOVE WS-TEMP-AC                     TO INCT-ACCT-NO
+      *
+           EXEC SQL
+              SELECT   INCT.*
+              INTO     :INCT
+              FROM     INCT
+              WHERE         INCT.TRN_DATE    < :INCT-TRN-DATE
+                      AND   INCT.TRAN_TYPE   = :INCT-TRAN-TYPE
+                      AND   INCT.INST_NO     = :INCT-INST-NO
+                      AND   INCT.ACCT_NO     = :INCT-ACCT-NO
+              ORDER BY INCT.TRN_DATE DESC ,
+121016*                INCT.JRNL_NO DESC
+121016                 INCT.REC_NO
+              FETCH FIRST 1 ROWS ONLY
+           END-EXEC
+      *
+           EVALUATE TRUE
+              WHEN SQLCODE = ZERO
+                 CONTINUE
+              WHEN SQLCODE = 100
+                 SET   WS-INCT-NOFOUND         TO TRUE
+      *          DISPLAY 'RECORD NOT FOUND IN INCT,KEY IS'
+      *          INCT1-KEY
+                 MOVE WARNING-RC               TO RETURN-CODE
+              WHEN OTHER
+                 MOVE ERROR-RC                  TO RETURN-CODE
+                 DISPLAY 'SELECT INCT  ERROR SQLCODE= '
+                 SQLCODE
+                 PERFORM Z000-EXIT
+           END-EVALUATE
+           .
+           EXIT.
+       S000-GET-AC-INFO.
+      *
+           INITIALIZE INVM
+           SET WS-INVM-FOUND                   TO TRUE
+           MOVE INCT-INST-NO                   TO WS-INVM-SOC-NO
+           MOVE INCT-ACCT-NO                   TO WS-INVM-MEMB-CUST-AC
+           MOVE WS-INVM-KEY                    TO INVM-KEY-1
+           EXEC SQL
+              SELECT KEY_1 ,
+                     SYS  ,
+                     BRANCH_NO ,
+                     CURRENCY,
+                     CUSTOMER_NO,
+                     ACCT_TYPE,
+R15962               INT_CAT,
+                     INT_AVAILABLE,
+                     ACCT_MARGIN_RATE,
+ZL0315               OD_VISA_AREA,
+ZL0315               TRF_ACCT_NO,
+                     DIV1,
+ZL0315               TRAP,
+VNBCZL               CURR_BAL,
+VNBCZL               LAST_DIV_DATE,
+VNBCZL               INT_FRM_DT,
+VNBCZL               CURR_STATUS,
+                     VAR_INT_RATE,
+                     ACCT_OPEN_DT
+              INTO  :INVM-KEY-1,
+                    :INVM-SYS  ,
+                    :INVM-BRANCH-NO ,
+                    :INVM-CURRENCY,
+                    :INVM-CUSTOMER-NO,
+                    :INVM-ACCT-TYPE,
+R15962              :INVM-INT-CAT,
+                    :INVM-INT-AVAILABLE,
+                    :INVM-ACCT-MARGIN-RATE,
+ZL0315              :INVM-OD-VISA-AREA,
+ZL0315              :INVM-TRF-ACCT-NO,
+                    :INVM-DIV1,
+ZL0315              :INVM-TRAP,
+VNBCZL              :INVM-CURR-BAL,
+                    :INVM-LAST-DIV-DATE,
+VNBCZL              :INVM-INT-FRM-DT,
+VNBCZL              :INVM-CURR-STATUS,
+VNBCZL              :INVM-VAR-INT-RATE,
+VNBCZL              :INVM-ACCT-OPEN-DT
+              FROM INVM
+              WHERE  KEY_1  =  :INVM-KEY-1
+           END-EXEC
+      *
+           EVALUATE TRUE
+              WHEN SQLCODE = ZERO
+120725           MOVE INVM-CURRENCY                  TO WS-CCYM-X
+120725           CONTINUE
+              WHEN SQLCODE = 100
+                 SET   WS-INVM-NOFOUND         TO TRUE
+                 DISPLAY 'RECORD NOT FOUND IN INVM,KEY IS'
+                 WS-INVM-KEY
+                 MOVE WARNING-RC               TO RETURN-CODE
+              WHEN OTHER
+                MOVE ERROR-RC                  TO RETURN-CODE
+                DISPLAY 'SELECT INVM  ERROR SQLCODE= '
+                SQLCODE
+                PERFORM Z000-EXIT
+           END-EVALUATE
+           .
+           EXIT.
+      *
+      *--------------------------------------------*
+      * GET  SHORT NAME                            *
+      *--------------------------------------------*
+      *
+       S000-GET-AC-NAME.
+      *
+           INITIALIZE  ACSN
+           MOVE 'INV'                        TO ACSN-SYS-ID
+           MOVE INVT-MAST-ACCT               TO ACSN-ACCT-NO
+           MOVE INVT-SOC-NO                  TO ACSN-INST-NO
+           EXEC SQL
+              SELECT   SHORT_NAME
+                      INTO :ACSN-SHORT-NAME
+              FROM   ACSN
+              WHERE  INST_NO      =  :ACSN-INST-NO  AND
+                     SYS_ID       =  :ACSN-SYS-ID   AND
+                     ACCT_NO      =  :ACSN-ACCT-NO
+           END-EXEC
+            EVALUATE TRUE
+               WHEN SQLCODE = ZERO
+                  CONTINUE
+               WHEN SQLCODE = 100
+                  MOVE SPACE                   TO ACSN-SHORT-NAME
+                 DISPLAY 'RECORD NOT FOUND IN INVM,KEY IS'
+                 ACSN(1:22)
+               WHEN OTHER
+                 MOVE ERROR-RC                 TO RETURN-CODE
+                 DISPLAY 'SELECT CUSVAA ERROR SQLCODE= '                -STS
+                 SQLCODE
+                 PERFORM Z000-EXIT
+            END-EVALUATE
+            .
+           EXIT.
+      *
+      *
+      *--------------------------------------------*
+      * CALL ZTCBQJPM                              *
+      *--------------------------------------------*
+       S000-CALL-ZTCBQJPM.
+           CALL PGM-ZTCBQJPM USING ZTCCJPRM
+           IF RETURN-CODE NOT = ZERO
+           THEN
+              DISPLAY 'CALL  ZTCBQJPM ERROR,RETURN-CODE='
+              RETURN-CODE
+              PERFORM Z000-EXIT
+           END-IF
+           .
+           EXIT.
+      *****************************************************************
+      *  CALL UT0020                                                  *
+      *****************************************************************
+       S000-CALL-UT0020.
+      *
+           INITIALIZE UT0020-FUNCTION
+                      UT0020-DATE-AREA
+                      UT0020-BINARY-DATE
+           MOVE WS-BINARY-DATE          TO UT0020-BINARY-DATE
+           SET  TO-DDMMMCCYY            TO TRUE
+           CALL "UT0020" USING          UT0020-FUNCTION
+                                        UT0020-DATE-AREA
+                                        UT0020-BINARY-DATE
+           .
+           EXIT.
+
+      *****************************************************************
+      *  OPEN I-O FLIE                                                *
+      *****************************************************************
+       S000-OPEN-FILE.
+      *
+           OPEN INPUT   CIFCUSM
+R15962                  FDVINFD
+           OPEN OUTPUT  FDQ0406A
+121017                  FDQ0405F
+R15962                  FDQ0001C
+R18443                  FNQ0001C
+           IF FILE-CUSM-STS NOT = ZERO
+           THEN
+              MOVE ERROR-RC                    TO RETURN-CODE
+              DISPLAY 'OPEN CIFCUSM ERROR, STATUS = ' FILE-CUSM-STS
+              PERFORM Z000-EXIT
+           END-IF
+           IF FILE-0406A-STS NOT = ZEROS
+           THEN
+              MOVE ERROR-RC               TO RETURN-CODE
+              DISPLAY 'OPEN FDQ0406A ERROR, STATUS = ' FILE-0406A-STS
+              PERFORM Z000-EXIT
+           END-IF
+121017     IF WS-0405F-STS NOT = ZERO
+121017     THEN
+121017        MOVE ERROR-RC                    TO RETURN-CODE
+121017        DISPLAY 'OPEN FDQ0405F ERROR, STATUS = ' WS-0405F-STS
+121017        PERFORM Z000-EXIT
+121017     END-IF
+R15962     IF FILE-0001C-STS NOT = ZERO
+R15962     THEN
+R15962        MOVE ERROR-RC                    TO RETURN-CODE
+R15962        DISPLAY 'OPEN FDQ0001C ERROR, STATUS = ' FILE-0001C-STS
+R15962        PERFORM Z000-EXIT
+R15962     END-IF
+R18443     IF FILE-0001N-STS NOT = ZERO
+R18443     THEN
+R18443        MOVE ERROR-RC                    TO RETURN-CODE
+R18443        DISPLAY 'OPEN FNQ0001C ERROR, STATUS = ' FILE-0001N-STS
+R18443        PERFORM Z000-EXIT
+R18443     END-IF
+R15962     IF FILE-INFD-STS NOT = ZERO
+R15962     THEN
+R15962        MOVE ERROR-RC                    TO RETURN-CODE
+R15962        DISPLAY 'OPEN FDVINFD  ERROR, STATUS = ' FILE-INFD-STS
+R15962        PERFORM Z000-EXIT
+R15962     END-IF
+      *
+           .
+           EXIT.
+      *****************************************************************
+      * CLOSE I-O FILE                                                *
+      *****************************************************************
+       S000-CLOSE-FILE.
+      *
+           CLOSE FDQ0406A CIFCUSM
+121017           FDQ0405F
+R15962           FDVINFD
+R15962           FDQ0001C
+R18443           FNQ0001C
+      *
+           IF FILE-0406A-STS NOT = ZEROS
+           THEN
+              MOVE ERROR-RC               TO RETURN-CODE
+              DISPLAY 'CLOSE FDQ0406A ERROR, STATUS = ' FILE-0406A-STS
+              PERFORM Z000-EXIT
+           END-IF
+           IF FILE-CUSM-STS NOT = ZERO
+           THEN
+              MOVE ERROR-RC               TO RETURN-CODE
+              DISPLAY 'OPEN CIFCUSM ERROR, STATUS = ' FILE-CUSM-STS
+              PERFORM Z000-EXIT
+           END-IF
+121017     IF WS-0405F-STS NOT = ZERO THEN
+121017        MOVE ERROR-RC                    TO RETURN-CODE
+121017        DISPLAY 'CLOSE FDQ0405F ERROR, STATUS = ' WS-0405F-STS
+121017        PERFORM Z000-EXIT
+121017     END-IF
+R15962     IF FILE-0001C-STS NOT = ZERO
+R15962     THEN
+R15962        MOVE ERROR-RC                    TO RETURN-CODE
+R15962        DISPLAY 'CLOSE FDQ0001C ERROR, STATUS = ' FILE-0001C-STS
+R15962        PERFORM Z000-EXIT
+R15962     END-IF
+R18443     IF FILE-0001N-STS NOT = ZERO
+R18443     THEN
+R18443        MOVE ERROR-RC                    TO RETURN-CODE
+R18443        DISPLAY 'CLOSE FNQ0001C ERROR, STATUS = ' FILE-0001N-STS
+R18443        PERFORM Z000-EXIT
+R18443     END-IF
+R15962     IF FILE-INFD-STS NOT = ZERO
+R15962     THEN
+R15962        MOVE ERROR-RC                    TO RETURN-CODE
+R15962        DISPLAY 'CLOSE FDVINFD  ERROR, STATUS = ' FILE-INFD-STS
+R15962        PERFORM Z000-EXIT
+R15962     END-IF
+           .
+           EXIT.
+      *
+121017 S000-WRITE-FDQ0405F.
+121017     WRITE FDC0405F
+121017     IF WS-0405F-STS NOT = ZERO THEN
+121017        MOVE ERROR-RC                    TO RETURN-CODE
+121017        DISPLAY 'WRITE FDQ0405F ERROR, STATUS=' WS-0405F-STS
+121017        PERFORM Z000-EXIT
+121017     END-IF
+121017     INITIALIZE FDC0405F
+121017     .
+121017 S000-WRITE-FDQ0405F-EXIT.
+121017     EXIT.
+121017*
+       S000-WRITE-FDQ0406A.
+      *
+           WRITE FDC0406A
+           IF FILE-0406A-STS NOT = ZEROS
+           THEN
+              MOVE ERROR-RC               TO RETURN-CODE
+              DISPLAY 'WRITE RPC0406A ERROR, STATUS=' FILE-0406A-STS
+              PERFORM Z000-EXIT
+           END-IF
+           ADD 1                          TO WS-WRITE-0406A-CNT
+           .
+           EXIT.
+R15962 S000-WRITE-FDQ0001C.
+R15962*
+R15962     WRITE FDC0001-DATA
+R15962     IF FILE-0001C-STS NOT = ZEROS
+R15962     THEN
+R15962        MOVE ERROR-RC               TO RETURN-CODE
+R15962        DISPLAY 'WRITE FDQ0001C ERROR, STATUS=' FILE-0001C-STS
+R15962        PERFORM Z000-EXIT
+R15962     END-IF
+R15962     .
+R15962     EXIT.
+R18443 S000-WRITE-FNQ0001C.
+R18443*
+R18443     WRITE FNC0001-DATA
+R18443     IF FILE-0001N-STS NOT = ZEROS
+R18443     THEN
+R18443        MOVE ERROR-RC               TO RETURN-CODE
+R18443        DISPLAY 'WRITE FNQ0001C ERROR, STATUS=' FILE-0001N-STS
+R18443        PERFORM Z000-EXIT
+R18443     END-IF
+R18443     .
+R18443     EXIT.
+      *
+       COPY RPRFMTAC.
+      *
+      *****************************************************************
+      *  RETURN PROGRAM                                               *
+      *****************************************************************
+      *
+       Z000-EXIT.
+R18443*    PERFORM S000-CLOSE-FILE
+           DISPLAY 'WRITE TO FDQ0406A :' WS-WRITE-0406A-CNT
+           DISPLAY "Z000-EXIT"
+           GOBACK
+      *
+           .
+           EXIT.
+      *********************
+      *  END PROGRAM      *
+      *********************
+       END PROGRAM FDB0406A.
+      *********************

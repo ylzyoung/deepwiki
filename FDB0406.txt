@@ -1,0 +1,1141 @@
+      ******************************************************************
+      ***                                                            ***
+      ***  SYSTEM:-  EX-BANCS                                        ***
+      ***                                                            ***
+      ***  PROGRAM:- FDB0406                                         ***
+      ***                                                            ***
+      ***  PURPOSE:-                                                 ***
+      ***                                                            ***
+      ***                                                            ***
+      ******************************************************************
+      *
+      *                    PROGRAM HISTORY
+      *                    ---------------
+      *
+      ******************************************************************
+      * PROGRAMMER : DATE :SPR NO : COMMENTS
+      *-----------------------------------------------------------------
+      * WANG HUI:07072011;        : NEW CREATE
+      *-----------------------------------------------------------------
+120718* HEXIONGFENG :  20120718   : WHEN TRAP = B , MOVE SPACE TO NEW DT
+      *-----------------------------------------------------------------
+121126* HEXIONGFENG :  20121126   : NEW REQUIREMENT FOR LOG : 15408
+      *-----------------------------------------------------------------
+R36285* HEXIONGFENG :  20180427   : UPDATED FOR RQM:36285
+R36285*-----------------------------------------------------------------
+      *
+       IDENTIFICATION DIVISION.
+      *
+       PROGRAM-ID.    FDB0406.
+       AUTHOR.        WANG HUI.
+      *-----------------------------------------------------------------
+      * DESC. TO PREPARE DATA FOR REPORT                               *
+      *   - RFD0406                                                    *
+      *-----------------------------------------------------------------
+       INSTALLATION.
+       DATE-WRITTEN.  JUN  2011.
+      *
+      ******************************************************************
+       ENVIRONMENT   DIVISION.
+      ******************************
+       CONFIGURATION SECTION.
+      ******************************
+       INPUT-OUTPUT  SECTION.
+      ******************************
+      *
+       FILE-CONTROL.
+      *
+           SELECT FDD0406  ASSIGN TO     FDD0406
+                           ORGANIZATION IS SEQUENTIAL
+                           ACCESS MODE  IS SEQUENTIAL
+                           FILE STATUS  IS WS-F0406-STS.
+      *
+           SELECT FD0406T1   ASSIGN TO     FD0406T1
+                           ORGANIZATION IS SEQUENTIAL
+                           ACCESS MODE  IS SEQUENTIAL
+                           FILE STATUS  IS WS-0406T1-STS.
+      *
+           SELECT FD0406T2   ASSIGN TO     FD0406T2
+                           ORGANIZATION IS SEQUENTIAL
+                           ACCESS MODE  IS SEQUENTIAL
+                           FILE STATUS  IS WS-0406T2-STS.
+      *
+           SELECT FD0406T3   ASSIGN TO     FD0406T3
+                           ORGANIZATION IS SEQUENTIAL
+                           ACCESS MODE  IS SEQUENTIAL
+                           FILE STATUS  IS WS-0406T3-STS.
+      *
+      ******************************
+       DATA DIVISION.
+      ******************************
+      *
+      ******************************
+       FILE SECTION.
+      ******************************
+      *
+       FD   FDD0406 RECORDING MODE IS F.
+            COPY RPCRPT IN LIBRYMIS REPLACING == :RPTL: == BY ==F0406==.
+            03 WS-01-TXT REDEFINES   F0406-TXT.
+              05 WS-ACCOUNT-NUM-RPT        PIC  X(16).
+              05 WS-ACCOUNT-NAME-RPT       PIC  X(60).
+            03 WS-04-TXT REDEFINES   F0406-TXT.
+      *       05 WS-CERT-NUM-RPT           PIC  X(16).
+              05 WS-CERT-VOL-NO            PIC  X(3).
+              05 WS-CERT-SEQ-NO            PIC  X(2).
+              05 WS-ROLL-TYPE-RPT          PIC  X(01).
+              05 WS-TRANSFER-ACCT-RPT      PIC  X(16).
+              05 WS-ACCT-TYPE-RPT          PIC  X(4).
+              05 WS-PRINCIPAL-OLD-RPT      PIC  $$,$$$,$$$,$$$,$$9.99.
+              05 WS-INT-PAID-OLD-RPT       PIC  $$,$$$,$$$,$$$,$$9.99.
+              05 WS-INT-RATE-OLD-RPT       PIC  ZZ9.9999.
+              05 WS-VALUE-DATE-OLD-RPT     PIC  X(9).
+              05 WS-DUE-DATE-OLD-RPT       PIC  X(9).
+            03 WS-05-TXT REDEFINES   F0406-TXT.
+R36285        05 WS-PROD-CODE-RPT          PIC  X(8).
+              05 WS-PRINCIPAL-NEW-RPT      PIC  $$,$$$,$$$,$$$,$$9.99.
+      *       05 WS-INT-PAID-NEW           PIC  $$,$$$,$$$,$$$,$$9.99.
+              05 WS-INT-RATE-NEW-RPT       PIC  ZZ9.9999.
+              05 WS-VALUE-DATE-NEW-RPT     PIC  X(9).
+              05 WS-DUE-DATE-NEW-RPT       PIC  X(9).
+            03 WS-06-TXT REDEFINES   F0406-TXT.
+              05 WS-ADD-SUB-IND-RPT        PIC  X(3).
+              05 WS-ADD-SUB-AMT-RPT        PIC  $$,$$$,$$$,$$$,$$9.99.
+              05 WS-EXCH-AMT-RPT           PIC  $$,$$$,$$$,$$$,$$9.99.
+121126        05 WS-EXCH-CCY               PIC  X(3).
+121126        05 WS-EXCH-RATE              PIC  ZZZZ9.9999.
+            03 WS-07-TXT REDEFINES   F0406-TXT.
+              05 WS-REMARK-RPT             PIC  X(60).
+              05 WS-CERT-MARKUP-RATE-RPT   PIC  ZZ9.9999.
+            03 WS-08-TXT REDEFINES   F0406-TXT.
+              05 WS-MARKUP-AMT-RPT         PIC  $$,$$$,$$$,$$$,$$9.99.
+              05 WS-ACC-MARKUP-RATE-RPT    PIC  ZZ9.9999.
+              05 WS-STAFF-MARKUP-RATE-RPT  PIC  ZZ9.9999.
+      *       05 WS-CERT-MARKUP-RATE-RPT   PIC  ZZ9.9999.
+            03 WS-09-TXT REDEFINES   F0406-TXT.
+              05 WS-INSTRUCTION-RPT        PIC  X(60).
+            03 WS-10-TXT REDEFINES   F0406-TXT.
+              05 WS-TOT-NUM-OF-CERT-RPT    PIC  ZZZZZZZ9.
+            03 WS-13-TXT REDEFINES   F0406-TXT.
+              05 WS-BR-CURRENCY-RPT        PIC  X(6).
+R36285*       05 WS-BR-TENURE-RPT          PIC  X(4).
+R36285        05 WS-BR-TENURE-RPT          PIC  X(8).
+              05 WS-BR-CERT-COUNT-RPT      PIC  ZZZZZZZ9.
+              05 WS-BR-ORGINAL-AMT-RPT     PIC  $$,$$$,$$$,$$$,$$9.99.
+              05 WS-BR-AFTER-ROLL-AMT-RPT  PIC  $$,$$$,$$$,$$$,$$9.99.
+              05 WS-BR-DIFFERENCE-RPT      PIC  $$,$$$,$$$,$$$,$$9.99.
+            03 WS-16-TXT REDEFINES   F0406-TXT.
+              05 WS-BK-CURRENCY-RPT        PIC  X(6).
+              05 WS-BK-BRANCH-RPT          PIC  X(5).
+              05 WS-BK-CERT-COUNT-RPT      PIC  ZZZZZZZ9.
+              05 WS-BK-ORGINAL-AMT-RPT     PIC  $$,$$$,$$$,$$$,$$9.99.
+              05 WS-BK-AFTER-ROLL-AMT-RPT  PIC  $$,$$$,$$$,$$$,$$9.99.
+              05 WS-BK-DIFFERENCE-RPT      PIC  $$,$$$,$$$,$$$,$$9.99.
+121126      03 WS-20-TXT REDEFINES   F0406-TXT.
+121126        05 WS-INT-ACCT               PIC  X(16).
+121126      03 WS-21-TXT REDEFINES   F0406-TXT.
+121126        05 WS-INT-TRSF-AMT           PIC  $$,$$$,$$$,$$$,$$9.99.
+121126        05 WS-INT-EXCH-AMT           PIC  $$,$$$,$$$,$$$,$$9.99.
+121126        05 WS-INT-EXCH-CCY           PIC  X(3).
+121126        05 WS-INT-EXCH-RATE          PIC  ZZZZ9.9999.
+      *
+       FD FD0406T1 RECORDING MODE IS F.
+          COPY FDC0406A IN LIBRYMIS.
+      *
+       FD FD0406T2 RECORDING MODE IS F.
+       01 WS-FD0406T2-REC.
+          03 WS-BRANCH-CODE2               PIC  X(05).
+          03 WS-CURRENCY2                  PIC  X(03).
+          03 WS-ACCT-TYPE2                 PIC  9(4).
+          03 WS-INT-CAT2                   PIC  9(4).
+          03 WS-ORIGINAL-AMT2              PIC  S9(14)V9(3).
+          03 WS-AFTER-ROLL-AMT2            PIC  S9(14)V9(3).
+          03 WS-DIFFERENCE2                PIC  S9(14)V9(3).
+          03 WS-NUM-OF-CERT2               PIC  9(8).
+R36285    03 WS-PROD-CODE2                 PIC  X(8).
+R36285    03 WS-PROD-IND2                  PIC  X(1).
+      *
+       FD FD0406T3 RECORDING MODE IS F.
+       01 WS-FD0406T3-REC.
+          03 WS-CURRENCY3                  PIC  X(03).
+          03 WS-BRANCH3                    PIC  X(05).
+          03 WS-ORIGINAL-AMT3              PIC  S9(14)V9(3).
+          03 WS-AFTER-ROLL-AMT3            PIC  S9(14)V9(3).
+          03 WS-DIFFERENCE3                PIC  S9(14)V9(3).
+          03 WS-NUM-OF-CERT3               PIC  9(8).
+      *
+      ******************************
+       WORKING-STORAGE SECTION.
+      ******************************
+      *
+      *------------------------*
+      *  RECORD LAYOUT         *
+      *------------------------*
+      *
+D914       EXEC SQL INCLUDE CPCCYM   END-EXEC.
+D914       EXEC SQL INCLUDE SQLCA    END-EXEC.
+
+      ******************************
+      * CONSTANT DECLARATION       *
+      ******************************
+       77  WARNING-RC                          PIC 9(1) VALUE 4.
+       77  ERROR-RC                            PIC 9(1) VALUE 8.
+       77  K-REPORT-ID               PIC X(10) VALUE 'DPFD0406  '.
+      *
+      ******************************
+      * PROGRAM VARIABLES          *
+      ******************************
+       01  WS-VARIABLES.
+           03 WS-MSG-ERR-FLAG             PIC 9(01).
+           03 WS-SECTION-NAME             PIC X(6) VALUE SPACES.
+      *
+           03 WS-BRANCH-NO                PIC X(05).
+           03 WS-BRANCH-CODE              PIC X(05).
+           03 WS-BRANCH-CODE-TMP          PIC X(05).
+           03 WS-LST-BRANCH-CODE          PIC X(05).
+           03 WS-LST-ACCT-TYPE            PIC X(04).
+           03 WS-CURRENCY                 PIC X(03).
+           03 WS-BRANCH-NAME              PIC X(30).
+           03 WS-CURRENCY-CODE            PIC X(03).
+           03 WS-LST-CURRENCY-CODE        PIC X(03).
+           03 WS-F0406-CNT                PIC 9(9).
+           03 WS-CCY-INFO                 PIC X(6).
+           03 WK-CCY-TO                   PIC X(3).
+           03 WK-CCY-FORM                 PIC X(3).
+           03 WS-ACCT-TYPE-TMP            PIC X(4).
+           03 WS-ACCT-TYPE                PIC X(4).
+           03 WS-TOT-NUM-OF-CERT         PIC 9(8).
+           03 WS-READ-CNT1                PIC 9(6).
+           03 WS-READ-CNT2                PIC 9(6).
+           03 WS-READ-CNT3                PIC 9(6).
+           03 WS-BR-TOT.
+              05 WS-BR-CERT-COUNT        PIC 9(8).
+              05 WS-BR-ORGINAL-AMT       PIC S9(14)V9(3).
+              05 WS-BR-AFTER-ROLL-AMT    PIC S9(14)V9(3).
+              05 WS-BR-DIFFERENCE        PIC S9(14)V9(3).
+           03 WS-BK-TOT.
+              05 WS-BK-CERT-COUNT        PIC 9(8).
+              05 WS-BK-ORGINAL-AMT       PIC S9(14)V9(3).
+              05 WS-BK-AFTER-ROLL-AMT    PIC S9(14)V9(3).
+              05 WS-BK-DIFFERENCE        PIC S9(14)V9(3).
+      *
+              COPY UT0020CA IN LIBRYMIS.
+      *
+      ******************************
+      * FILE STATUS                *
+      ******************************
+       01 WS-FILE-STS.
+          03 WS-F0406-STS                      PIC 9(2).
+          03 WS-0406T1-STS                     PIC 9(2).
+          03 WS-0406T2-STS                     PIC 9(2).
+          03 WS-0406T3-STS                     PIC 9(2).
+      ******************************
+      * CONDITION DECLARATION  *
+      ******************************
+       01 WS-COND-FLAG.
+          03 WS-TMP1-END-FLAG                PIC X(1) VALUE SPACE.
+              88 WS-TMP1-END-Y                          VALUE 'Y'.
+              88 WS-TMP1-END-N                          VALUE 'N'.
+          03 WS-TMP2-END-FLAG                PIC X(1) VALUE SPACE.
+              88 WS-TMP2-END-Y                          VALUE 'Y'.
+              88 WS-TMP2-END-N                          VALUE 'N'.
+          03 WS-TMP3-END-FLAG                PIC X(1) VALUE SPACE.
+              88 WS-TMP3-END-Y                          VALUE 'Y'.
+              88 WS-TMP3-END-N                          VALUE 'N'.
+          03 FILE-END-FDD0406                  PIC X(1) VALUE SPACE.
+              88 WS-EOF-FDD0406                         VALUE 'Y'.
+          03 WS-CCY-END-FLAG                   PIC X(1) VALUE SPACE.
+              88 WS-CCY-END-Y                           VALUE 'Y'.
+              88 WS-CCY-END-N                           VALUE 'N'.
+          03 WS-TYPE-END-FLAG                   PIC X(1) VALUE SPACE.
+              88 WS-TYPE-END-Y                           VALUE 'Y'.
+              88 WS-TYPE-END-N                           VALUE 'N'.
+          03 WS-BRCH-END-FLAG                   PIC X(1) VALUE SPACE.
+              88 WS-BRCH-END-Y                           VALUE 'Y'.
+              88 WS-BRCH-END-N                           VALUE 'N'.
+          03 WS-CCY-TBL-FLAG                    PIC X(1) VALUE SPACE.
+              88 WS-CCY-TBL-END-Y                        VALUE 'Y'.
+              88 WS-CCY-TBL-END-N                        VALUE 'N'.
+          03 WS-CCY-FOUND-FLAG                  PIC X(1) VALUE SPACE.
+              88 WS-CCY-FOUND                            VALUE 'Y'.
+              88 WS-CCY-NOTFOUND                         VALUE 'N'.
+          03 WS-BREAKPG-FLAG                    PIC X(1) VALUE SPACE.
+              88 WS-BREAKPG-Y                            VALUE 'Y'.
+              88 WS-BREAKPG-N                            VALUE 'N'.
+      *--------------------------------------------------------------
+       PROCEDURE DIVISION.
+      **************************
+      * MAIN ROUNTE            *
+      **************************
+           PERFORM A000-INITIALIZE.
+           PERFORM B000-MAIN-PROC.
+           PERFORM C000-CLOSE-FILE.
+      *    PERFORM D000-CLOSE-CUR.
+           PERFORM Z000-EXIT.
+           EXIT.
+      **************************
+      * MAIN ROUNTE            *
+      **************************
+       B000-MAIN-PROC.
+      * DEAL WITH BRANCH DETAIL
+           SET WS-TMP1-END-N       TO TRUE
+           SET WS-BREAKPG-Y        TO TRUE
+           PERFORM S000-READ-FD0406T1
+           IF WS-TMP1-END-N
+           THEN
+              MOVE 0406A-ACCT-TYPE   TO WS-LST-ACCT-TYPE
+                                        WS-ACCT-TYPE
+              MOVE 0406A-BRANCH      TO WS-LST-BRANCH-CODE
+                                        WS-BRANCH-CODE
+              MOVE 0406A-CURRENCY    TO WS-LST-CURRENCY-CODE
+                                        WS-CURRENCY-CODE
+              PERFORM T000-PRINT-HEAD
+           END-IF
+           SET WS-TMP2-END-N       TO TRUE
+           PERFORM S000-READ-FD0406T2
+           PERFORM B200-DEAL-BRANCH   UNTIL WS-TMP1-END-Y
+           IF WS-TMP1-END-Y  AND WS-TMP2-END-N
+           THEN
+              PERFORM T00-PRINT-BREAK-PAGE
+              PERFORM B300-DEAL-BRANCH-SUMMARY
+           END-IF
+      * DEAL WITH BANK   SUMMARY
+           SET WS-TMP3-END-N       TO TRUE
+           PERFORM S000-READ-FD0406T3
+           IF WS-TMP3-END-N
+           THEN
+              MOVE WS-CURRENCY3      TO WS-LST-CURRENCY-CODE
+                                        WS-CURRENCY-CODE
+              PERFORM T00-PRINT-BANK-BREAK-PAGE
+           END-IF
+           PERFORM B400-DEAL-BANK  UNTIL WS-TMP3-END-Y.
+      *--------------------------------------------*
+      * DEAL BRANCH                                *
+      *--------------------------------------------*
+       B200-DEAL-BRANCH.
+           IF WS-BRANCH-CODE(2:2) NOT = WS-LST-BRANCH-CODE(2:2)
+           THEN
+      * PAGE BREAK AND PRINT  BRANCH  & LOAN TYPE(NEW LOAN TYPE)
+              PERFORM T00-PRINT-BREAK-PAGE
+              PERFORM T000-PRINT-HEAD
+              MOVE WS-BRANCH-CODE        TO WS-LST-BRANCH-CODE
+      *       MOVE WS-CURRENCY-CODE      TO WS-LST-CURRENCY-CODE
+              SET WS-BREAKPG-Y             TO TRUE
+      * PAGE BREAK AND PRINT  BRANCH  & LOAN TYPE(NEW LOAN TYPE)
+           ELSE
+      * CHECKE AND DEAL LOAN-TYPE
+              SET WS-BRCH-END-N          TO TRUE
+              PERFORM B200-DEAL-CURRENCY   UNTIL  WS-BRCH-END-Y
+      *       PERFORM B000-DEAL-ACCT-TYPE  UNTIL  WS-BRCH-END-Y
+           END-IF
+           IF WS-CURRENCY-CODE NOT = WS-LST-CURRENCY-CODE
+           THEN
+               SET WS-CCY-END-Y         TO TRUE
+               SET WS-BRCH-END-Y        TO TRUE
+           END-IF
+           IF WS-BRANCH-CODE(2:2) NOT = WS-LST-BRANCH-CODE(2:2)
+           THEN
+      * PAGE BREAK AND PRINT  BRANCH  & LOAN TYPE(NEW LOAN TYPE)
+              PERFORM T00-PRINT-BREAK-PAGE
+      *       PERFORM T000-PRINT-HEAD
+      *       MOVE WS-LST-BRANCH-CODE    TO WS-BRANCH-CODE
+              PERFORM B300-DEAL-BRANCH-SUMMARY
+              MOVE WS-BRANCH-CODE        TO WS-LST-BRANCH-CODE
+           END-IF
+           .
+           EXIT.
+      *--------------------------------------------*
+      * DEAL CURRENCY                              *
+      *--------------------------------------------*
+       B200-DEAL-CURRENCY.
+      * DEAL WITH CURRENCY ETAIL
+           IF WS-CURRENCY-CODE    NOT = WS-LST-CURRENCY-CODE
+           THEN
+              PERFORM T00-PRINT-BREAK-PAGE
+              PERFORM T000-PRINT-HEAD
+              MOVE WS-CURRENCY-CODE      TO WS-LST-CURRENCY-CODE
+              SET WS-BREAKPG-Y             TO TRUE
+           ELSE
+              SET WS-CCY-END-N         TO TRUE
+      *       PERFORM B200-DEAL-BRANCH   UNTIL  WS-CCY-END-Y
+              PERFORM B200-DEAL-DETAIL   UNTIL  WS-CCY-END-Y
+           END-IF
+           .
+           EXIT.
+      *--------------------------------------------*
+      * DEAL DETAIL  AND CALC TOT                  *
+      *--------------------------------------------*
+       B200-DEAL-DETAIL.
+      * PRINT LINE 01
+           INITIALIZE    RPCF0406
+           MOVE 0406A-ACCOUNT-NUM      TO WS-ACCOUNT-NUM-RPT
+           MOVE 0406A-ACCOUNT-NAME     TO WS-ACCOUNT-NAME-RPT
+           MOVE 01                     TO F0406-FMT-NO
+           MOVE WS-LST-BRANCH-CODE     TO WS-BRANCH-NO
+           MOVE WS-LST-CURRENCY-CODE   TO WS-CURRENCY
+           SET  F0406-DET-YES          TO TRUE
+           PERFORM S000-WRITE-FILE
+      * PRINT LINE 02
+           INITIALIZE    RPCF0406
+           MOVE 02                     TO F0406-FMT-NO
+           MOVE WS-LST-BRANCH-CODE     TO WS-BRANCH-NO
+           MOVE WS-LST-CURRENCY-CODE   TO WS-CURRENCY
+           SET  F0406-DET-YES          TO TRUE
+           PERFORM S000-WRITE-FILE
+      * PRINT LINE 03
+           INITIALIZE    RPCF0406
+           MOVE 03                     TO F0406-FMT-NO
+           MOVE WS-LST-BRANCH-CODE     TO WS-BRANCH-NO
+           MOVE WS-LST-CURRENCY-CODE   TO WS-CURRENCY
+           SET  F0406-DET-YES          TO TRUE
+           PERFORM S000-WRITE-FILE
+      * PRINT LINE 04
+           INITIALIZE    RPCF0406
+      *    MOVE 0406A-CERT-NUM         TO WS-CERT-NUM-RPT
+           MOVE 0406A-VOL-NO           TO WS-CERT-VOL-NO
+           MOVE 0406A-SEQ-NO           TO WS-CERT-SEQ-NO
+           MOVE 0406A-ROLL-TYPE        TO WS-ROLL-TYPE-RPT
+           MOVE 0406A-TRANSFER-ACCT    TO WS-TRANSFER-ACCT-RPT
+           MOVE 0406A-ACCT-TYPE        TO WS-ACCT-TYPE-RPT
+           MOVE 0406A-PRINCIPAL-OLD    TO WS-PRINCIPAL-OLD-RPT
+           MOVE 0406A-INT-PAID-OLD     TO WS-INT-PAID-OLD-RPT
+           MOVE 0406A-INT-RATE-OLD     TO WS-INT-RATE-OLD-RPT
+      *    MOVE 0406A-VALUE-DATE-OLD   TO WS-VALUE-DATE-OLD-RPT
+      *
+           INITIALIZE  UT0020-FUNCTION
+                       UT0020-DATE-AREA
+                       UT0020-BINARY-DATE
+                       WS-VALUE-DATE-OLD-RPT
+           MOVE 0406A-VALUE-DATE-OLD   TO UT0020-BINARY-DATE
+           SET TO-DDMMMCCYY            TO TRUE
+           CALL "UT0020" USING           UT0020-FUNCTION
+                                         UT0020-DATE-AREA
+                                         UT0020-BINARY-DATE
+           MOVE UT0020-DATE-DDMMMCCYY  TO WS-VALUE-DATE-OLD-RPT
+      *
+      *    MOVE 0406A-DUE-DATE-OLD       TO WS-DUE-DATE-OLD-RPT
+      *
+           INITIALIZE  UT0020-FUNCTION
+                       UT0020-DATE-AREA
+                       UT0020-BINARY-DATE
+                       WS-DUE-DATE-OLD-RPT
+           MOVE 0406A-DUE-DATE-OLD     TO UT0020-BINARY-DATE
+           SET TO-DDMMMCCYY            TO TRUE
+           CALL "UT0020" USING           UT0020-FUNCTION
+                                         UT0020-DATE-AREA
+                                         UT0020-BINARY-DATE
+           MOVE UT0020-DATE-DDMMMCCYY  TO WS-DUE-DATE-OLD-RPT
+      *
+           MOVE 04                     TO F0406-FMT-NO
+           MOVE WS-LST-BRANCH-CODE     TO WS-BRANCH-NO
+           MOVE WS-LST-CURRENCY-CODE   TO WS-CURRENCY
+           SET  F0406-DET-YES          TO TRUE
+           PERFORM S000-WRITE-FILE
+      * PRINT LINE 05
+           INITIALIZE    RPCF0406
+R36285     IF 0406A-PROD-IND = '0'
+R36285     THEN
+R36285        MOVE SPACE               TO WS-PROD-CODE-RPT
+R36285     ELSE
+R36285        MOVE 0406A-PROD-CODE     TO WS-PROD-CODE-RPT
+R36285     END-IF
+           MOVE 0406A-PRINCIPAL-NEW    TO WS-PRINCIPAL-NEW-RPT
+      *    MOVE 0406A-INT-PAID-NEW     TO WS-INT-PAID-NEW-RPT
+           MOVE 0406A-INT-RATE-NEW     TO WS-INT-RATE-NEW-RPT
+      *    MOVE 0406A-VALUE-DATE-NEW   TO WS-VALUE-DATE-NEW-RPT
+      *
+120718     IF 0406A-ROLL-TYPE = 'B'
+120718     THEN
+120718        MOVE SPACE               TO WS-VALUE-DATE-NEW-RPT
+120718     ELSE
+120718        INITIALIZE  UT0020-FUNCTION
+120718                    UT0020-DATE-AREA
+120718                    UT0020-BINARY-DATE
+120718                    WS-VALUE-DATE-NEW-RPT
+120718        MOVE 0406A-VALUE-DATE-NEW
+120718                                 TO UT0020-BINARY-DATE
+120718        SET TO-DDMMMCCYY         TO TRUE
+120718        CALL "UT0020" USING        UT0020-FUNCTION
+120718                                      UT0020-DATE-AREA
+120718                                      UT0020-BINARY-DATE
+120718        MOVE UT0020-DATE-DDMMMCCYY
+                                       TO WS-VALUE-DATE-NEW-RPT
+120718     END-IF
+      *
+      *    MOVE 0406A-DUE-DATE-NEW       TO WS-DUE-DATE-NEW-RPT
+      *
+120718     IF 0406A-ROLL-TYPE = 'B'
+120718     THEN
+120718        MOVE SPACE               TO WS-DUE-DATE-NEW-RPT
+120718     ELSE
+120718        INITIALIZE  UT0020-FUNCTION
+120718                    UT0020-DATE-AREA
+120718                    UT0020-BINARY-DATE
+120718                    WS-DUE-DATE-NEW-RPT
+120718        MOVE 0406A-DUE-DATE-NEW  TO UT0020-BINARY-DATE
+120718        SET TO-DDMMMCCYY         TO TRUE
+120718        CALL "UT0020" USING        UT0020-FUNCTION
+120718                                      UT0020-DATE-AREA
+120718                                      UT0020-BINARY-DATE
+120718        MOVE UT0020-DATE-DDMMMCCYY
+                                       TO WS-DUE-DATE-NEW-RPT
+120718     END-IF
+      *
+           MOVE 05                     TO F0406-FMT-NO
+           MOVE WS-LST-BRANCH-CODE     TO WS-BRANCH-NO
+           MOVE WS-LST-CURRENCY-CODE   TO WS-CURRENCY
+           SET  F0406-DET-YES          TO TRUE
+           PERFORM S000-WRITE-FILE
+      * PRINT LINE 06
+           INITIALIZE    RPCF0406
+           MOVE 0406A-ADD-SUB-IND      TO WS-ADD-SUB-IND-RPT
+           MOVE 0406A-ADD-SUB-AMT      TO WS-ADD-SUB-AMT-RPT
+           MOVE 0406A-EXCH-AMT         TO WS-EXCH-AMT-RPT
+121126     MOVE 0406A-EXCH-CCY         TO WS-EXCH-CCY
+121126     MOVE 0406A-EXCH-RATE        TO WS-EXCH-RATE
+           MOVE 06                     TO F0406-FMT-NO
+           MOVE WS-LST-BRANCH-CODE     TO WS-BRANCH-NO
+           MOVE WS-LST-CURRENCY-CODE   TO WS-CURRENCY
+           SET  F0406-DET-YES          TO TRUE
+           PERFORM S000-WRITE-FILE
+121126* PRINT LINE 20
+121126     INITIALIZE    RPCF0406
+121126     MOVE 0406A-INT-ACCT         TO WS-INT-ACCT
+121126     MOVE 20                     TO F0406-FMT-NO
+121126     MOVE WS-LST-BRANCH-CODE     TO WS-BRANCH-NO
+121126     MOVE WS-LST-CURRENCY-CODE   TO WS-CURRENCY
+121126     SET  F0406-DET-YES          TO TRUE
+121126     PERFORM S000-WRITE-FILE
+121126* PRINT LINE 21
+121126     INITIALIZE    RPCF0406
+121126     MOVE 0406A-INT-TRSF-AMT     TO WS-INT-TRSF-AMT
+121126     MOVE 0406A-INT-EXCH-AMT     TO WS-INT-EXCH-AMT
+121126     MOVE 0406A-INT-EXCH-CCY     TO WS-INT-EXCH-CCY
+121126     MOVE 0406A-INT-EXCH-RATE    TO WS-INT-EXCH-RATE
+121126     MOVE 21                     TO F0406-FMT-NO
+121126     MOVE WS-LST-BRANCH-CODE     TO WS-BRANCH-NO
+121126     MOVE WS-LST-CURRENCY-CODE   TO WS-CURRENCY
+121126     SET  F0406-DET-YES          TO TRUE
+121126     PERFORM S000-WRITE-FILE
+      * PRINT LINE 07
+           INITIALIZE    RPCF0406
+           MOVE 0406A-REMARK           TO WS-REMARK-RPT
+           MOVE 0406A-CERT-MARKUP-RATE TO WS-CERT-MARKUP-RATE-RPT
+           MOVE 07                     TO F0406-FMT-NO
+           MOVE WS-LST-BRANCH-CODE     TO WS-BRANCH-NO
+           MOVE WS-LST-CURRENCY-CODE   TO WS-CURRENCY
+           SET  F0406-DET-YES          TO TRUE
+           PERFORM S000-WRITE-FILE
+      * PRINT LINE 08
+      *    INITIALIZE    RPCF0406
+      *    MOVE 0406A-MARKUP-AMT         TO WS-MARKUP-AMT-RPT
+      *    MOVE 0406A-ACC-MARKUP-RATE    TO WS-ACC-MARKUP-RATE-RPT
+      *    MOVE 0406A-STAFF-MARKUP-RATE  TO WS-STAFF-MARKUP-RATE-RPT
+      *    MOVE 0406A-CERT-MARKUP-RATE   TO WS-CERT-MARKUP-RATE-RPT
+      *    MOVE 08                       TO F0406-FMT-NO
+      *    MOVE WS-LST-BRANCH-CODE       TO WS-BRANCH-NO
+      *    MOVE WS-LST-CURRENCY-CODE     TO WS-CURRENCY
+      *    SET  F0406-DET-YES            TO TRUE
+      *    PERFORM S000-WRITE-FILE
+      * PRINT LINE 09
+           INITIALIZE    RPCF0406
+           MOVE 0406A-ROLL-INSTRUCTION TO WS-INSTRUCTION-RPT
+           MOVE 09                     TO F0406-FMT-NO
+           MOVE WS-LST-BRANCH-CODE     TO WS-BRANCH-NO
+           MOVE WS-LST-CURRENCY-CODE   TO WS-CURRENCY
+           SET  F0406-DET-YES          TO TRUE
+           PERFORM S000-WRITE-FILE
+      * PRINT LINE 19
+           INITIALIZE    RPCF0406
+           MOVE 19                     TO F0406-FMT-NO
+           MOVE WS-LST-BRANCH-CODE     TO WS-BRANCH-NO
+           MOVE WS-LST-CURRENCY-CODE   TO WS-CURRENCY
+           SET  F0406-DET-YES          TO TRUE
+           PERFORM S000-WRITE-FILE
+      * CAL TOT NUM OF CERT
+           COMPUTE WS-TOT-NUM-OF-CERT   =
+                   WS-TOT-NUM-OF-CERT   +
+                   0406A-NUM-OF-CERT
+           END-COMPUTE
+      * DEAL NEXT RECORD
+           PERFORM S000-READ-FD0406T1
+           MOVE 0406A-CURRENCY         TO WS-CURRENCY-CODE
+           MOVE 0406A-ACCT-TYPE        TO WS-ACCT-TYPE
+           MOVE 0406A-BRANCH           TO WS-BRANCH-CODE
+           IF WS-CURRENCY-CODE NOT = WS-LST-CURRENCY-CODE
+           THEN
+               SET WS-CCY-END-Y        TO TRUE
+           END-IF
+           IF WS-BRANCH-CODE(2:2) NOT = WS-LST-BRANCH-CODE(2:2)
+           THEN
+               SET WS-BRCH-END-Y       TO TRUE
+               SET WS-CCY-END-Y        TO TRUE
+           END-IF
+           IF    WS-BRCH-END-Y   OR
+                 WS-CCY-END-Y
+           THEN
+      * PRINT LINE 10
+              INITIALIZE RPCF0406
+              MOVE WS-TOT-NUM-OF-CERT  TO WS-TOT-NUM-OF-CERT-RPT
+              MOVE 10                  TO F0406-FMT-NO
+              MOVE WS-LST-BRANCH-CODE  TO WS-BRANCH-NO
+              MOVE WS-LST-CURRENCY-CODE
+                                       TO WS-CURRENCY
+              SET F0406-DET-YES        TO TRUE
+              PERFORM S000-WRITE-FILE
+              MOVE ZEROS               TO WS-TOT-NUM-OF-CERT
+           END-IF
+            .
+           EXIT.
+      *--------------------------------------------*
+      * DEAL BANK SUMMARY                          *
+      *--------------------------------------------*
+       B400-DEAL-BANK.
+           SET WS-CCY-END-N               TO TRUE
+           MOVE WS-CURRENCY3             TO WS-CURRENCY-CODE
+                                            WS-LST-CURRENCY-CODE
+           PERFORM B400-DEAL-BANK-DETAIL UNTIL   WS-CCY-END-Y
+           .
+           EXIT.
+      *--------------------------------------------*
+      * DEAL  BANK DETAIL  AND CALC TOT            *
+      *--------------------------------------------*
+       B400-DEAL-BANK-DETAIL.
+      * PRINT LINE 16
+           INITIALIZE    RPCF0406
+           MOVE WS-CURRENCY3          TO WS-CURRENCY-CODE
+           PERFORM S000-GET-CCY-INFO
+           MOVE WS-CCY-INFO              TO WS-BK-CURRENCY-RPT
+           MOVE WS-BRANCH3               TO WS-BK-BRANCH-RPT
+           MOVE WS-NUM-OF-CERT3          TO WS-BK-CERT-COUNT-RPT
+           MOVE WS-ORIGINAL-AMT3         TO WS-BK-ORGINAL-AMT-RPT
+           MOVE WS-AFTER-ROLL-AMT3       TO WS-BK-AFTER-ROLL-AMT-RPT
+           MOVE WS-DIFFERENCE3           TO WS-BK-DIFFERENCE-RPT
+           MOVE 16                       TO F0406-FMT-NO
+           MOVE ZEROS                    TO WS-BRANCH-NO
+           MOVE WS-CURRENCY-CODE         TO WS-CURRENCY
+           SET  F0406-SUM-YES            TO TRUE
+           PERFORM S000-WRITE-FILE
+      *    CAL TOT
+           COMPUTE   WS-BK-CERT-COUNT     =
+                     WS-BK-CERT-COUNT     +
+                     WS-NUM-OF-CERT3
+           END-COMPUTE
+           COMPUTE   WS-BK-ORGINAL-AMT    =
+                     WS-BK-ORGINAL-AMT    +
+                     WS-ORIGINAL-AMT3
+           END-COMPUTE
+           COMPUTE   WS-BK-AFTER-ROLL-AMT =
+                     WS-BK-AFTER-ROLL-AMT +
+                     WS-AFTER-ROLL-AMT3
+           END-COMPUTE
+           COMPUTE   WS-BK-DIFFERENCE     =
+                     WS-BK-DIFFERENCE     +
+                     WS-DIFFERENCE3
+           END-COMPUTE
+      * DEAL NEXT RECORD
+           PERFORM S000-READ-FD0406T3
+           IF WS-TMP3-END-N
+           THEN
+              MOVE WS-CURRENCY3          TO WS-CURRENCY-CODE
+           END-IF
+           IF WS-CURRENCY-CODE  NOT = WS-LST-CURRENCY-CODE OR
+              WS-TMP3-END-Y
+           THEN
+      * PRINT LINE 18
+              INITIALIZE RPCF0406
+              MOVE 18                    TO F0406-FMT-NO
+              MOVE ZEROS                 TO WS-BRANCH-NO
+              MOVE WS-LST-CURRENCY-CODE  TO WS-CURRENCY
+              SET F0406-SUM-YES          TO TRUE
+              PERFORM S000-WRITE-FILE
+      * PRINT LINE 17 WITH
+              INITIALIZE RPCF0406
+              MOVE SPACE                 TO WS-BK-CURRENCY-RPT
+              MOVE SPACE                 TO WS-BK-BRANCH-RPT
+              MOVE WS-BK-CERT-COUNT      TO WS-BK-CERT-COUNT-RPT
+              MOVE WS-BK-ORGINAL-AMT     TO WS-BK-ORGINAL-AMT-RPT
+              MOVE WS-BK-AFTER-ROLL-AMT  TO WS-BK-AFTER-ROLL-AMT-RPT
+              MOVE WS-BK-DIFFERENCE      TO WS-BK-DIFFERENCE-RPT
+              MOVE 17                    TO F0406-FMT-NO
+              MOVE ZEROS                 TO WS-BRANCH-NO
+              MOVE WS-LST-CURRENCY-CODE  TO WS-CURRENCY
+              SET F0406-SUM-YES          TO TRUE
+              PERFORM S000-WRITE-FILE
+              INITIALIZE WS-BK-TOT
+      * PRINT LINE 19
+              INITIALIZE RPCF0406
+              MOVE 19                    TO F0406-FMT-NO
+              MOVE ZEROS                 TO WS-BRANCH-NO
+              MOVE WS-LST-CURRENCY-CODE  TO WS-CURRENCY
+              SET F0406-SUM-YES          TO TRUE
+              PERFORM S000-WRITE-FILE
+              SET  WS-CCY-END-Y           TO TRUE
+              MOVE WS-CURRENCY-CODE       TO WS-LST-CURRENCY-CODE
+      *
+              IF NOT WS-TMP3-END-Y
+              THEN
+                 PERFORM T00-PRINT-BANK-BREAK-PAGE
+              END-IF
+      *
+           END-IF
+            .
+           EXIT.
+      *--------------------------------------------*
+      * REPORT RECORD PRINT BREAK PAGE             *
+      *--------------------------------------------*
+       T00-PRINT-BREAK-PAGE.
+      * PRINT BREAK PAGE LINE
+           INITIALIZE RPCF0406
+           MOVE 10                       TO F0406-FMT-NO
+           MOVE WS-LST-BRANCH-CODE       TO WS-BRANCH-NO
+           MOVE WS-LST-CURRENCY-CODE     TO WS-CURRENCY
+           SET F0406-DET-YES             TO TRUE
+           MOVE 'Y'                      TO F0406-SPECIAL-PAGE
+           PERFORM S000-WRITE-FILE
+      *
+      *
+           EXIT.
+      *--------------------------------------------*
+      * REPORT RECORD PRINT BREAK PAGE             *
+      *--------------------------------------------*
+       T00-PRINT-BREAK-PAGE-SUMMARY.
+      * PRINT BREAK PAGE LINE
+      *
+           PERFORM T00-PRINT-BREAK-PAGE
+           PERFORM T000-PRINT-HEAD
+           EXIT.
+      *--------------------------------------------*
+      * REPORT RECORD PRINT BANK BREAK PAGE        *
+      *--------------------------------------------*
+       T00-PRINT-BANK-BREAK-PAGE.
+      * PRINT BREAK PAGE LINE
+           INITIALIZE RPCF0406
+           MOVE 13                       TO F0406-FMT-NO
+           MOVE ZEROS                    TO WS-BRANCH-NO
+           MOVE ZEROS                    TO WS-CURRENCY
+           SET F0406-SUM-YES             TO TRUE
+           MOVE 'Y'                      TO F0406-SPECIAL-PAGE
+           PERFORM S000-WRITE-FILE
+      *
+           PERFORM T000-PRINT-BANK-HEAD
+      *
+           EXIT.
+      *--------------------------------------------*
+      * REPORT RECORD PRINT BREAK PAGE             *
+      *--------------------------------------------*
+       T000-PRINT-HEAD.
+      *
+           MOVE WS-CURRENCY-CODE         TO WS-LST-CURRENCY-CODE
+      *
+           EXIT.
+      *--------------------------------------------*
+      * REPORT RECORD PRINT BREAK PAGE             *
+      *--------------------------------------------*
+       T000-PRINT-HEAD-SUMMERY.
+      * PRINT LINE 11 12
+      * PRINT LINE  11 S U M M A R Y
+           INITIALIZE RPCF0406
+           MOVE 11                       TO F0406-FMT-NO
+           MOVE WS-BRANCH-CODE2          TO WS-BRANCH-NO
+           MOVE ZEROS                    TO WS-CURRENCY
+           SET F0406-SUM-YES             TO TRUE
+           PERFORM S000-WRITE-FILE
+      * PRINT LINE  12
+           INITIALIZE RPCF0406
+           MOVE 12                       TO F0406-FMT-NO
+           MOVE WS-BRANCH-CODE2          TO WS-BRANCH-NO
+           MOVE ZEROS                    TO WS-CURRENCY
+           SET F0406-SUM-YES             TO TRUE
+           PERFORM S000-WRITE-FILE
+      *
+           EXIT.
+      *--------------------------------------------*
+      * REPORT RECORD PRINT BREAK PAGE             *
+      *--------------------------------------------*
+       T000-PRINT-BANK-HEAD.
+      * PRINT LINE  05
+           INITIALIZE RPCF0406
+           MOVE 15                       TO F0406-FMT-NO
+           MOVE ZEROS                    TO WS-BRANCH-NO
+      *    MOVE ZEROS                    TO WS-CURRENCY
+           MOVE WS-CURRENCY-CODE         TO WS-CURRENCY
+           SET F0406-SUM-YES             TO TRUE
+           PERFORM S000-WRITE-FILE
+      *
+           EXIT.
+      *--------------------------------------------*
+      * DEAL BRANCH                                *
+      *--------------------------------------------*
+       B300-DEAL-BRANCH-SUMMARY.
+           PERFORM T000-PRINT-HEAD-SUMMERY
+      *    MOVE WS-BRANCH-CODE2          TO WS-LST-BRANCH-CODE
+           MOVE WS-CURRENCY2             TO WS-CURRENCY-CODE
+                                            WS-LST-CURRENCY-CODE
+           SET WS-BRCH-END-N             TO TRUE
+           SET WS-CCY-END-N              TO TRUE
+           PERFORM B300-DEAL-CURRENCY-SUMMARY UNTIL WS-BRCH-END-Y
+           IF WS-BRANCH-CODE2(2:2) NOT = WS-LST-BRANCH-CODE(2:2)
+           THEN
+              PERFORM T00-PRINT-BREAK-PAGE-SUMMARY
+           END-IF
+           .
+           EXIT.
+      *--------------------------------------------*
+      * DEAL CURRENCY                              *
+      *--------------------------------------------*
+       B300-DEAL-CURRENCY-SUMMARY.
+      * DEAL WITH CURRENCY ETAIL
+      * PRINT LINE 13 CCY  AND SO ON
+            INITIALIZE RPCF0406
+            MOVE WS-CURRENCY2          TO WS-CURRENCY-CODE
+            PERFORM S000-GET-CCY-INFO
+            MOVE WS-CCY-INFO           TO WS-BR-CURRENCY-RPT
+R36285*     MOVE WS-ACCT-TYPE2         TO WS-BR-TENURE-RPT
+R36285      MOVE WS-PROD-CODE2         TO WS-BR-TENURE-RPT
+            MOVE WS-NUM-OF-CERT2       TO WS-BR-CERT-COUNT-RPT
+            MOVE WS-ORIGINAL-AMT2      TO WS-BR-ORGINAL-AMT-RPT
+            MOVE WS-AFTER-ROLL-AMT2    TO WS-BR-AFTER-ROLL-AMT-RPT
+            MOVE WS-DIFFERENCE2        TO WS-BR-DIFFERENCE-RPT
+            MOVE 13                    TO F0406-FMT-NO
+            MOVE WS-LST-BRANCH-CODE    TO WS-BRANCH-NO
+            MOVE ZEROS                 TO WS-CURRENCY
+            SET F0406-SUM-YES          TO TRUE
+            PERFORM S000-WRITE-FILE
+            MOVE WS-CURRENCY-CODE      TO WS-LST-CURRENCY-CODE
+            SET  WS-CCY-END-N          TO TRUE
+      * DEAL NEXT REC
+            PERFORM B300-DEAL-NEXT-REC-SUMMARY
+      * PRINT LINE 15
+      *     SET WS-CCY-END-N         TO TRUE
+            PERFORM B300-DEAL-ACCT-TYPE-SUMMARY UNTIL  WS-CCY-END-Y
+                                                    OR WS-TMP2-END-Y
+           IF WS-BRANCH-CODE2(2:2) NOT = WS-LST-BRANCH-CODE(2:2) OR
+                  WS-TMP2-END-Y
+           THEN
+              SET WS-BRCH-END-Y          TO TRUE
+           END-IF
+           .
+           EXIT.
+      *--------------------------------------------*
+      * DEAL LOAN TYPE                             *
+      *--------------------------------------------*
+       B300-DEAL-ACCT-TYPE-SUMMARY.
+      * PRINT LINE 13 WITH  NO CCY OUTPUTE
+           INITIALIZE    RPCF0406
+           MOVE SPACE                  TO WS-BR-CURRENCY-RPT
+R36285*    MOVE WS-ACCT-TYPE2          TO WS-BR-TENURE-RPT
+R36285     MOVE WS-PROD-CODE2          TO WS-BR-TENURE-RPT
+           MOVE WS-NUM-OF-CERT2        TO WS-BR-CERT-COUNT-RPT
+           MOVE WS-ORIGINAL-AMT2       TO WS-BR-ORGINAL-AMT-RPT
+           MOVE WS-AFTER-ROLL-AMT2     TO WS-BR-AFTER-ROLL-AMT-RPT
+           MOVE WS-DIFFERENCE2         TO WS-BR-DIFFERENCE-RPT
+           MOVE 13                       TO F0406-FMT-NO
+           MOVE WS-LST-BRANCH-CODE       TO WS-BRANCH-NO
+           MOVE ZEROS                    TO WS-CURRENCY
+           SET  F0406-SUM-YES            TO TRUE
+           PERFORM S000-WRITE-FILE
+           SET  WS-CCY-END-N             TO TRUE
+           MOVE WS-CURRENCY2             TO WS-LST-CURRENCY-CODE
+           MOVE WS-BRANCH-CODE2          TO WS-LST-BRANCH-CODE
+      * DEAL NEXT REC
+           PERFORM B300-DEAL-NEXT-REC-SUMMARY
+            .
+           EXIT.
+      *--------------------------------------------*
+      *                                            *
+      *--------------------------------------------*
+       B300-DEAL-NEXT-REC-SUMMARY.
+      *    CAL TOT
+           COMPUTE   WS-BR-CERT-COUNT     =
+                     WS-BR-CERT-COUNT     +
+                     WS-NUM-OF-CERT2
+           END-COMPUTE
+           COMPUTE   WS-BR-ORGINAL-AMT    =
+                     WS-BR-ORGINAL-AMT    +
+                     WS-ORIGINAL-AMT2
+           END-COMPUTE
+           COMPUTE   WS-BR-AFTER-ROLL-AMT =
+                     WS-BR-AFTER-ROLL-AMT +
+                     WS-AFTER-ROLL-AMT2
+           END-COMPUTE
+           COMPUTE   WS-BR-DIFFERENCE     =
+                     WS-BR-DIFFERENCE     +
+                     WS-DIFFERENCE2
+           END-COMPUTE
+      * DEAL NEXT RECORD
+           PERFORM S000-READ-FD0406T2
+           IF WS-TMP2-END-N
+           THEN
+              MOVE WS-CURRENCY2          TO WS-CURRENCY-CODE
+              MOVE WS-BRANCH-CODE2       TO WS-BRANCH-CODE-TMP
+           END-IF
+           IF WS-CURRENCY-CODE  NOT = WS-LST-CURRENCY-CODE
+              OR WS-TMP2-END-Y
+           THEN
+               SET WS-CCY-END-Y          TO TRUE
+           END-IF
+           IF WS-BRANCH-CODE-TMP(2:2) NOT = WS-LST-BRANCH-CODE(2:2)
+              OR WS-TMP2-END-Y
+           THEN
+               SET WS-BRCH-END-Y         TO TRUE
+               SET WS-CCY-END-Y          TO TRUE
+           END-IF
+           IF WS-BRCH-END-Y  OR
+              WS-CCY-END-Y
+           THEN
+      * PRINT LINE 18
+              INITIALIZE RPCF0406
+              MOVE 18                    TO F0406-FMT-NO
+              MOVE WS-LST-BRANCH-CODE    TO WS-BRANCH-NO
+              MOVE ZEROS                 TO WS-CURRENCY
+              SET F0406-SUM-YES          TO TRUE
+              PERFORM S000-WRITE-FILE
+      * PRINT LINE 14
+              INITIALIZE RPCF0406
+              MOVE SPACE                 TO WS-BR-CURRENCY-RPT
+              MOVE SPACE                 TO WS-BR-TENURE-RPT
+              MOVE WS-BR-CERT-COUNT      TO WS-BR-CERT-COUNT-RPT
+              MOVE WS-BR-ORGINAL-AMT     TO WS-BR-ORGINAL-AMT-RPT
+              MOVE WS-BR-AFTER-ROLL-AMT  TO WS-BR-AFTER-ROLL-AMT-RPT
+              MOVE WS-BR-DIFFERENCE      TO WS-BR-DIFFERENCE-RPT
+              MOVE 14                    TO F0406-FMT-NO
+              MOVE WS-LST-BRANCH-CODE    TO WS-BRANCH-NO
+              MOVE ZEROS                 TO WS-CURRENCY
+              SET F0406-SUM-YES          TO TRUE
+              PERFORM S000-WRITE-FILE
+              INITIALIZE WS-BR-TOT
+      * PRINT LINE 19
+              INITIALIZE RPCF0406
+              MOVE 19                    TO F0406-FMT-NO
+              MOVE WS-LST-BRANCH-CODE    TO WS-BRANCH-NO
+              MOVE ZEROS                 TO WS-CURRENCY
+              SET F0406-SUM-YES          TO TRUE
+              PERFORM S000-WRITE-FILE
+           END-IF
+      *
+           MOVE WS-CURRENCY2             TO WS-LST-CURRENCY-CODE
+           MOVE WS-BRANCH-CODE2          TO WS-LST-BRANCH-CODE
+      *
+      *
+            .
+           EXIT.
+      *************************
+      * INITIALIZE VARIABLES  *
+      *************************
+       A000-INITIALIZE.
+           INITIALIZE WS-VARIABLES
+           PERFORM S000-OPEN-FILE
+           EXIT.
+      *************************
+      * OPEN  FILES           *
+      *************************
+       S000-GET-CCY-INFO.
+           MOVE WS-CURRENCY-CODE     TO WK-CCY-FORM
+           PERFORM S00-GET-CCY-TO-CHAR
+           MOVE WS-CURRENCY-CODE     TO WS-CCY-INFO(1:3)
+           MOVE WK-CCY-TO            TO WS-CCY-INFO(4:3)
+           .
+           EXIT.
+D914  *************************
+D914  * GET CCY INFO          *
+D914  *************************
+D914   S00-GET-CCY-TO-CHAR.
+D914       INITIALIZE CCYM
+D914       MOVE WK-CCY-FORM          TO CCYM-CURRENCY-CODE-DIG
+D914       MOVE 003                  TO CCYM-INST-NO
+D914       EXEC SQL
+D914            SELECT  CODE
+D914             INTO  :CCYM-CODE
+D914             FROM   CCYM
+D914            WHERE   INST_NO = :CCYM-INST-NO  AND
+D914                    CURRENCY_CODE_DIG = :CCYM-CURRENCY-CODE-DIG
+D914       END-EXEC
+D914        EVALUATE TRUE
+D914           WHEN SQLCODE = ZERO
+D914              MOVE CCYM-CODE              TO WK-CCY-TO
+D914           WHEN SQLCODE = 100
+D914              DISPLAY 'CCY  NOT FOUND   ' WK-CCY-FORM               -STS
+D914              MOVE WARNING-RC       TO RETURN-CODE                  04570000
+D914  *           PERFORM  Z000-EXIT                                    04580000
+D914           WHEN OTHER
+D914              DISPLAY 'SELECT ERROR SQLCODE= ' SQLCODE              -STS
+D914              MOVE ERROR-RC          TO RETURN-CODE                 04570000
+D914              PERFORM Z000-EXIT                                     04580000
+D914        END-EVALUATE
+D914       EXIT.
+      *************************
+      * OPEN  FILES           *
+      *************************
+       S000-OPEN-FILE.
+           OPEN OUTPUT  FDD0406
+           IF WS-F0406-STS NOT = ZEROS        THEN
+              MOVE ERROR-RC                    TO RETURN-CODE
+              DISPLAY 'OPEN FDD0406 ERROR, STATUS = ' WS-F0406-STS
+              PERFORM Z000-EXIT
+           END-IF
+           OPEN INPUT   FD0406T1 FD0406T2 FD0406T3
+      *
+           IF WS-0406T1-STS NOT = ZEROS        THEN
+              MOVE ERROR-RC                    TO RETURN-CODE
+              DISPLAY 'OPEN FD0406T1 ERROR, STATUS = ' WS-0406T1-STS
+              PERFORM Z000-EXIT
+           END-IF
+      *
+           IF WS-0406T2-STS NOT = ZEROS        THEN
+              MOVE ERROR-RC                    TO RETURN-CODE
+              DISPLAY 'OPEN FD0406T2 ERROR, STATUS = ' WS-0406T2-STS
+              PERFORM Z000-EXIT
+           END-IF
+      *
+           IF WS-0406T3-STS NOT = ZEROS        THEN
+              MOVE ERROR-RC                    TO RETURN-CODE
+              DISPLAY 'OPEN FD0406T3 ERROR, STATUS = ' WS-0406T3-STS
+              PERFORM Z000-EXIT
+           END-IF
+      *
+           .
+           EXIT.
+      *
+      *--------------------------------------------*
+      * READ FILE FD0406T1                         *
+      *--------------------------------------------*
+       S000-READ-FD0406T1.
+           READ  FD0406T1
+           EVALUATE TRUE
+              WHEN WS-0406T1-STS = ZEROS
+                   CONTINUE
+              WHEN WS-0406T1-STS = 10 OR 14
+                   SET WS-TMP1-END-Y           TO TRUE
+                   SET WS-CCY-END-Y            TO TRUE
+                   SET WS-BRCH-END-Y           TO TRUE
+              WHEN OTHER
+                 MOVE ERROR-RC                 TO RETURN-CODE
+                 DISPLAY 'READ FD0406T1 ERROR, STATUS = '
+                 WS-0406T1-STS
+                 PERFORM Z000-EXIT
+           END-EVALUATE.
+           EXIT.
+      *--------------------------------------------*
+      * READ FILE FD0406T2                         *
+      *--------------------------------------------*
+       S000-READ-FD0406T2.
+           ADD 1 TO WS-READ-CNT2
+           READ  FD0406T2
+           EVALUATE TRUE
+              WHEN WS-0406T2-STS = ZEROS
+                   CONTINUE
+              WHEN WS-0406T2-STS = 10 OR 14
+                   SET WS-TMP2-END-Y           TO TRUE
+                   SET WS-CCY-END-Y            TO TRUE
+              WHEN OTHER
+                 MOVE ERROR-RC                 TO RETURN-CODE
+                 DISPLAY 'READ FD0406T2 ERROR, STATUS = '
+                 WS-0406T2-STS
+                 PERFORM Z000-EXIT
+           END-EVALUATE.
+           EXIT.
+      *--------------------------------------------*
+      * READ FILE FD0406T3                         *
+      *--------------------------------------------*
+       S000-READ-FD0406T3.
+           ADD 1 TO WS-READ-CNT3
+           READ  FD0406T3
+           EVALUATE TRUE
+              WHEN WS-0406T3-STS = ZEROS
+                   CONTINUE
+              WHEN WS-0406T3-STS = 10 OR 14
+                   SET WS-TMP3-END-Y           TO TRUE
+                   SET WS-CCY-END-Y            TO TRUE
+              WHEN OTHER
+                 MOVE ERROR-RC                 TO RETURN-CODE
+                 DISPLAY 'READ FD0406T3 ERROR, STATUS = '
+                 WS-0406T3-STS
+                 PERFORM Z000-EXIT
+           END-EVALUATE.
+           EXIT.
+      *--------------------------------------------*
+      * WRITE OUTPUT FILE                          *
+      *--------------------------------------------*
+       S000-WRITE-FILE.
+ZL0519*    MOVE WS-BRANCH-NO                  TO F0406-BR-DP
+ZL0519     IF WS-BRANCH-NO(2:2) = '01'
+ZL0519     THEN
+ZL0519        MOVE '00100'                    TO F0406-BR-DP
+ZL0519     ELSE
+ZL0519        MOVE WS-BRANCH-NO               TO F0406-BR-DP
+ZL0519     END-IF
+           MOVE WS-CURRENCY                   TO F0406-CCY
+           MOVE K-REPORT-ID                   TO F0406-RPT-NO
+           WRITE RPCF0406
+           EVALUATE TRUE
+              WHEN WS-F0406-STS = ZEROS
+                   CONTINUE
+              WHEN OTHER
+                 MOVE ERROR-RC                 TO RETURN-CODE
+                 DISPLAY 'WRITE FDD0406 ERROR, STATUS = '
+                 WS-F0406-STS
+                 PERFORM Z000-EXIT
+           END-EVALUATE.
+           ADD  1                      TO WS-F0406-CNT
+           EXIT.
+      *
+      *--------------------------------------------*
+      * CLOSE OUTPUT FILE                          *
+      *--------------------------------------------*
+       C000-CLOSE-FILE.
+      *
+           CLOSE FDD0406
+           EVALUATE TRUE
+              WHEN WS-F0406-STS = ZEROS
+                   CONTINUE
+              WHEN OTHER
+                 MOVE ERROR-RC                 TO RETURN-CODE
+                 DISPLAY 'CLOSE FDD0406 ERROR, STATUS = '
+                 WS-F0406-STS
+                 PERFORM Z000-EXIT
+           END-EVALUATE.
+           EXIT.
+      *
+           CLOSE FD0406T1
+           EVALUATE TRUE
+              WHEN WS-0406T1-STS = ZEROS
+                   CONTINUE
+              WHEN OTHER
+                 MOVE ERROR-RC                 TO RETURN-CODE
+                 DISPLAY 'CLOSE FD0406T1 ERROR, STATUS = '
+                 WS-0406T1-STS
+                 PERFORM Z000-EXIT
+           END-EVALUATE.
+           EXIT.
+      *
+           CLOSE FD0406T2
+           EVALUATE TRUE
+              WHEN WS-0406T2-STS = ZEROS
+                   CONTINUE
+              WHEN OTHER
+                 MOVE ERROR-RC                 TO RETURN-CODE
+                 DISPLAY 'CLOSE FD0406T2 ERROR, STATUS = '
+                 WS-0406T2-STS
+                 PERFORM Z000-EXIT
+           END-EVALUATE.
+      *
+           CLOSE FD0406T3
+           EVALUATE TRUE
+              WHEN WS-0406T3-STS = ZEROS
+                   CONTINUE
+              WHEN OTHER
+                 MOVE ERROR-RC                 TO RETURN-CODE
+                 DISPLAY 'CLOSE FD0406T3 ERROR, STATUS = '
+                 WS-0406T3-STS
+                 PERFORM Z000-EXIT
+           END-EVALUATE.
+           EXIT.
+      *
+       Z000-EXIT.
+           DISPLAY ' WRTIE RECORDS :' WS-F0406-CNT
+           GOBACK.
+           EXIT.
+      *********************
+      *  END PROGRAM      *
+      *********************
+       END PROGRAM FDB0406.

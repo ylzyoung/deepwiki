@@ -1,0 +1,855 @@
+      ******************************************************************
+      ***                                                            ***
+      ***  SYSTEM:-  BANCS                                           ***
+      ***                                                            ***
+      ***  PROGRAM:- FDB0402D                                        ***
+      ***                                                            ***
+      ***  PURPOSE:- READ FDQ0402D TO WRITE FDQ0402E                 ***
+      ***                                                            ***
+      ******************************************************************
+      *
+      *                    PROGRAM HISTORY
+      *                    ---------------
+      *
+      ******************************************************************
+      * PROGRAMMER : DATE :SPR NO : COMMENTS
+      *-----------------------------------------------------------------
+      * HEXIONGFENG: 20110714:        : NEW
+      *-----------------------------------------------------------------
+      *-----------------------------------------------------------------
+      *
+       IDENTIFICATION DIVISION.
+      *
+       PROGRAM-ID.    FDB0402D.
+       AUTHOR.        VNBHXF.
+      *-----------------------------------------------------------------
+      *-----------------------------------------------------------------
+       INSTALLATION.
+       DATE-WRITTEN.  JULY 2011.
+      *
+      ******************************************************************
+       ENVIRONMENT   DIVISION.
+       CONFIGURATION SECTION.
+       INPUT-OUTPUT  SECTION.
+       FILE-CONTROL.
+           SELECT FDQ0402D ASSIGN TO    FDQ0402D
+                           ORGANIZATION IS SEQUENTIAL
+                           ACCESS MODE  IS SEQUENTIAL
+                           FILE STATUS  IS FILE-QSAM4-STS.
+           SELECT FDQ0402E ASSIGN TO    FDQ0402E
+                           ORGANIZATION IS SEQUENTIAL
+                           ACCESS MODE  IS SEQUENTIAL
+                           FILE STATUS  IS FILE-QSAM5-STS.
+      ******************************************************************
+       DATA DIVISION.
+       FILE SECTION.
+       FD FDQ0402D RECORDING MODE IS F.
+          COPY FDC0402T IN LIBRYMIS.
+       FD FDQ0402E RECORDING MODE IS F.
+          COPY RPCRPT IN LIBRYMIS REPLACING ==:RPTL:== BY ==0402E==.
+      *
+       WORKING-STORAGE SECTION.
+      *
+       01 WS-PGM-TEMP-DATA.
+          03 WS-CCY                           PIC 9(3).
+          03 WS-BR-DP                         PIC 9(2).
+          03 WS-CCY-NAME                      PIC X(3).
+          03 WS-EX-RATE                       PIC S9(5)V9(6).
+          03 WS-TENURE                        PIC X(4).
+          03 WS-ACCT-NO                       PIC X(16).
+          03 WS-CERT-NO                       PIC X(16).
+          03 WS-I                             PIC 9(3).
+          03 WS-J                             PIC 9(3).
+          03 WS-X                             PIC 9(3).
+          03 WS-BRANCH-TEMP.
+             05 WS-BRANCH OCCURS 100 TIMES.
+                07 WS-BRANCH-KEY              PIC X(19).
+                07 WS-BRANCH-KEY-1 REDEFINES WS-BRANCH-KEY.
+                   09 WS-BRANCH-SOC           PIC 9(03).
+                   09 WS-BRANCH-FILLER        PIC X(11).
+                   09 WS-BRANCH-CODE          PIC X(05).
+          03 WS-CURRENCY-TEMP.
+             05 WS-CURRENCY OCCURS 99 TIMES.
+                07 WS-CCY-9                   PIC X(03).
+                07 WS-CCY-X                   PIC X(03).
+      *
+      *
+          03 WS-FD0402-DATA6.
+             05 WS-DATA6-CCY                  PIC 9(3).
+             05 WS-DATA6-BRN                  PIC 9(5).
+             05 WS-DATA6-CERT                 PIC 9(5).
+             05 WS-DATA6-AMT                  PIC 9(13)V9(3).
+             05 WS-DATA6-EXCH                 PIC 9(13)V9(3).
+             05 WS-DATA6-HKD                  PIC 9(13)V9(3).
+             05 WS-DATA6-PAID                 PIC 9(13)V9(3).
+      *
+          03 WS-FD0402-DATA7.
+             05 WS-DATA7-CERT                 PIC 9(5).
+             05 WS-DATA7-AMT                  PIC 9(13)V9(3).
+             05 WS-DATA7-EXCH                 PIC 9(13)V9(3).
+             05 WS-DATA7-HKD                  PIC 9(13)V9(3).
+             05 WS-DATA7-PAID                 PIC 9(13)V9(3).
+      *
+          COPY FDC0402E IN LIBRYMIS.
+           EXEC SQL INCLUDE CPCCYM   END-EXEC.
+           EXEC SQL INCLUDE CPBRHM   END-EXEC.
+           EXEC SQL INCLUDE SQLCA    END-EXEC.
+          COPY ZFXCBINQ IN LIBRYMIS.
+      *
+       01 WS-FMT-NO                           PIC 9(2).
+      *
+      **************************
+      * FILE STATUS            *
+      **************************
+       01 FILE-QSAM4-STS                      PIC 9(2).
+       01 FILE-QSAM5-STS                      PIC 9(2).
+      **************************
+      * CONSTANT DECLARATION   *
+      **************************
+       77 ERROR-RC                            PIC 9(1) VALUE 8.
+       77 PGM-ZFXBINQ                         PIC X(8) VALUE 'ZFXBINQ '.
+       77 K-PROGRAM-NAME                      PIC X(8) VALUE 'FDB0402D'.
+       77 K-BRANCH-COUNT                      PIC 9(3) VALUE 900.
+       77 WK-TABLE-BRHM                      PIC X(08) VALUE 'BRHM    '.
+       77 WK-TABLE-CCYM                      PIC X(08) VALUE 'CCYM    '.
+       77 K-CCY-COUNT                         PIC 9(2) VALUE 90.
+      *
+       01 FILE-END-QSAM4                      PIC X(1) VALUE SPACE.
+          88 END-QSAM4                                 VALUE 'Y'.
+       01 TABLE-FETCH-FLG                     PIC X(1) VALUE SPACE.
+          88 WS-END-Y                                  VALUE 'Y'.
+          88 WS-END-N                                  VALUE 'N'.
+      *
+      **************************
+      *  FILLER                *
+      **************************
+      *
+       PROCEDURE DIVISION.
+      **************************
+      * MAIN ROUNTE            *
+      **************************
+      *
+           PERFORM A000-INITIALIZE
+              THRU A000-INITIALIZE-EXIT
+      *
+           PERFORM B000-MAIN-LOGIC
+              THRU B000-MAIN-LOGIC-EXIT
+      *
+           PERFORM C000-CLOSE-FILE
+              THRU C000-CLOSE-FILE-EXIT
+      *
+           PERFORM Z000-RETURN
+              THRU Z000-RETURN-EXIT
+              .
+           EXIT.
+      *************************
+      * INITIALIZE VARIABLES  *
+      *************************
+       A000-INITIALIZE.
+      *
+           INITIALIZE WS-PGM-TEMP-DATA
+           OPEN INPUT   FDQ0402D
+           OPEN OUTPUT  FDQ0402E
+      *
+           IF FILE-QSAM4-STS NOT = ZEROS   THEN
+              MOVE ERROR-RC               TO RETURN-CODE
+#??           DISPLAY 'OPEN FDQ0402D ERROR, STATUS = ' FILE-QSAM4-STS
+              PERFORM Z000-RETURN
+           END-IF
+           IF FILE-QSAM5-STS NOT = ZEROS   THEN
+              MOVE ERROR-RC               TO RETURN-CODE
+#??           DISPLAY 'OPEN FDQ0402E ERROR, STATUS = ' FILE-QSAM5-STS
+              PERFORM Z000-RETURN
+           END-IF
+           .
+       A000-INITIALIZE-EXIT.
+           EXIT.
+      ********************
+      * MAIN PROGRAM     *
+      ********************
+       B000-MAIN-LOGIC.
+      *
+           PERFORM B200-LOAD-CCY
+              THRU B200-LOAD-CCY-EXIT
+      *
+           READ FDQ0402D
+              AT END SET END-QSAM4         TO TRUE
+           END-READ
+      *
+           IF FILE-END-QSAM4 NOT = "Y"     THEN
+              PERFORM VARYING WS-J FROM 1 BY 1
+                 UNTIL WS-CCY-9(WS-J) = SPACE OR
+                       WS-J > K-CCY-COUNT OR
+                       0402T-CCY = WS-CCY-9(WS-J)
+                 MOVE WS-CCY-9(WS-J)       TO 0402E-CCY
+                 MOVE 12                   TO WS-FMT-NO
+                 PERFORM S200-WRITE-FDQ0402E
+                    THRU S200-WRITE-FDQ0402E-EXIT
+                 MOVE WS-CCY-9(WS-J)       TO 0402E-CCY
+                 MOVE 13                   TO WS-FMT-NO
+                 PERFORM S200-WRITE-FDQ0402E
+                    THRU S200-WRITE-FDQ0402E-EXIT
+                 MOVE WS-CCY-9(WS-J)       TO 0402E-CCY
+                 MOVE 15                   TO WS-FMT-NO
+                 PERFORM S200-WRITE-FDQ0402E
+                    THRU S200-WRITE-FDQ0402E-EXIT
+                 MOVE WS-CCY-9(WS-J)       TO 0402E-CCY
+                 MOVE ZEROS                TO 0402E-DATA16-CERT
+                 MOVE ZEROS                TO 0402E-DATA16-AMT
+                 MOVE ZEROS                TO 0402E-DATA16-EXCH
+                 MOVE ZEROS                TO 0402E-DATA16-HKD
+                 MOVE ZEROS                TO 0402E-DATA16-PAID
+                 MOVE 0402E-PART16-DATA    TO 0402E-TXT
+                 MOVE 16                   TO WS-FMT-NO
+                 PERFORM S200-WRITE-FDQ0402E
+                    THRU S200-WRITE-FDQ0402E-EXIT
+              END-PERFORM
+              ADD 1                        TO WS-J
+              MOVE WS-J                    TO WS-X
+      *
+              MOVE 0402T-CCY               TO WS-CCY
+XY0504        MOVE 0402T-ISS-BR            TO WS-BR-DP
+XY0504*       MOVE 0402T-BR-DP(2:2)        TO WS-BR-DP
+      *       MOVE 0402T-DATA4-NAME        TO WS-CCY-NAME
+      *
+              MOVE 1                       TO WS-DATA6-CERT
+              MOVE 0402T-CERT-AMT          TO WS-DATA6-AMT
+              MOVE 0402T-AMT-EXCHANGED     TO WS-DATA6-EXCH
+XY0503*       MOVE ZEROS                   TO WS-DATA6-HKD
+XY0503        MOVE 0402T-IN-HKD            TO WS-DATA6-HKD
+              MOVE 0402T-INT-PAID          TO WS-DATA6-PAID
+      *
+           READ FDQ0402D
+              AT END SET END-QSAM4         TO TRUE
+           END-READ
+      *
+           IF FILE-END-QSAM4 = "Y"           THEN
+      *
+              MOVE 12                        TO WS-FMT-NO
+              MOVE WS-CCY                    TO 0402E-CCY
+              PERFORM S000-WRITE-FDQ0402E
+                 THRU S000-WRITE-FDQ0402E-EXIT
+      *
+              MOVE 13                        TO WS-FMT-NO
+              MOVE WS-CCY                    TO 0402E-CCY
+              PERFORM S000-WRITE-FDQ0402E
+                 THRU S000-WRITE-FDQ0402E-EXIT
+      *
+              MOVE WS-CCY                    TO 0402E-DATA14-CCY
+              MOVE WS-BR-DP                  TO 0402E-DATA14-BRN
+              MOVE WS-DATA6-CERT             TO 0402E-DATA14-CERT
+              MOVE WS-DATA6-AMT              TO 0402E-DATA14-AMT
+              MOVE WS-DATA6-EXCH             TO 0402E-DATA14-EXCH
+              MOVE WS-DATA6-HKD              TO 0402E-DATA14-HKD
+              MOVE WS-DATA6-PAID             TO 0402E-DATA14-PAID
+              MOVE 0402E-PART14-DATA         TO 0402E-TXT
+              MOVE 14                        TO WS-FMT-NO
+              MOVE WS-CCY                    TO 0402E-CCY
+              PERFORM S000-WRITE-FDQ0402E
+                 THRU S000-WRITE-FDQ0402E-EXIT
+      *
+              MOVE 15                        TO WS-FMT-NO
+              MOVE WS-CCY                    TO 0402E-CCY
+              PERFORM S000-WRITE-FDQ0402E
+                 THRU S000-WRITE-FDQ0402E-EXIT
+      *
+              MOVE WS-DATA6-CERT             TO WS-DATA7-CERT
+              MOVE WS-DATA6-AMT              TO WS-DATA7-AMT
+              MOVE WS-DATA6-EXCH             TO WS-DATA7-EXCH
+VNBCZL        MOVE WS-DATA6-HKD              TO WS-DATA7-HKD
+              MOVE WS-DATA6-PAID             TO WS-DATA7-PAID
+      *
+              MOVE WS-DATA7-CERT             TO 0402E-DATA16-CERT
+              MOVE WS-DATA7-AMT              TO 0402E-DATA16-AMT
+              MOVE WS-DATA7-EXCH             TO 0402E-DATA16-EXCH
+VNBCZL        MOVE WS-DATA7-HKD              TO 0402E-DATA16-HKD
+              MOVE WS-DATA7-PAID             TO 0402E-DATA16-PAID
+              MOVE 0402E-PART16-DATA      TO 0402E-TXT
+              MOVE 16                     TO WS-FMT-NO
+              MOVE WS-CCY                    TO 0402E-CCY
+              PERFORM S000-WRITE-FDQ0402E
+                 THRU S000-WRITE-FDQ0402E-EXIT
+      *
+              PERFORM VARYING WS-J FROM WS-X BY 1
+                 UNTIL WS-CCY-9(WS-J) = SPACE OR
+                       WS-J > K-CCY-COUNT
+                 MOVE WS-CCY-9(WS-J)       TO 0402E-CCY
+                 MOVE 12                   TO WS-FMT-NO
+                 PERFORM S200-WRITE-FDQ0402E
+                    THRU S200-WRITE-FDQ0402E-EXIT
+                 MOVE WS-CCY-9(WS-J)       TO 0402E-CCY
+                 MOVE 13                   TO WS-FMT-NO
+                 PERFORM S200-WRITE-FDQ0402E
+                    THRU S200-WRITE-FDQ0402E-EXIT
+                 MOVE WS-CCY-9(WS-J)       TO 0402E-CCY
+                 MOVE 15                   TO WS-FMT-NO
+                 PERFORM S200-WRITE-FDQ0402E
+                    THRU S200-WRITE-FDQ0402E-EXIT
+                 MOVE WS-CCY-9(WS-J)       TO 0402E-CCY
+                 MOVE ZEROS                TO 0402E-DATA16-CERT
+                 MOVE ZEROS                TO 0402E-DATA16-AMT
+                 MOVE ZEROS                TO 0402E-DATA16-EXCH
+                 MOVE ZEROS                TO 0402E-DATA16-HKD
+                 MOVE ZEROS                TO 0402E-DATA16-PAID
+                 MOVE 0402E-PART16-DATA    TO 0402E-TXT
+                 MOVE 16                   TO WS-FMT-NO
+                 PERFORM S200-WRITE-FDQ0402E
+                    THRU S200-WRITE-FDQ0402E-EXIT
+              END-PERFORM
+      *
+           ELSE
+              MOVE 0402T-CCY                  TO 0402E-CCY
+              MOVE 12                         TO WS-FMT-NO
+              PERFORM S000-WRITE-FDQ0402E
+                 THRU S000-WRITE-FDQ0402E-EXIT
+      *
+              MOVE 0402T-CCY                  TO 0402E-CCY
+              MOVE 13                         TO WS-FMT-NO
+              PERFORM S000-WRITE-FDQ0402E
+                 THRU S000-WRITE-FDQ0402E-EXIT
+              PERFORM UNTIL END-QSAM4
+XY0504*          IF 0402T-CCY = WS-CCY AND 0402T-BR-DP(2:2)= WS-BR-DP
+      *             THEN
+XY0504           IF 0402T-CCY = WS-CCY AND 0402T-ISS-BR = WS-BR-DP
+                 THEN
+                    ADD 1                     TO WS-DATA6-CERT
+                    ADD 0402T-CERT-AMT        TO WS-DATA6-AMT
+                    ADD 0402T-AMT-EXCHANGED   TO WS-DATA6-EXCH
+XY0503*             ADD ZEROS                 TO WS-DATA6-HKD
+XY0503              ADD 0402T-IN-HKD          TO WS-DATA6-HKD
+                    ADD 0402T-INT-PAID        TO WS-DATA6-PAID
+                 ELSE
+                    IF 0402T-CCY = WS-CCY     THEN
+      *
+                       MOVE WS-CCY            TO 0402E-DATA14-CCY
+                       MOVE WS-BR-DP          TO 0402E-DATA14-BRN
+                       MOVE WS-DATA6-CERT     TO 0402E-DATA14-CERT
+                       MOVE WS-DATA6-AMT      TO 0402E-DATA14-AMT
+                       MOVE WS-DATA6-EXCH     TO 0402E-DATA14-EXCH
+                       MOVE WS-DATA6-HKD      TO 0402E-DATA14-HKD
+                       MOVE WS-DATA6-PAID     TO 0402E-DATA14-PAID
+      *
+                       MOVE 0402E-PART14-DATA TO 0402E-TXT
+                       MOVE WS-CCY            TO 0402E-CCY
+                       MOVE 14                TO WS-FMT-NO
+                       PERFORM S000-WRITE-FDQ0402E
+                          THRU S000-WRITE-FDQ0402E-EXIT
+                       ADD WS-DATA6-CERT      TO WS-DATA7-CERT
+                       ADD WS-DATA6-AMT       TO WS-DATA7-AMT
+                       ADD WS-DATA6-EXCH      TO WS-DATA7-EXCH
+                       ADD WS-DATA6-HKD       TO WS-DATA7-HKD
+                       ADD WS-DATA6-PAID      TO WS-DATA7-PAID
+                       INITIALIZE WS-DATA6-CERT
+                                  WS-DATA6-AMT
+                                  WS-DATA6-EXCH
+                                  WS-DATA6-HKD
+                                  WS-DATA6-PAID
+                       MOVE 1                      TO WS-DATA6-CERT
+                       MOVE 0402T-CERT-AMT         TO WS-DATA6-AMT
+                       MOVE 0402T-AMT-EXCHANGED    TO WS-DATA6-EXCH
+XY0503*                MOVE ZEROS                  TO WS-DATA6-HKD
+XY0503                 MOVE 0402T-IN-HKD           TO WS-DATA6-HKD
+                       MOVE 0402T-INT-PAID         TO WS-DATA6-PAID
+                    ELSE
+      *
+                       MOVE WS-CCY            TO 0402E-DATA14-CCY
+                       MOVE WS-BR-DP          TO 0402E-DATA14-BRN
+                       MOVE WS-DATA6-CERT     TO 0402E-DATA14-CERT
+                       MOVE WS-DATA6-AMT      TO 0402E-DATA14-AMT
+                       MOVE WS-DATA6-EXCH     TO 0402E-DATA14-EXCH
+VNBCZL                 MOVE WS-DATA6-HKD      TO 0402E-DATA14-HKD
+                       MOVE WS-DATA6-PAID     TO 0402E-DATA14-PAID
+                       MOVE 0402E-PART14-DATA TO 0402E-TXT
+                       MOVE 14                TO WS-FMT-NO
+                       MOVE WS-CCY            TO 0402E-CCY
+                       PERFORM S000-WRITE-FDQ0402E
+                          THRU S000-WRITE-FDQ0402E-EXIT
+      *
+                       MOVE 15                TO WS-FMT-NO
+                       MOVE WS-CCY            TO 0402E-CCY
+                       PERFORM S000-WRITE-FDQ0402E
+                          THRU S000-WRITE-FDQ0402E-EXIT
+      *
+                       ADD WS-DATA6-CERT      TO WS-DATA7-CERT
+                       ADD WS-DATA6-AMT       TO WS-DATA7-AMT
+                       ADD WS-DATA6-EXCH      TO WS-DATA7-EXCH
+                       ADD WS-DATA6-HKD       TO WS-DATA7-HKD
+                       ADD WS-DATA6-PAID      TO WS-DATA7-PAID
+      *
+                       MOVE WS-DATA7-CERT     TO 0402E-DATA16-CERT
+                       MOVE WS-DATA7-AMT      TO 0402E-DATA16-AMT
+                       MOVE WS-DATA7-EXCH     TO 0402E-DATA16-EXCH
+VNBCZL                 MOVE WS-DATA7-HKD      TO 0402E-DATA16-HKD
+                       MOVE WS-DATA7-PAID     TO 0402E-DATA16-PAID
+                       MOVE 0402E-PART16-DATA TO 0402E-TXT
+                       MOVE 16                TO WS-FMT-NO
+                       MOVE WS-CCY            TO 0402E-CCY
+                       PERFORM S000-WRITE-FDQ0402E
+                          THRU S000-WRITE-FDQ0402E-EXIT
+      *
+                       PERFORM VARYING WS-J FROM WS-X BY 1
+                          UNTIL WS-CCY-9(WS-J) = SPACE OR
+                                WS-J > K-CCY-COUNT OR
+                                0402T-CCY = WS-CCY-9(WS-J)
+                          MOVE WS-CCY-9(WS-J)     TO 0402E-CCY
+                          MOVE 12                 TO WS-FMT-NO
+                          PERFORM S200-WRITE-FDQ0402E
+                             THRU S200-WRITE-FDQ0402E-EXIT
+                          MOVE WS-CCY-9(WS-J)     TO 0402E-CCY
+                          MOVE 13                 TO WS-FMT-NO
+                          PERFORM S200-WRITE-FDQ0402E
+                             THRU S200-WRITE-FDQ0402E-EXIT
+                          MOVE WS-CCY-9(WS-J)     TO 0402E-CCY
+                          MOVE 15                 TO WS-FMT-NO
+                          PERFORM S200-WRITE-FDQ0402E
+                             THRU S200-WRITE-FDQ0402E-EXIT
+                          MOVE WS-CCY-9(WS-J)     TO 0402E-CCY
+                          MOVE ZEROS              TO 0402E-DATA16-CERT
+                          MOVE ZEROS              TO 0402E-DATA16-AMT
+                          MOVE ZEROS              TO 0402E-DATA16-EXCH
+                          MOVE ZEROS              TO 0402E-DATA16-HKD
+                          MOVE ZEROS              TO 0402E-DATA16-PAID
+      *                   MOVE ZEROS              TO 0402E-PART16-DATA
+                          MOVE 0402E-PART16-DATA  TO 0402E-TXT
+                          MOVE 16                 TO WS-FMT-NO
+                          PERFORM S200-WRITE-FDQ0402E
+                             THRU S200-WRITE-FDQ0402E-EXIT
+                       END-PERFORM
+                       ADD 1                      TO WS-J
+                       MOVE WS-J                  TO WS-X
+      *
+                       INITIALIZE WS-DATA6-CERT
+                                  WS-DATA6-AMT
+                                  WS-DATA6-EXCH
+                                  WS-DATA6-HKD
+                                  WS-DATA6-PAID
+                                  WS-DATA7-CERT
+                                  WS-DATA7-AMT
+                                  WS-DATA7-EXCH
+                                  WS-DATA7-HKD
+                                  WS-DATA7-PAID
+                       MOVE 1                     TO WS-DATA6-CERT
+                       MOVE 0402T-CERT-AMT        TO WS-DATA6-AMT
+                       MOVE 0402T-AMT-EXCHANGED   TO WS-DATA6-EXCH
+XY0503*                MOVE ZEROS                 TO WS-DATA6-HKD
+XY0503                 MOVE 0402T-IN-HKD          TO WS-DATA6-HKD
+                       MOVE 0402T-INT-PAID        TO WS-DATA6-PAID
+      *
+                       MOVE 0402T-CCY             TO 0402E-CCY
+                       MOVE 12                    TO WS-FMT-NO
+                       PERFORM S000-WRITE-FDQ0402E
+                          THRU S000-WRITE-FDQ0402E-EXIT
+      *
+                       MOVE 0402T-CCY             TO 0402E-CCY
+                       MOVE 13                    TO WS-FMT-NO
+                       PERFORM S000-WRITE-FDQ0402E
+                          THRU S000-WRITE-FDQ0402E-EXIT
+                    END-IF
+                 END-IF
+                 MOVE 0402T-CCY               TO WS-CCY
+0503XY           MOVE 0402T-ISS-BR            TO WS-BR-DP
+0503XY*          MOVE 0402T-BR-DP(2:2)        TO WS-BR-DP
+                 READ FDQ0402D
+                    AT END SET END-QSAM4       TO TRUE
+                 END-READ
+              END-PERFORM
+      *
+              MOVE WS-CCY            TO 0402E-DATA14-CCY
+              MOVE WS-BR-DP          TO 0402E-DATA14-BRN
+              MOVE WS-DATA6-CERT     TO 0402E-DATA14-CERT
+              MOVE WS-DATA6-AMT      TO 0402E-DATA14-AMT
+              MOVE WS-DATA6-EXCH     TO 0402E-DATA14-EXCH
+              MOVE WS-DATA6-HKD      TO 0402E-DATA14-HKD
+              MOVE WS-DATA6-PAID     TO 0402E-DATA14-PAID
+              MOVE 0402E-PART14-DATA TO 0402E-TXT
+              MOVE 14                TO WS-FMT-NO
+              MOVE WS-CCY            TO 0402E-CCY
+              PERFORM S000-WRITE-FDQ0402E
+                 THRU S000-WRITE-FDQ0402E-EXIT
+      *
+              MOVE 15                TO WS-FMT-NO
+              MOVE WS-CCY            TO 0402E-CCY
+              PERFORM S000-WRITE-FDQ0402E
+                 THRU S000-WRITE-FDQ0402E-EXIT
+      *
+              ADD WS-DATA6-CERT      TO WS-DATA7-CERT
+              ADD WS-DATA6-AMT       TO WS-DATA7-AMT
+              ADD WS-DATA6-EXCH      TO WS-DATA7-EXCH
+              ADD WS-DATA6-HKD       TO WS-DATA7-HKD
+              ADD WS-DATA6-PAID      TO WS-DATA7-PAID
+      *
+              MOVE WS-DATA7-CERT     TO 0402E-DATA16-CERT
+              MOVE WS-DATA7-AMT      TO 0402E-DATA16-AMT
+VNBCZL        MOVE WS-DATA7-EXCH     TO 0402E-DATA16-EXCH
+VNBCZL        MOVE WS-DATA7-HKD      TO 0402E-DATA16-HKD
+VNBCZL        MOVE WS-DATA7-PAID     TO 0402E-DATA16-PAID
+              MOVE 0402E-PART16-DATA TO 0402E-TXT
+              MOVE 16                TO WS-FMT-NO
+              MOVE WS-CCY            TO 0402E-CCY
+              PERFORM S000-WRITE-FDQ0402E
+                 THRU S000-WRITE-FDQ0402E-EXIT
+              PERFORM VARYING WS-J FROM WS-X BY 1
+                 UNTIL WS-CCY-9(WS-J) = SPACE OR
+                       WS-J > K-CCY-COUNT
+                 MOVE WS-CCY-9(WS-J)              TO 0402E-CCY
+                 MOVE 12                          TO WS-FMT-NO
+                 PERFORM S200-WRITE-FDQ0402E
+                    THRU S200-WRITE-FDQ0402E-EXIT
+                 MOVE WS-CCY-9(WS-J)              TO 0402E-CCY
+                 MOVE 13                          TO WS-FMT-NO
+                 PERFORM S200-WRITE-FDQ0402E
+                    THRU S200-WRITE-FDQ0402E-EXIT
+                 MOVE WS-CCY-9(WS-J)              TO 0402E-CCY
+                 MOVE 15                          TO WS-FMT-NO
+                 PERFORM S200-WRITE-FDQ0402E
+                    THRU S200-WRITE-FDQ0402E-EXIT
+                 MOVE WS-CCY-9(WS-J)              TO 0402E-CCY
+                 MOVE ZEROS                       TO 0402E-DATA16-CERT
+                 MOVE ZEROS                       TO 0402E-DATA16-AMT
+                 MOVE ZEROS                       TO 0402E-DATA16-EXCH
+                 MOVE ZEROS                       TO 0402E-DATA16-HKD
+                 MOVE ZEROS                       TO 0402E-DATA16-PAID
+                 MOVE 0402E-PART16-DATA           TO 0402E-TXT
+                 MOVE 16                          TO WS-FMT-NO
+                 PERFORM S200-WRITE-FDQ0402E
+                    THRU S200-WRITE-FDQ0402E-EXIT
+              END-PERFORM
+              ADD 1                               TO WS-J
+              MOVE WS-J                           TO WS-X
+           END-IF
+           END-IF
+           .
+       B000-MAIN-LOGIC-EXIT.
+           EXIT.
+      *
+      *****************************************************************
+      * CURSOR BRHM TABLE
+      *****************************************************************
+       B100-LOAD-BRANCH.
+           SET WS-END-N                  TO TRUE
+           PERFORM B110-DEC-CUR-BR
+              THRU B110-DEC-CUR-BR-EXIT
+           PERFORM B120-OPEN-CUR-BR
+              THRU B120-OPEN-CUR-BR-EXIT
+           PERFORM B130-FETCH-CUR-BR
+              THRU B130-FETCH-CUR-BR-EXIT
+           PERFORM VARYING WS-I FROM 1 BY 1
+              UNTIL WS-END-Y OR WS-I > K-BRANCH-COUNT
+              MOVE BRHM-KEY-1            TO WS-BRANCH-KEY(WS-I)
+              PERFORM B130-FETCH-CUR-BR
+           END-PERFORM
+           .
+       B100-LOAD-BRANCH-EXIT.
+           EXIT.
+      *
+       B110-DEC-CUR-BR.
+      *
+           EXEC SQL
+              DECLARE  CUR_BR
+              CURSOR   FOR
+              SELECT   KEY_1
+              FROM     BRHM
+              ORDER BY SUBSTR(KEY_1,15,5)
+           END-EXEC
+      *
+           EVALUATE TRUE
+              WHEN SQLCODE = ZERO
+              WHEN SQLCODE = 100
+                 CONTINUE
+              WHEN OTHER
+                DISPLAY 'THE ERROR PROGRAM NAME :' K-PROGRAM-NAME
+                DISPLAY 'THE ERROR TABLE   NAME :' WK-TABLE-BRHM
+                DISPLAY 'THE ERROR KEY   RECORD :' BRHM-KEY-1
+                DISPLAY 'THE DECLARE SQLCODE    :' SQLCODE
+                DISPLAY 'THE DECLARE SQLSTATE   :' SQLSTATE
+                MOVE ERROR-RC                  TO RETURN-CODE
+                PERFORM Z000-RETURN
+                   THRU Z000-RETURN-EXIT
+           END-EVALUATE
+           .
+       B110-DEC-CUR-BR-EXIT.
+           EXIT.
+      *
+       B120-OPEN-CUR-BR.
+      *
+           EXEC SQL
+              OPEN CUR_BR
+           END-EXEC
+      *
+           EVALUATE TRUE
+              WHEN SQLCODE = ZERO
+                 CONTINUE
+              WHEN SQLCODE = 100
+                 SET WS-END-Y            TO TRUE
+              WHEN OTHER
+                DISPLAY 'THE ERROR PROGRAM NAME :' K-PROGRAM-NAME
+                DISPLAY 'THE ERROR TABLE   NAME :' WK-TABLE-BRHM
+                DISPLAY 'THE ERROR KEY   RECORD :' BRHM-KEY-1
+                DISPLAY 'THE OPEN    SQLCODE    :' SQLCODE
+                DISPLAY 'THE OPEN    SQLSTATE   :' SQLSTATE
+                MOVE ERROR-RC                  TO RETURN-CODE
+                PERFORM Z000-RETURN
+                   THRU Z000-RETURN-EXIT
+           END-EVALUATE
+           .
+       B120-OPEN-CUR-BR-EXIT.
+           EXIT.
+      *
+       B130-FETCH-CUR-BR.
+      *
+           EXEC SQL
+              FETCH CUR_BR INTO
+                    :BRHM-KEY-1
+           END-EXEC
+      *
+           EVALUATE TRUE
+              WHEN SQLCODE = ZERO
+                 CONTINUE
+              WHEN SQLCODE = 100
+                 SET   WS-END-Y                TO TRUE
+              WHEN OTHER
+                DISPLAY 'THE ERROR PROGRAM NAME :' K-PROGRAM-NAME
+                DISPLAY 'THE ERROR TABLE   NAME :' WK-TABLE-BRHM
+                DISPLAY 'THE ERROR KEY   RECORD :' BRHM-KEY-1
+                DISPLAY 'THE FETCH   SQLCODE    :' SQLCODE
+                DISPLAY 'THE FETCH   SQLSTATE   :' SQLSTATE
+                MOVE ERROR-RC                  TO RETURN-CODE
+                PERFORM Z000-RETURN
+                   THRU Z000-RETURN-EXIT
+           END-EVALUATE
+           .
+       B130-FETCH-CUR-BR-EXIT.
+           EXIT.
+      *****************************************************************
+      * CURSOR CCYM TABLE
+      *****************************************************************
+       B200-LOAD-CCY.
+      *
+           SET WS-END-N                  TO TRUE
+           PERFORM B210-DEC-CUR-CCY
+              THRU B210-DEC-CUR-CCY-EXIT
+           PERFORM B220-OPEN-CUR-CCY
+              THRU B220-OPEN-CUR-CCY-EXIT
+           PERFORM B230-FETCH-CUR-CCY
+              THRU B230-FETCH-CUR-CCY-EXIT
+           PERFORM VARYING WS-J FROM 1 BY 1
+              UNTIL WS-END-Y OR WS-J > K-CCY-COUNT
+              MOVE CCYM-CURRENCY-CODE-DIG  TO WS-CCY-9(WS-J)
+              MOVE CCYM-CODE               TO WS-CCY-X(WS-J)
+              PERFORM B230-FETCH-CUR-CCY
+                 THRU B230-FETCH-CUR-CCY-EXIT
+           END-PERFORM
+              PERFORM B230-CLOSE-CUR-CCY
+                 THRU B230-CLOSE-CUR-CCY-EXIT
+           .
+       B200-LOAD-CCY-EXIT.
+           EXIT.
+      *
+       B210-DEC-CUR-CCY.
+      *
+           EXEC SQL
+              DECLARE  CUR_CCY
+              CURSOR   FOR
+              SELECT   CURRENCY_CODE_DIG,
+                       CODE
+              FROM     CCYM
+VNBCXY        WHERE CODE <> 'XXX'
+              ORDER BY CURRENCY_CODE_DIG
+           END-EXEC
+      *
+           EVALUATE TRUE
+              WHEN SQLCODE = ZERO
+              WHEN SQLCODE = 100
+                 CONTINUE
+              WHEN OTHER
+                 DISPLAY 'THE ERROR PROGRAM NAME :' K-PROGRAM-NAME
+                 DISPLAY 'THE ERROR TABLE   NAME :' WK-TABLE-CCYM
+                 DISPLAY 'THE ERROR KEY   RECORD1:' CCYM-INST-NO
+                 DISPLAY 'THE ERROR KEY   RECORD2:' CCYM-CODE
+                 DISPLAY 'THE DECLARE SQLCODE    :' SQLCODE
+                 DISPLAY 'THE DECLARE SQLSTATE   :' SQLSTATE
+                 MOVE ERROR-RC                  TO RETURN-CODE
+                 PERFORM Z000-RETURN
+                    THRU Z000-RETURN-EXIT
+           END-EVALUATE
+           .
+       B210-DEC-CUR-CCY-EXIT.
+           EXIT.
+      *
+       B220-OPEN-CUR-CCY.
+      *
+           EXEC SQL
+              OPEN CUR_CCY
+           END-EXEC
+      *
+           EVALUATE TRUE
+              WHEN SQLCODE = ZERO
+                 CONTINUE
+              WHEN SQLCODE = 100
+                 SET WS-END-Y            TO TRUE
+              WHEN OTHER
+                 DISPLAY 'THE ERROR PROGRAM NAME :' K-PROGRAM-NAME
+                 DISPLAY 'THE ERROR TABLE   NAME :' WK-TABLE-CCYM
+                 DISPLAY 'THE ERROR KEY   RECORD1:' CCYM-INST-NO
+                 DISPLAY 'THE ERROR KEY   RECORD2:' CCYM-CODE
+                 DISPLAY 'THE OPEN    SQLCODE    :' SQLCODE
+                 DISPLAY 'THE OPEN    SQLSTATE   :' SQLSTATE
+                 MOVE ERROR-RC                  TO RETURN-CODE
+                 PERFORM Z000-RETURN
+                    THRU Z000-RETURN-EXIT
+           END-EVALUATE
+           .
+       B220-OPEN-CUR-CCY-EXIT.
+           EXIT.
+      *
+       B230-FETCH-CUR-CCY.
+      *
+           EXEC SQL
+              FETCH CUR_CCY INTO
+                    :CCYM-CURRENCY-CODE-DIG,
+                    :CCYM-CODE
+           END-EXEC
+      *
+           EVALUATE TRUE
+              WHEN SQLCODE = ZERO
+                 CONTINUE
+              WHEN SQLCODE = 100
+                 SET   WS-END-Y                TO TRUE
+              WHEN OTHER
+                 DISPLAY 'THE ERROR PROGRAM NAME :' K-PROGRAM-NAME
+                 DISPLAY 'THE ERROR TABLE   NAME :' WK-TABLE-CCYM
+                 DISPLAY 'THE ERROR KEY   RECORD1:' CCYM-INST-NO
+                 DISPLAY 'THE ERROR KEY   RECORD2:' CCYM-CODE
+                 DISPLAY 'THE FETCH   SQLCODE    :' SQLCODE
+                 DISPLAY 'THE FETCH   SQLSTATE   :' SQLSTATE
+                 MOVE ERROR-RC                 TO RETURN-CODE
+                 PERFORM Z000-RETURN
+                    THRU Z000-RETURN-EXIT
+           END-EVALUATE
+           .
+       B230-FETCH-CUR-CCY-EXIT.
+           EXIT.
+      *
+VNBCXY B230-CLOSE-CUR-CCY.
+           EXEC SQL
+              CLOSE  CUR_CCY
+           END-EXEC
+           EVALUATE TRUE
+              WHEN SQLCODE = ZERO
+                 CONTINUE
+              WHEN OTHER
+                 DISPLAY 'THE ERROR PROGRAM NAME :' K-PROGRAM-NAME
+                 DISPLAY 'THE ERROR TABLE   NAME :' WK-TABLE-CCYM
+                 DISPLAY 'THE ERROR KEY   RECORD1:' CCYM-INST-NO
+                 DISPLAY 'THE ERROR KEY   RECORD2:' CCYM-CODE
+                 DISPLAY 'THE CLOSE   SQLCODE    :' SQLCODE
+                 DISPLAY 'THE CLOSE   SQLSTATE   :' SQLSTATE
+                 MOVE ERROR-RC                 TO RETURN-CODE
+                 PERFORM Z000-RETURN
+                    THRU Z000-RETURN-EXIT
+           END-EVALUATE.
+       B230-CLOSE-CUR-CCY-EXIT.
+           EXIT.
+      **********************
+      *  WRITE-FDQ0402E    *
+      **********************
+      *
+       S000-WRITE-FDQ0402E.
+           SET 0402E-SUM-YES               TO TRUE
+           MOVE 'DEPDFD0402'               TO 0402E-RPT-NO
+      *    MOVE WS-CCY                     TO 0402E-CCY
+           MOVE ZEROS                      TO 0402E-BR-DP
+           MOVE WS-FMT-NO                  TO 0402E-FMT-NO
+           WRITE RPC0402E
+           IF FILE-QSAM5-STS NOT = ZEROS THEN
+              MOVE ERROR-RC                TO RETURN-CODE
+#??           DISPLAY 'WRITE FDQ0402E ERROR, STATUS=' FILE-QSAM5-STS
+              PERFORM Z000-RETURN
+                 THRU Z000-RETURN-EXIT
+           END-IF
+      *
+           .
+       S000-WRITE-FDQ0402E-EXIT.
+           EXIT.
+      *
+       S200-WRITE-FDQ0402E.
+           SET 0402E-SUM-YES               TO TRUE
+           MOVE 'DEPDFD0402'               TO 0402E-RPT-NO
+           MOVE ZEROS                      TO 0402E-BR-DP
+           MOVE WS-FMT-NO                  TO 0402E-FMT-NO
+           WRITE RPC0402E
+           IF FILE-QSAM5-STS NOT = ZEROS THEN
+              MOVE ERROR-RC                TO RETURN-CODE
+#??           DISPLAY 'WRITE FDQ0402E ERROR, STATUS=' FILE-QSAM5-STS
+              PERFORM Z000-RETURN
+                 THRU Z000-RETURN-EXIT
+           END-IF
+      *
+           .
+       S200-WRITE-FDQ0402E-EXIT.
+           EXIT.
+      *
+       S100-GET-CCY-TYPE.
+           INITIALIZE  CCYM
+           MOVE WS-CCY                     TO CCYM-CURRENCY-NUM
+           EXEC SQL
+              SELECT  CODE
+              INTO
+                     :CCYM-CODE
+              FROM   CCYM
+              WHERE  CURRENCY_NUM  =  :CCYM-CURRENCY-NUM
+           END-EXEC.
+            EVALUATE TRUE
+               WHEN SQLCODE = ZERO
+                  CONTINUE
+               WHEN SQLCODE = 100
+                  MOVE SPACES TO CCYM-CODE
+               WHEN OTHER
+                 DISPLAY 'THE ERROR PROGRAM NAME :' K-PROGRAM-NAME
+                 DISPLAY 'THE ERROR TABLE   NAME :' WK-TABLE-CCYM
+                 DISPLAY 'THE ERROR KEY   RECORD1:' CCYM-INST-NO
+                 DISPLAY 'THE ERROR KEY   RECORD2:' CCYM-CODE
+                 DISPLAY 'THE ERROR TABLE RECORD :' CCYM-CURRENCY-NUM
+                 DISPLAY 'THE SELECT  SQLCODE    :' SQLCODE
+                 DISPLAY 'THE SELECT  SQLSTATE   :' SQLSTATE
+                 MOVE ERROR-RC                 TO RETURN-CODE
+                PERFORM Z000-RETURN
+                   THRU Z000-RETURN-EXIT
+            END-EVALUATE
+           .
+       S100-GET-CCY-TYPE-EXIT.
+           EXIT.
+      *
+      ********************
+      * CLOSE FILE       *
+      ********************
+      *
+       C000-CLOSE-FILE.
+           CLOSE FDQ0402D FDQ0402E
+           IF FILE-QSAM4-STS NOT = ZEROS   THEN
+              MOVE ERROR-RC               TO RETURN-CODE
+#??           DISPLAY 'CLOSE FDQ0402D ERROR, STATUS = ' FILE-QSAM4-STS
+              PERFORM Z000-RETURN
+                 THRU Z000-RETURN-EXIT
+           END-IF
+           IF FILE-QSAM5-STS NOT = ZEROS THEN
+              MOVE ERROR-RC               TO RETURN-CODE
+#??           DISPLAY 'CLOSE FDQ0402E ERROR, STATUS = ' FILE-QSAM5-STS
+              PERFORM Z000-RETURN
+                 THRU Z000-RETURN-EXIT
+           END-IF
+      *
+           .
+       C000-CLOSE-FILE-EXIT.
+           EXIT.
+      *
+       Z000-RETURN.
+           GOBACK
+      *
+           .
+       Z000-RETURN-EXIT.
+           EXIT.
+      *********************
+      *  END PROGRAM      *
+      *********************
+       END PROGRAM FDB0402D.

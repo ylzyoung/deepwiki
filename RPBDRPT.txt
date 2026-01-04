@@ -1,0 +1,3192 @@
+      ***************************************************************** 00010000
+      *  PROGRAM SPECIFICATION                                        * 00020000
+      *---------------------------------------------------------------* 00030000
+      *  SYSTEM  NAME.. : RP                                          * 00040000
+      *  PROGRAM TYPE.. : BATCH PROC                                  * 00050000
+      *  PROGRAM NAME.. : RPBDRPT                                     * 00060000
+      *  AUTHOR........ : VNBXSF                                      * 00070000
+      *  CREATED DATE.. : 2011/01/11                                  * 00080000
+      *  LAST UPD DATE. : XXXX/XX/XX                                  * 00090000
+      *  CAO JIAN       : 2011/07/04     TEST01                         00091009
+      *                 : FOR TEST RP PGM                             * 00092009
+      *  COMMON  AREA.. :                                             * 00100000
+      *  VERSION NO.... : V 1.000                                     * 00110000
+      ***************************************************************** 00120000
+       IDENTIFICATION DIVISION.                                         00130000
+       PROGRAM-ID. RPBDRPT.                                             00140000
+       ENVIRONMENT DIVISION.                                            00150000
+       CONFIGURATION SECTION.                                           00160000
+       SOURCE-COMPUTER.  IBM-ES9000.                                    00170000
+       OBJECT-COMPUTER.  IBM-ES9000.                                    00180000
+      *                                                                 00190000
+       INPUT-OUTPUT SECTION.                                            00200000
+       FILE-CONTROL.                                                    00210000
+             SELECT RPFDATA   ASSIGN TO RPFDATA                         00220000
+                    ORGANIZATION     IS SEQUENTIAL                      00230009
+                    FILE STATUS      IS WK-DATA-STS.                    00240009
+             SELECT RPFRDES   ASSIGN TO RPFRDES                         00250000
+                    ACCESS    MODE   IS RANDOM                          00260000
+                    ORGANIZATION     IS INDEXED                         00270000
+                    RECORD    KEY    IS RDES-RPT-NO                     00280000
+                    FILE STATUS      IS WK-RDES-STS.                    00290000
+             SELECT RPFRPG    ASSIGN TO RPFRPG                          00300000
+                    ORGANIZATION     IS SEQUENTIAL                      00301012
+                    ACCESS    MODE   IS SEQUENTIAL                      00302012
+                    FILE STATUS      IS WK-RPG-STS.                     00310000
+             SELECT RPFREPT ASSIGN   TO RPFREPT                         00320009
+                    ORGANIZATION     IS SEQUENTIAL                      00330009
+                    FILE STATUS      IS WK-REPT-STS.                    00340009
+             SELECT RPQBRHM ASSIGN   TO RPQBRHM                         00320009
+                    ORGANIZATION     IS SEQUENTIAL                      00330009
+                    FILE STATUS      IS WK-BRHM-STS.                    00340009
+      *                                                                 00350000
+       DATA DIVISION.                                                   00360000
+       FILE SECTION.                                                    00370000
+       FD RPFDATA.                                                      00380000
+           COPY RPCRPT IN LIBRYMIS                                      00390000
+                      REPLACING   ==:RPTL:== BY ==RPTL==.               00390000
+       FD RPQBRHM.                                                      00380000
+        01 RPRBRHM.                                                     00390000
+           03 BRHM-AREAF                PIC 9(01).
+           03 BRHM-BRDP                 PIC 9(02).
+       FD RPFRDES.                                                      00400000
+           COPY RPCRDES IN LIBRYMIS.                                    00410000
+       FD RPFRPG RECORDING MODE IS V.                                   00420008
+           COPY RPCRPG IN LIBRYMIS                                      00430000
+                       REPLACING  ==:RPG:== BY ==RPG==.                 00430000
+       FD RPFREPT LABEL RECORD   IS OMITTED                             00440000
+                  RECORDING MODE IS F                                   00450008
+                  DATA RECORD IS RPFREPT-RECORD.                        00460000
+       01 RPFREPT-RECORD.                                               00470000
+          03 RPFREPT-ITEM                  PIC X(132).                  00480000
+      *                                                                 00490000
+       WORKING-STORAGE SECTION.                                         00500000
+       77 WK-DATA-STS                  PIC X(2)  VALUE '00'.            00530000
+       77 WK-RDES-STS                  PIC X(2)  VALUE '00'.            00540000
+       77 WK-BRHM-STS                  PIC X(2)  VALUE '00'.            00540000
+       77 WK-RPG-STS                   PIC X(2)  VALUE '00'.            00550000
+       77 WK-LINE                      PIC X(200)   VALUE SPACES.       00560000
+       77 WK-ADVN                      PIC 9(1)     VALUE 0.            00570000
+       77 WK-RPT-NO                    PIC X(10)     VALUE SPACES.      00580000
+       77 WK-CCY                       PIC X(3)     VALUE SPACES.       00600000
+       77 WK-BR-DP-NAME                PIC X(36)    VALUE SPACES.       00610000
+       77 WK-PAGE-NO                   PIC 9(05)     VALUE 0.           00620000
+       77 WK-LINE-CNT                  PIC 9(2)     VALUE 0.            00630000
+       77 WK-MAX-LINE-CNT              PIC 9(2)     VALUE 0.            00640000
+       77 WK-DATE                      PIC X(8)     VALUE SPACE.        00650000
+       77 WK-TIME                      PIC X(8)     VALUE SPACE.        00660000
+       77 WK-EOF                       PIC X(1)     VALUE SPACE.        00670000
+       77 WK-PAGE-END                  PIC X(1)     VALUE SPACE.        00680000
+       77 WK-NO-RPT-DES-IND            PIC X(1)     VALUE SPACE.        00690000
+       77 WK-I                         PIC 9(3)     VALUE 1.            00700000
+       77 WK-K                         PIC 9(3)     VALUE 1.            00700000
+       77 WK-J                         PIC 9(3)     VALUE 0.            00710000
+       77 WK-P                         PIC 9(3)     VALUE 0.            00710000
+       77 WK-X                         PIC 9(3)     VALUE 0.            00710000
+       77 WK-A                         PIC 9(3)     VALUE 0.            00710000
+       77 WK-B                         PIC 9(3)     VALUE 0.            00710000
+       77 WK-C                         PIC 9(3)     VALUE 0.            00710000
+       77 WK-D                         PIC 9(3)     VALUE 0.            00710000
+       77 WK-E                         PIC 9(3)     VALUE 0.            00710000
+       77 WK-DATE-REQUIRED             PIC X(4)     VALUE SPACES.       00720000
+       01 WK-TIT0-CNT                  PIC 9(2).                        00730000
+       01 WK-TIT1-CNT                  PIC 9(2).                        00740000
+       01 WK-TIT2-CNT                  PIC 9(2).                        00750000
+       01 WK-CCY-FORM                  PIC X(3).
+       01 WK-CCY-TO                    PIC X(3).
+       01 WK-TEMP.
+          03 WKG-RP-MAP-NO             PIC X(10).
+          03 WL-L                      PIC 9(02).
+       01 WK-BR-DP.
+          03 WK-AR                     PIC 9(01).
+          03 WK-BR                     PIC 9(02).
+          03 WK-DP                     PIC 9(02).
+       01 WK-BR-DP1.
+          03 WK-AR1                    PIC 9(01).
+          03 WK-BR1                    PIC 9(02).
+          03 WK-DP1                    PIC 9(02).
+       01 WK-BR-DP3.
+          03 WK-AR3                    PIC 9(01).
+          03 WK-BR3                    PIC 9(02).
+          03 WK-DP3                    PIC 9(02).
+       01 WK-BR-DP2.
+          03 WK-AR2                    PIC 9(01).
+          03 WK-BR2                    PIC 9(02).
+          03 WK-DP2                    PIC 9(02).
+       01 WK-TIT0.                                                      00760000
+          03 FILLER                    PIC X(1)  VALUE SPACE.           00770000
+          03 WK-TIT0-RP-NO             PIC X(10).                       00780000
+          03 FILLER                    PIC X(1)  VALUE SPACE.           00790000
+          03 WK-TIT0-BR                PIC X(3).                        00800000
+          03 FILLER                    PIC X(1)  VALUE SPACE.           00810000
+          03 WK-TIT0-DP                PIC X(3).                        00820000
+          03 FILLER                    PIC X(1)  VALUE SPACE.           00830000
+          03 WK-TIT0-CCY               PIC X(03) VALUE SPACES.          00840000
+          03 FILLER                    PIC X(1)  VALUE SPACES.          00850000
+          03 WK-TIT0-DESC              PIC X(10).                       00860000
+          03 FILLER                    PIC X(19) VALUE SPACES.          00870000
+          03 WK-TIT0-BANK-NAME         PIC X(22).                       00880000
+          03 WK-TIT0-RPT-NAME.                                          00890000
+             05 WK-TIT0-SPACE.                                          00900000
+                07 WK-TIT0-ELEMENT OCCURS 1 TO 32                       00910000
+                                  DEPENDING ON WK-TIT0-CNT.             00920000
+                   09 FILLER           PIC X  VALUE SPACES .            00930000
+          03 WK-TIT0-END               PIC X(25).                       00940000
+       01 WK-TIT0-FILLER.                                               00950000
+          03 WK-TIT0-DATE-NAME         PIC X(11)                        00960000
+                          VALUE '     DATE: '.                          00970000
+          03 WK-TIT0-DATE              PIC X(9)  VALUE '  /  /  '.      00980000
+          03 FILLER                    PIC X(5)  VALUE SPACE.           00990000
+       01 WK-TIT1.                                                      01000000
+          03 FILLER                    PIC X(1)  VALUE SPACE.           01010000
+          03 WK-TIT1-REP-NAME          PIC X(50).                       01020000
+          03 FILLER                    PIC X(02) VALUE SPACES.          01030000
+          03 WK-TIT1-BANK-NAME         PIC X(30).                       01040000
+          03 WK-TIT1-RPT-NAME.                                          01050000
+             05 WK-TIT1-SPACE.                                          01060000
+                07 WK-TIT1-ELEMENT OCCURS 1 TO 24                       01070000
+                                  DEPENDING ON WK-TIT1-CNT.             01080000
+                   09 FILLER           PIC X VALUE SPACES .             01090000
+          03 WK-TIT1-END               PIC X(25).                       01100000
+       01 WK-TIT1-FILLER.                                               01110000
+          03 WK-TIT1-DATE-NAME         PIC X(11)                        01120000
+                          VALUE '     TIME: '.                          01130000
+          03 WK-TIT1-TIME              PIC X(8)  VALUE '  .  .  '.      01140000
+          03 FILLER                    PIC X(6)  VALUE SPACE.           01150000
+       01 WK-TIT2.                                                      01160000
+          03 FILLER                    PIC X(1)  VALUE SPACE.           01170000
+          03 WK-TIT2-REP-TYPE          PIC X(11).                       01180000
+          03 WK-TIT2-CCY-TYPE          PIC X(13).                       01180000
+          03 FILLER                    PIC X(50) VALUE SPACES.          01190000
+          03 WK-TIT2-RPT-NAME.                                          01200000
+             05 WK-TIT2-SPACE.                                          01210000
+                07 WK-TIT2-ELEMENT OCCURS 1 TO 32                       01220000
+                                  DEPENDING ON WK-TIT2-CNT.             01230000
+                   09 FILLER           PIC X VALUE SPACES .             01240000
+          03 WK-TIT2-END               PIC X(25).                       01250000
+       01 WK-TIT2-FILLER.                                               01260000
+          03 WK-TIT2-PAGE              PIC X(11)                        01270000
+                          VALUE '     PAGE: '.                          01280000
+          03 WK-TIT2-PAGE-NO           PIC ZZZZZZZ9.                    01290000
+          03 FILLER                    PIC X(6)  VALUE SPACE.           01300000
+       01 WK-TIT3.                                                      01310000
+          03 FILLER                    PIC X(1)  VALUE SPACE.           01320000
+          03 WK-TIT3-DESC          PIC X(15) VALUE 'GL POST DATE  :'.   01330000
+          03 WK-TIT3-GL-DATE           PIC X(09).                       01340000
+          03 WK-TIT3-WEEK              PIC X(05).                       01340000
+          03 FILLER                    PIC X(102) VALUE SPACES.         01350000
+       01 WK-BOTT1.                                                     01360000
+          03 FILLER                    PIC X(55)                        01370000
+                          VALUE ' *** END OF BRANCH ***'.
+          03 FILLER                    PIC X(77) VALUE SPACES.          01380000
+       01 WK-BOTT2.                                                     01360000
+          03 FILLER                    PIC X(55)    VALUE SPACES.       01370000
+          03 FILLER                    PIC X(77)                        01380000
+                          VALUE '*** END OF REPORT ***'.                01390000
+       01 WK-BOTT3.                                                     01360000
+          03 FILLER                    PIC X(55)    VALUE SPACES.       01370000
+          03 FILLER                    PIC X(77)                        01380000
+                    VALUE '*** TO BE CONTINUED ON NEXT PAGE ***'.       01390000
+       01 WK-BOTT4.                                                     01360000
+          03 FILLER                    PIC X(55)    VALUE SPACES.       01370000
+          03 FILLER                    PIC X(77)                        01380000
+                    VALUE '***********  NO ENTRIES  ***********'.       01390000
+       01 WK-BOTT5.                                                     01360000
+          03 FILLER                    PIC X(132)    VALUE SPACES.      01370000
+       01 WK-TEMP-RECORD.
+          03 WK-CCY-DEF-FLG         PIC X(01)  VALUE 'N'.
+          03 WK-BRDP-PDEF-FLG       PIC X(01)  VALUE 'N'.
+          03 WK-MAX-CNT-FLG         PIC X(01)  VALUE 'N'.
+          03 WK-SPECIAL-FLG         PIC X(01)  VALUE 'N'.
+          03 WK-BRHM-KEY.
+              05 WK-BRHM-INST-NO          PIC X(03).
+              05 WK-BRHM-BRDP             PIC 9(16).
+       01 WK-BR-DP-INF.
+          03 WK-BR-00               PIC X(30)
+                 VALUE 'BANK SUMMARY                 '.
+          03 WK-BR-01               PIC X(30)
+                 VALUE 'MAIN BRANCH                  '.
+       01 MESSAGE-AREA.                                                 01400000
+          03 PROCESS-CNT    PIC 9(7)  VALUE 0.                          01410000
+          03 START-MSG      PIC X(23) VALUE 'START PROGRAM: RPBDRPT '.  01420000
+          03 END-MSG        PIC X(23) VALUE 'END PROGRAM :  RPBDRPT '.  01430000
+          03 EMPTY-MSG      PIC X(23) VALUE ':FILE EMPTY            '.  01440000
+          03 NTFD-MSG       PIC X(23) VALUE ':RECORD NOT FOUND      '.  01450000
+          03 ERROR-MSG.                                                 01460000
+             05 OPEN-ERR    PIC X(23) VALUE ':FILE OPEN    ERROR,RC='.  01470000
+             05 CLOSE-ERR   PIC X(23) VALUE ':FILE CLOSE   ERROR,RC='.  01480000
+             05 START-ERR   PIC X(23) VALUE ':FILE START   ERROR,RC='.  01490000
+             05 READ-ERR    PIC X(23) VALUE ':FILE READ    ERROR,RC='.  01500000
+             05 WRITE-ERR   PIC X(23) VALUE ':FILE WRITE   ERROR,RC='.  01510000
+             05 REWRITE-ERR PIC X(23) VALUE ':FILE REWRITE ERROR,RC='.  01520000
+       01 WK-VARIABLE.                                                  00890000
+          03 WK-BR-COMPUTE                  PIC 9(02).
+          03 WK-INDX                        PIC 9(03).
+          03 WK-INDX1                       PIC 9(03).
+          03 WK-INDX3                       PIC 9(03).
+          03 WK-INDX2                       PIC 9(02).
+          03 WK-AC-DATE                     PIC 9(08).
+          03 WK-BRHM-CNT                    PIC 9(02).
+          03 WK-BRHM-AREA-TMP               PIC 9(01).
+          03 WK-BRHM-LAST                   PIC 9(02).
+          03 WK-FND-FLG                     PIC X(01).
+          03 WK-BRHM-RECORD OCCURS 99 TIMES .                           01540000
+             05 WK-BRHM-AREA                PIC 9(1).                   01550000
+             05 WK-BRHM-BR-DP               PIC X(02).                  01560000
+          03 WK-BRHM-FND-FLG                PIC X(01).
+             88  BRHM-FND-YES               VALUE 'Y'.
+             88  BRHM-FND-NO                VALUE 'N'.
+          03 WK-BRHM-END-FLG                PIC X(01).
+             88  BRHM-END-YES               VALUE 'Y'.
+             88  BRHM-END-NO                VALUE 'N'.
+          03 WK-YEAR-DATE.                                              00900000
+             05 WK-YEAR                     PIC 9(04).
+             05 WK-MONTH                    PIC 9(02).
+             05 WK-DAY                      PIC 9(02).
+             05 WK-TEMP-WEEK                PIC 9(1).
+             05 WK-TEMP-INT1                PIC 9(5).
+             05 WK-TEMP-INT2                PIC 9(5).
+             05 WK-TEMP-INT3                PIC 9(5).
+             05 WK-TEMP-INT4                PIC 9(5).
+             05 WK-TEMP-INT5                PIC 9(5).
+             05 WK-TEMP-INT6                PIC 9(5).
+             05 WK-TEMP-INT7                PIC 9(7).
+             05 WK-TEMP-INT8                PIC 9(7).
+           03  WK-RDES-TEMP                 PIC 9(2).
+           03  WK-RDES-COUNT                PIC 9(2).
+           03  WK-RDES-COUNT-1              PIC 9(2).
+           03  WK-RDES-CNT                  PIC 9(2).
+           03  WK-RDES-TXTS OCCURS 1 TO 99 DEPENDING ON WK-RDES-CNT.
+               05 WK-RDES-FMT               PIC 9(02).
+               05 WK-RDES-TXT               PIC X(132).
+           03   WK-FMT-INF   OCCURS 5 TIMES .
+               05 WK-FMT-TYPE                PIC X(1).
+               05 WK-FMT-RECORDS   OCCURS 10 TIMES.
+                  07 WK-FMT-TXT              PIC X(132).
+       01 RPCRPGT.
+          03 RPGT-DST-BR-DP.
+             05 RPGT-DST-BR            PIC 9(4).
+             05 RPGT-DST-DP            PIC 9(4).
+          03 RPGT-RPT-BR-DP.
+             05 RPGT-RPT-BR            PIC 9(4).
+             05 RPGT-RPT-DP            PIC 9(4).
+          03 RPGT-RPT-NO               PIC X(10).
+          03 RPGT-PAGE-NO              PIC 9(5).
+          03 RPGT-LINE-CNT             PIC 9(2).
+          03 RPGT-TEXT OCCURS 1 TO 95 DEPENDING ON RPGT-LINE-CNT.
+             05 RPGT-LINE              PIC X(200).
+       01 WK-RPRRSUM.                                                   01530000
+           03 WK-RSUM OCCURS 2000 TIMES INDEXED BY WK-IND.              01540000
+              05 WK-RSUM-DST-BR-DP          PIC 9(8).                   01550000
+              05 WK-RSUM-RPT-NO             PIC X(10).                  01560000
+              05 WK-RSUM-RPT-BR-DP          PIC 9(8).                   01570000
+              05 WK-RSUM-PAGE-NO            PIC 9(3).                   01580000
+              05 WK-RSUM-RPT-NAME           PIC X(80).                  01590000
+       77 I                                PIC 9(3).                    01600000
+       77 J                                PIC 9(3).                    01610000
+       77 EOF-FLAG                         PIC X(3)     VALUE SPACES.   01620000
+       77 WK-FIRST                         PIC X        VALUE 'Y'.      01630000
+       77 WK-BD                            PIC 9(6)     VALUE 0.        01640000
+       77 WK-LINE1                         PIC X(200)   VALUE SPACES.   01650000
+       77 WK-LINE2                         PIC X(200)   VALUE SPACES.   01660000
+       77 WK-AREA                          PIC X(384)   VALUE SPACES.   01670000
+       77 WK-PAGE                          PIC 9(3)     VALUE 0.        01680000
+       77 WK-ZZ9                           PIC ZZ9.                     01690000
+       77 WK-RSUM-STS                      PIC X(2).                    01700000
+       77 WK-REPT-STS                      PIC X(2).                    01710000
+       77 WK-RPT-LIST                      PIC X(40)                    01720000
+                        VALUE '         REPORT LIST'.                   01730000
+      *                                                                 01740000
+      *COPY UT1999CA IN LIBRYMIS.                                       01741002
+           EXEC SQL INCLUDE SQLCA END-EXEC.
+           EXEC SQL INCLUDE CPBRHM END-EXEC.
+           EXEC SQL INCLUDE CPCCYM END-EXEC.
+           COPY ZTCCJPRM IN LIBRYMIS.
+      ********************************
+        LINKAGE SECTION.
+      ********************************
+      *
+        01  LKG-PARM.
+            03 LKG-PARM-LEN                     PIC 9(04) COMP.
+            03 LKG-RP-BANK-FLG                  PIC 9(01).
+            03 LKG-RP-FREQUENCY                 PIC X(01).
+            03 LKG-RP-MAP-NO                    PIC X(10).
+      *
+      **************************************
+        PROCEDURE DIVISION USING LKG-PARM.
+      **************************************
+       MAIN-PROCEDURE.                                                  01780000
+            PERFORM A00-INIT-PROCESS                                    01790000
+            PERFORM C00-MAIN-PROCESS                                    01800000
+            PERFORM Z00-RETURN.                                         01810000
+                                                                        01820000
+       A00-INIT-PROCESS.                                                01830000
+           DISPLAY START-MSG                                            01840000
+           MOVE SPACES                 TO WKG-RP-MAP-NO
+           MOVE ZERO                   TO WL-L
+           COMPUTE WL-L = LKG-PARM-LEN - 2
+           MOVE LKG-RP-MAP-NO(1:WL-L)  TO WKG-RP-MAP-NO
+           CALL "ZTCBQJPM" USING ZTCCJPRM
+           IF WKG-RP-MAP-NO(1:7) = 'RBC1401'
+             OR  WKG-RP-MAP-NO(1:10) = 'DEPDCA1401'
+           THEN
+             MOVE JPRM-NEXT-AC-DATE    TO WK-AC-DATE
+           ELSE
+             MOVE JPRM-AC-DATE         TO WK-AC-DATE
+           END-IF
+           MOVE SPACES                 TO WK-DATE-REQUIRED              01850000
+           MOVE ZERO                   TO WK-RDES-CNT
+           MOVE ZERO                   TO WK-RDES-COUNT
+           OPEN INPUT  RPFDATA RPFRDES  RPQBRHM                         01920000
+                OUTPUT  RPFRPG                                          01930012
+                OUTPUT RPFREPT                                          01940012
+           IF WK-DATA-STS NOT = ZEROS OR WK-RDES-STS NOT = ZEROS OR     01950000
+              WK-RPG-STS NOT = ZEROS OR                                 01960000
+              WK-REPT-STS NOT = '00' OR                                 01970006
+              WK-BRHM-STS NOT = '00'                                    01970006
+           THEN
+              DISPLAY 'WK-DATA-STS'  WK-DATA-STS
+              DISPLAY 'WK-RDES-STS'  WK-RDES-STS
+              DISPLAY 'WK-RPG-STS'  WK-RPG-STS
+              DISPLAY 'WK-REPT-STS'  WK-REPT-STS
+              DISPLAY 'WK-BRHM-STS'  WK-BRHM-STS
+              MOVE 8              TO RETURN-CODE                        01980000
+              PERFORM Z00-RETURN                                        01990000
+           END-IF                                                       02000000
+           PERFORM R00-LOAD-BRHM
+           READ RPFDATA                                                 02010000
+              AT END                                                    02020000
+                  DISPLAY 'RPFDATA' EMPTY-MSG
+                  PERFORM B00-GEN-BLANK-TITLE
+              NOT AT END                                                02030000
+                  MOVE RPTL-BR-DP   TO WK-BR-DP1
+                  IF WK-BR1 IS NUMERIC
+                     AND WK-BR1 NOT = ZEROS
+                     AND WK-BR1 NOT = 1
+                  THEN
+                     MOVE WK-BR1    TO WK-BR-COMPUTE
+                     PERFORM VARYING WK-INDX FROM 1 BY 1
+                       UNTIL WK-INDX >= WK-BR-COMPUTE
+                       SET BRHM-FND-NO          TO TRUE
+                       PERFORM S00-FND-BRHM
+                       MOVE WK-INDX TO WK-BR1
+                       IF BRHM-FND-YES
+                       THEN
+                          PERFORM B05-10-WRITE-BANK-TITLE
+                          MOVE RPCRPG            TO RPCRPGT
+                          WRITE RPCRPG                                  03820000
+                          MOVE RPCRPGT           TO RPCRPG
+                          MOVE 0     TO  WK-LINE-CNT                    03830000
+                          MOVE 0     TO  RPG-LINE-CNT                   03840000
+                       END-IF
+                     END-PERFORM
+                  END-IF
+                  PERFORM B00-CRT-RPG                                   02040000
+                    UNTIL WK-EOF = 'Y'                                  02050000
+           END-READ                                                     02060000
+           MOVE 1                    TO  WK-ADVN                        03780000
+           MOVE WK-BOTT5             TO  WK-LINE                        03790000
+           PERFORM S00-WRITE-RPG-LINE                                   03800000
+           MOVE 1                    TO  WK-ADVN                        03780000
+           MOVE WK-BOTT2             TO  WK-LINE                        03790000
+           PERFORM S00-WRITE-RPG-LINE                                   03800000
+           MOVE  RPCRPG              TO RPCRPGT
+           WRITE RPCRPG                                                 03820000
+           MOVE  RPCRPGT             TO RPCRPG
+           EXIT.                                                        02070000
+      *                                                                 02080000
+      *****************************                                     02090000
+      * PROCESS REPORT PAGE HANDLE                                      02100000
+      *****************************                                     02110000
+       B00-CRT-RPG.                                                     02120000
+           MOVE 'N'                  TO WK-CCY-DEF-FLG
+           MOVE 'N'                  TO WK-BRDP-PDEF-FLG
+           MOVE 'N'                  TO WK-MAX-CNT-FLG
+           MOVE 'N'                  TO WK-SPECIAL-FLG
+           PERFORM B01-CRT-RPG-TIT                                      02130000
+           PERFORM B02-CRT-RPG-LINE                                     02140000
+              UNTIL WK-PAGE-END = 'Y'                                   02150000
+                    OR WK-EOF = 'Y'
+           IF  WK-MAX-CNT-FLG = 'Y' OR WK-SPECIAL-FLG = 'Y'
+           THEN
+             PERFORM B03-WRITE-RPG
+           ELSE
+             IF WK-EOF = 'Y'
+             THEN
+                PERFORM B04-WRITE-RPG
+             ELSE
+                IF  WK-CCY-DEF-FLG  = 'Y' OR
+                    WK-BRDP-PDEF-FLG  = 'Y'
+                THEN
+                   PERFORM B05-WRITE-RPG
+                END-IF
+             END-IF
+           END-IF
+           EXIT.                                                        02180000
+      *****************************                                     02190000
+      * PROCESS TITLE LINE                                              02200000
+      *****************************                                     02210000
+       B01-CRT-RPG-TIT.                                                 02220000
+           IF RPTL-BR-DP IS NOT NUMERIC                                 02230000
+              MOVE ZEROS         TO RPTL-BR-DP                          02240000
+           END-IF                                                       02250000
+           IF RPTL-RPT-NO NOT = WK-RPT-NO THEN                          02260000
+              MOVE RPTL-RPT-NO  TO  RDES-RPT-NO                         02270000
+              IF RPTL-RPT-NO(4:1) = 'D' OR 'M' OR 'H' OR 'Y' OR 'O'
+              THEN
+                  EVALUATE RPTL-RPT-NO(1:3)
+                     WHEN 'DEP'
+                        MOVE 'DEP'            TO WK-TIT0-RP-NO(1:3)
+                        MOVE RPTL-RPT-NO(4:7) TO WK-TIT0-RP-NO(4:7)
+                     WHEN 'LON'
+                        MOVE 'LON'            TO WK-TIT0-RP-NO(1:3)
+                        MOVE RPTL-RPT-NO(4:1) TO WK-TIT0-RP-NO(4:1)
+                        IF RPTL-RPT-NO(5:2) = 'CF'
+                        THEN
+                           MOVE RPTL-RPT-NO(5:6) TO
+                                              WK-TIT0-RP-NO(5:6)
+                        ELSE
+                           IF RPTL-RPT-NO(5:2) = 'LX'
+                           THEN
+                              MOVE RPTL-RPT-NO(5:6) TO
+                                                 WK-TIT0-RP-NO(5:6)
+                           ELSE
+                              MOVE 'LN'       TO WK-TIT0-RP-NO(5:2)
+                              MOVE RPTL-RPT-NO(5:4)
+                                              TO WK-TIT0-RP-NO(7:4)
+                           END-IF
+                        END-IF
+                     WHEN 'PAY'
+                        MOVE 'PAY'            TO WK-TIT0-RP-NO(1:3)
+                        MOVE RPTL-RPT-NO(4:1) TO WK-TIT0-RP-NO(4:1)
+                        MOVE 'RM'             TO WK-TIT0-RP-NO(5:2)
+                        IF RPTL-RPT-NO(5:1) = 'C'
+                        THEN
+                           MOVE 'CO'          TO WK-TIT0-RP-NO(5:2)
+                        END-IF
+                        IF RPTL-RPT-NO(5:1) = 'G'
+                        THEN
+                           MOVE 'GC'          TO WK-TIT0-RP-NO(5:2)
+                        END-IF
+                        MOVE 0                TO WK-TIT0-RP-NO(7:1)
+                        MOVE RPTL-RPT-NO(6:3) TO WK-TIT0-RP-NO(8:3)
+                     WHEN 'COM'
+                        MOVE 'COM'            TO WK-TIT0-RP-NO(1:3)
+                        MOVE RPTL-RPT-NO(4:7) TO WK-TIT0-RP-NO(4:7)
+                     WHEN OTHER
+                        CONTINUE
+                  END-EVALUATE
+                  IF RPTL-RPT-NO(1:3) = 'RIA'
+                  THEN
+                      MOVE 'ZEX'              TO WK-TIT0-RP-NO(1:3)
+                      MOVE RPTL-RPT-NO(4:1) TO WK-TIT0-RP-NO(4:1)
+                      MOVE RPTL-RPT-NO(2:2) TO WK-TIT0-RP-NO(5:2)
+                      MOVE RPTL-RPT-NO(5:4) TO WK-TIT0-RP-NO(7:4)
+                  END-IF
+              ELSE
+                 IF RPTL-RPT-NO(3:1) = 'D' OR 'M' OR 'H' OR 'Y' OR 'O'
+                 THEN
+                   EVALUATE RPTL-RPT-NO(1:2)
+                     WHEN 'CA'
+                     WHEN 'SA'
+                     WHEN 'FS'
+                     WHEN 'FD'
+                        MOVE 'DEP'            TO WK-TIT0-RP-NO(1:3)
+                        MOVE RPTL-RPT-NO(3:1) TO WK-TIT0-RP-NO(4:1)
+                        MOVE RPTL-RPT-NO(1:2) TO WK-TIT0-RP-NO(5:2)
+                        MOVE RPTL-RPT-NO(4:4) TO WK-TIT0-RP-NO(7:4)
+                     WHEN 'LN'
+                     WHEN 'FC'
+                     WHEN 'LX'
+                        MOVE 'LON'            TO WK-TIT0-RP-NO(1:3)
+                        MOVE RPTL-RPT-NO(3:1) TO WK-TIT0-RP-NO(4:1)
+                        MOVE RPTL-RPT-NO(1:2) TO WK-TIT0-RP-NO(5:2)
+                        MOVE RPTL-RPT-NO(4:4) TO WK-TIT0-RP-NO(7:4)
+                        IF RPTL-RPT-NO(8:1) = 'C'
+                        THEN
+                           MOVE 'C'           TO WK-TIT0-RP-NO(4:1)
+                        END-IF
+                     WHEN 'CO'
+                     WHEN 'GC'
+                     WHEN 'BC'
+                     WHEN 'RM'
+                        MOVE 'PAY'            TO WK-TIT0-RP-NO(1:3)
+                        MOVE RPTL-RPT-NO(3:1) TO WK-TIT0-RP-NO(4:1)
+                        MOVE RPTL-RPT-NO(1:2) TO WK-TIT0-RP-NO(5:2)
+                        MOVE RPTL-RPT-NO(4:4) TO WK-TIT0-RP-NO(7:4)
+                        IF RPTL-RPT-NO(8:1) = 'C'
+                        THEN
+                           MOVE 'C'           TO WK-TIT0-RP-NO(4:1)
+                        END-IF
+                     WHEN 'CI'
+                     WHEN 'CS'
+                     WHEN 'CM'
+                     WHEN 'GL'
+                     WHEN 'ME'
+                     WHEN 'CL'
+                        MOVE 'COM'            TO WK-TIT0-RP-NO(1:3)
+                        MOVE RPTL-RPT-NO(3:1) TO WK-TIT0-RP-NO(4:1)
+                        MOVE RPTL-RPT-NO(1:2) TO WK-TIT0-RP-NO(5:2)
+                        MOVE RPTL-RPT-NO(4:4) TO WK-TIT0-RP-NO(7:4)
+                        IF RPTL-RPT-NO(8:1) = 'C'
+                        THEN
+                           MOVE 'C'           TO WK-TIT0-RP-NO(4:1)
+                        END-IF
+                     WHEN OTHER
+                        MOVE 'ZEX'            TO WK-TIT0-RP-NO(1:3)
+                        MOVE RPTL-RPT-NO(3:1) TO WK-TIT0-RP-NO(4:1)
+                        MOVE RPTL-RPT-NO(1:2) TO WK-TIT0-RP-NO(5:2)
+                        MOVE RPTL-RPT-NO(4:4) TO WK-TIT0-RP-NO(7:4)
+                        IF RPTL-RPT-NO(8:1) = 'C'
+                        THEN
+                           MOVE 'C'           TO WK-TIT0-RP-NO(4:1)
+                        END-IF
+                  END-EVALUATE
+                END-IF
+                 EVALUATE RPTL-RPT-NO(2:2)
+                   WHEN 'CA'
+                   WHEN 'SA'
+                   WHEN 'FS'
+                   WHEN 'FD'
+                      MOVE 'DEPD'             TO WK-TIT0-RP-NO(1:4)
+                      MOVE RPTL-RPT-NO(2:6)   TO WK-TIT0-RP-NO(5:6)
+                   WHEN 'LN'
+                   WHEN 'FC'
+                   WHEN 'LX'
+                      MOVE 'LOND'             TO WK-TIT0-RP-NO(1:4)
+                      MOVE RPTL-RPT-NO(2:6)   TO WK-TIT0-RP-NO(5:6)
+                   WHEN 'CO'
+                   WHEN 'GC'
+                   WHEN 'BC'
+                   WHEN 'RM'
+                      MOVE 'PAYD'             TO WK-TIT0-RP-NO(1:4)
+                      MOVE RPTL-RPT-NO(2:6)   TO WK-TIT0-RP-NO(5:6)
+                   WHEN 'CI'
+                   WHEN 'CS'
+                   WHEN 'CM'
+                   WHEN 'GL'
+                   WHEN 'ME'
+                   WHEN 'CL'
+                      IF RPTL-RPT-NO(1:2) = 'DC'
+                      THEN
+                         MOVE 'ZEX'           TO WK-TIT0-RP-NO(1:3)
+                         MOVE RPTL-RPT-NO(3:1)
+                                              TO WK-TIT0-RP-NO(4:1)
+                         MOVE RPTL-RPT-NO(1:2)
+                                              TO WK-TIT0-RP-NO(5:2)
+                         MOVE RPTL-RPT-NO(4:4)
+                                              TO WK-TIT0-RP-NO(7:4)
+                      ELSE
+                         MOVE 'COMD'          TO WK-TIT0-RP-NO(1:4)
+                         MOVE RPTL-RPT-NO(2:6) TO WK-TIT0-RP-NO(5:6)
+                      END-IF
+                   WHEN 'AS'
+                   WHEN 'IA'
+                   WHEN 'EB'
+                   WHEN 'TC'
+130820             WHEN 'DC'
+141224             WHEN 'NT'
+141230             WHEN 'AM'
+                      MOVE 'ZEXD'             TO WK-TIT0-RP-NO(1:4)
+                      MOVE RPTL-RPT-NO(2:6)   TO WK-TIT0-RP-NO(5:6)
+                   WHEN OTHER
+                      CONTINUE
+                END-EVALUATE
+              END-IF
+              IF RPTL-RPT-NO(1:9)  = 'DPMCA0202' OR 'DPMFD0302'
+              THEN
+                 MOVE 'DEPD'                  TO WK-TIT0-RP-NO(1:4)
+                 MOVE RPTL-RPT-NO(4:6)        TO WK-TIT0-RP-NO(5:6)
+              END-IF
+              IF RPTL-RPT-NO(1:8) = 'DSAD1006'
+              THEN
+                 MOVE 'DEPM'                  TO WK-TIT0-RP-NO(1:4)
+                 MOVE RPTL-RPT-NO(2:2)        TO WK-TIT0-RP-NO(5:2)
+                 MOVE RPTL-RPT-NO(5:4)        TO WK-TIT0-RP-NO(7:4)
+              END-IF
+              IF RPTL-RPT-NO(1:8) = 'DPFD0406'
+              THEN
+                 MOVE 'DEPD'                  TO WK-TIT0-RP-NO(1:4)
+                 MOVE RPTL-RPT-NO(3:2)        TO WK-TIT0-RP-NO(5:2)
+                 MOVE RPTL-RPT-NO(5:4)        TO WK-TIT0-RP-NO(7:4)
+              END-IF
+              IF RPTL-RPT-NO(1:8) = 'ZTCDUMCH'
+              THEN
+                 MOVE 'ZEXD'                  TO WK-TIT0-RP-NO(1:4)
+                 MOVE RPTL-RPT-NO(5:6)        TO WK-TIT0-RP-NO(5:6)
+              END-IF
+              READ RPFRDES INVALID KEY                                  02280000
+                           DISPLAY 'RPFRDES' NTFD-MSG                   02290000
+                           DISPLAY 'RDES-RPT-NO' RDES-RPT-NO
+                           MOVE 'Y'           TO WK-NO-RPT-DES-IND      02300000
+                       NOT INVALID KEY                                  02310000
+                           MOVE 'N'           TO WK-NO-RPT-DES-IND      02320000
+              END-READ                                                  02330000
+              MOVE ZEROS                      TO WK-A
+              MOVE ZEROS                      TO WK-B
+              MOVE ZEROS                      TO WK-C
+              MOVE ZEROS                      TO WK-D
+              MOVE ZEROS                      TO WK-E
+              PERFORM VARYING WK-I FROM 1 BY 1 UNTIL WK-I > RDES-CNT    00
+                 EVALUATE RDES-TXT-IND(WK-I)
+                   WHEN 'A'
+                      ADD 1                    TO WK-A
+                      MOVE 'A'                 TO WK-FMT-TYPE(1)
+                      MOVE RDES-TXT(WK-I)      TO WK-FMT-TXT(1,WK-A)
+                   WHEN 'B'
+                      ADD 1                    TO WK-B
+                      MOVE 'B'                 TO WK-FMT-TYPE(2)
+                      MOVE RDES-TXT(WK-I)      TO WK-FMT-TXT(2,WK-B)
+                   WHEN 'C'
+                      ADD 1                    TO WK-C
+                      MOVE 'C'                 TO WK-FMT-TYPE(3)
+                      MOVE RDES-TXT(WK-I)      TO WK-FMT-TXT(3,WK-C)
+                   WHEN 'E'
+                      ADD 1                    TO WK-D
+                      MOVE 'E'                 TO WK-FMT-TYPE(4)
+                      MOVE RDES-TXT(WK-I)      TO WK-FMT-TXT(4,WK-D)
+                   WHEN 'F'
+                      ADD 5                    TO WK-E
+                      MOVE 'F'                 TO WK-FMT-TYPE(5)
+                      MOVE RDES-TXT(WK-I)      TO WK-FMT-TXT(5,WK-E)
+                   WHEN OTHER
+                      CONTINUE
+                 END-EVALUATE
+              END-PERFORM                                               03170000
+           END-IF                                                       02340000
+           IF WK-NO-RPT-DES-IND = 'Y'  THEN                             02350000
+              MOVE RPTL-BR-DP            TO WK-BR-DP
+              MOVE ZEROS                 TO WK-TIT0-BR
+              MOVE 'A'                   TO WK-TIT0-BR(1:1)
+              MOVE '0'                   TO WK-TIT0-BR(2:1)             02360000
+              MOVE WK-BRHM-AREA-TMP      TO WK-TIT0-BR(3:1)             02360000
+              IF WK-TIT0-BR(3:1) NOT = 0
+              THEN
+                  MOVE 0                 TO WK-TIT0-BR(3:1)
+              END-IF
+              MOVE ZEROS                 TO WK-TIT0-DP
+              MOVE 'B'                   TO WK-TIT0-DP(1:1)
+              MOVE  WK-BR                TO WK-TIT0-DP(2:2)             02360000
+              MOVE '000'                 TO WK-TIT0-CCY
+              MOVE SPACES                TO WK-CCY-TO
+              IF RPTL-CCY  = '000'
+              THEN
+                  MOVE '000'             TO WK-TIT0-CCY
+                  MOVE ZEROS             TO WK-CCY-TO
+              ELSE
+                 IF RPTL-CCY NOT = SPACES AND
+                    RPTL-CCY IS NOT NUMERIC
+                 THEN
+                    MOVE '003'           TO CCYM-INST-NO
+                    MOVE RPTL-CCY        TO CCYM-CODE
+                    PERFORM S00-GET-CCY-TO-NUM
+                    IF SQLCODE = 100
+                    THEN
+                      MOVE '000'         TO WK-CCY-TO
+                      MOVE '000'         TO WK-TIT0-CCY
+                    ELSE
+                       MOVE CCYM-CURRENCY-CODE-DIG
+                                            TO WK-CCY-TO
+                       MOVE CCYM-CURRENCY-CODE-DIG
+                                            TO WK-TIT0-CCY
+                    END-IF
+                 ELSE
+                    MOVE RPTL-CCY        TO WK-TIT0-CCY
+                    MOVE RPTL-CCY        TO WK-CCY-TO
+                 END-IF
+              END-IF
+              IF RPTL-SUM-FLG = 'S'                                     02390000
+              THEN                                                      02400000
+                  MOVE 'SUMM      '      TO WK-TIT0-DESC                02410000
+              ELSE                                                      02420000
+                  MOVE 'DETAIL    '      TO WK-TIT0-DESC                02430000
+              END-IF                                                    02440000
+      *       MOVE RPTL-RPT-NO TO WK-TIT0-RP-NO                         02450000
+              IF RPTL-RPT-NO(4:1) = 'D' OR 'M' OR 'H' OR 'Y' OR 'O'
+              THEN
+                  EVALUATE RPTL-RPT-NO(1:3)
+                     WHEN 'DEP'
+                        MOVE 'DEP'            TO WK-TIT0-RP-NO(1:3)
+                        MOVE RPTL-RPT-NO(4:7) TO WK-TIT0-RP-NO(4:7)
+                     WHEN 'LON'
+                        MOVE 'LON'            TO WK-TIT0-RP-NO(1:3)
+                        MOVE RPTL-RPT-NO(4:1) TO WK-TIT0-RP-NO(4:1)
+                        IF RPTL-RPT-NO(5:2) = 'CF'
+                        THEN
+                           MOVE RPTL-RPT-NO(5:6) TO
+                                              WK-TIT0-RP-NO(5:6)
+                        ELSE
+                           IF RPTL-RPT-NO(5:2) = 'LX'
+                           THEN
+                              MOVE RPTL-RPT-NO(5:6) TO
+                                                 WK-TIT0-RP-NO(5:6)
+                           ELSE
+                              MOVE 'LN'       TO WK-TIT0-RP-NO(5:2)
+                              MOVE RPTL-RPT-NO(5:4)
+                                              TO WK-TIT0-RP-NO(7:4)
+                           END-IF
+                        END-IF
+                     WHEN 'PAY'
+                        MOVE 'PAY'            TO WK-TIT0-RP-NO(1:3)
+                        MOVE RPTL-RPT-NO(4:1) TO WK-TIT0-RP-NO(4:1)
+                        MOVE 'RM'             TO WK-TIT0-RP-NO(5:2)
+                        IF RPTL-RPT-NO(5:1) = 'C'
+                        THEN
+                           MOVE 'CO'          TO WK-TIT0-RP-NO(5:2)
+                        END-IF
+                        IF RPTL-RPT-NO(5:1) = 'G'
+                        THEN
+                           MOVE 'GC'          TO WK-TIT0-RP-NO(5:2)
+                        END-IF
+                        MOVE 0                TO WK-TIT0-RP-NO(7:1)
+                        MOVE RPTL-RPT-NO(6:3) TO WK-TIT0-RP-NO(8:3)
+                     WHEN 'COM'
+                        MOVE 'COM'            TO WK-TIT0-RP-NO(1:3)
+                        MOVE RPTL-RPT-NO(4:7) TO WK-TIT0-RP-NO(4:7)
+                     WHEN OTHER
+                        CONTINUE
+                  END-EVALUATE
+                  IF RPTL-RPT-NO(1:3) = 'RIA'
+                  THEN
+                      MOVE 'ZEX'              TO WK-TIT0-RP-NO(1:3)
+                      MOVE RPTL-RPT-NO(4:1) TO WK-TIT0-RP-NO(4:1)
+                      MOVE RPTL-RPT-NO(2:2) TO WK-TIT0-RP-NO(5:2)
+                      MOVE RPTL-RPT-NO(5:4) TO WK-TIT0-RP-NO(7:4)
+                  END-IF
+              ELSE
+                 IF RPTL-RPT-NO(3:1) = 'D' OR 'M' OR 'H' OR 'Y' OR 'O'
+                 THEN
+                   EVALUATE RPTL-RPT-NO(1:2)
+                     WHEN 'CA'
+                     WHEN 'SA'
+                     WHEN 'FS'
+                     WHEN 'FD'
+                        MOVE 'DEP'            TO WK-TIT0-RP-NO(1:3)
+                        MOVE RPTL-RPT-NO(3:1) TO WK-TIT0-RP-NO(4:1)
+                        MOVE RPTL-RPT-NO(1:2) TO WK-TIT0-RP-NO(5:2)
+                        MOVE RPTL-RPT-NO(4:4) TO WK-TIT0-RP-NO(7:4)
+                     WHEN 'LN'
+                     WHEN 'FC'
+                     WHEN 'LX'
+                        MOVE 'LON'            TO WK-TIT0-RP-NO(1:3)
+                        MOVE RPTL-RPT-NO(3:1) TO WK-TIT0-RP-NO(4:1)
+                        MOVE RPTL-RPT-NO(1:2) TO WK-TIT0-RP-NO(5:2)
+                        MOVE RPTL-RPT-NO(4:4) TO WK-TIT0-RP-NO(7:4)
+                        IF RPTL-RPT-NO(8:1) = 'C'
+                        THEN
+                           MOVE 'C'           TO WK-TIT0-RP-NO(4:1)
+                        END-IF
+                     WHEN 'CO'
+                     WHEN 'GC'
+                     WHEN 'BC'
+                     WHEN 'RM'
+                        MOVE 'PAY'            TO WK-TIT0-RP-NO(1:3)
+                        MOVE RPTL-RPT-NO(3:1) TO WK-TIT0-RP-NO(4:1)
+                        MOVE RPTL-RPT-NO(1:2) TO WK-TIT0-RP-NO(5:2)
+                        MOVE RPTL-RPT-NO(4:4) TO WK-TIT0-RP-NO(7:4)
+                        IF RPTL-RPT-NO(8:1) = 'C'
+                        THEN
+                           MOVE 'C'           TO WK-TIT0-RP-NO(4:1)
+                        END-IF
+                     WHEN 'CI'
+                     WHEN 'CS'
+                     WHEN 'CM'
+                     WHEN 'GL'
+                     WHEN 'ME'
+                     WHEN 'CL'
+                        MOVE 'COM'            TO WK-TIT0-RP-NO(1:3)
+                        MOVE RPTL-RPT-NO(3:1) TO WK-TIT0-RP-NO(4:1)
+                        MOVE RPTL-RPT-NO(1:2) TO WK-TIT0-RP-NO(5:2)
+                        MOVE RPTL-RPT-NO(4:4) TO WK-TIT0-RP-NO(7:4)
+                        IF RPTL-RPT-NO(8:1) = 'C'
+                        THEN
+                           MOVE 'C'           TO WK-TIT0-RP-NO(4:1)
+                        END-IF
+                     WHEN 'AS'
+                     WHEN 'IA'
+                     WHEN 'EB'
+                     WHEN 'TC'
+130820               WHEN 'DC'
+130820               WHEN 'NT'
+141230               WHEN 'AM'
+                        MOVE 'ZEX'            TO WK-TIT0-RP-NO(1:3)
+                        MOVE RPTL-RPT-NO(3:1) TO WK-TIT0-RP-NO(4:1)
+                        MOVE RPTL-RPT-NO(1:2) TO WK-TIT0-RP-NO(5:2)
+                        MOVE RPTL-RPT-NO(4:4) TO WK-TIT0-RP-NO(7:4)
+                        IF RPTL-RPT-NO(8:1) = 'C'
+                        THEN
+                           MOVE 'C'           TO WK-TIT0-RP-NO(4:1)
+                        END-IF
+                     WHEN OTHER
+                       CONTINUE
+                  END-EVALUATE
+                END-IF
+                 EVALUATE RPTL-RPT-NO(2:2)
+                   WHEN 'CA'
+                   WHEN 'SA'
+                   WHEN 'FS'
+                   WHEN 'FD'
+                      MOVE 'DEPD'             TO WK-TIT0-RP-NO(1:4)
+                      MOVE RPTL-RPT-NO(2:6)   TO WK-TIT0-RP-NO(5:6)
+                   WHEN 'LN'
+                   WHEN 'FC'
+                   WHEN 'LX'
+                      MOVE 'LOND'             TO WK-TIT0-RP-NO(1:4)
+                      MOVE RPTL-RPT-NO(2:6)   TO WK-TIT0-RP-NO(5:6)
+                   WHEN 'CO'
+                   WHEN 'GC'
+                   WHEN 'BC'
+                   WHEN 'RM'
+                      MOVE 'PAYD'             TO WK-TIT0-RP-NO(1:4)
+                      MOVE RPTL-RPT-NO(2:6)   TO WK-TIT0-RP-NO(5:6)
+                   WHEN 'CI'
+                   WHEN 'CS'
+                   WHEN 'CM'
+                   WHEN 'GL'
+                   WHEN 'ME'
+                   WHEN 'CL'
+                      IF RPTL-RPT-NO(1:2) = 'DC'
+                      THEN
+                         MOVE 'ZEX'           TO WK-TIT0-RP-NO(1:3)
+                         MOVE RPTL-RPT-NO(3:1)
+                                              TO WK-TIT0-RP-NO(4:1)
+                         MOVE RPTL-RPT-NO(1:2)
+                                              TO WK-TIT0-RP-NO(5:2)
+                         MOVE RPTL-RPT-NO(4:4)
+                                              TO WK-TIT0-RP-NO(7:4)
+                      ELSE
+                         MOVE 'COMD'          TO WK-TIT0-RP-NO(1:4)
+                         MOVE RPTL-RPT-NO(2:6) TO WK-TIT0-RP-NO(5:6)
+                      END-IF
+                   WHEN 'AS'
+                   WHEN 'IA'
+                   WHEN 'EB'
+                   WHEN 'TC'
+130820             WHEN 'DC'
+130820             WHEN 'NT'
+141230             WHEN 'AM'
+                      MOVE 'ZEXD'             TO WK-TIT0-RP-NO(1:4)
+                      MOVE RPTL-RPT-NO(2:6)   TO WK-TIT0-RP-NO(5:6)
+                   WHEN OTHER
+                      CONTINUE
+                END-EVALUATE
+              END-IF
+              IF RPTL-RPT-NO(1:9) = 'DPMCA0202' OR 'DPMFD0302'
+              THEN
+                 MOVE 'DEPD'                  TO WK-TIT0-RP-NO(1:4)
+                 MOVE RPTL-RPT-NO(4:6)        TO WK-TIT0-RP-NO(5:6)
+              END-IF
+              IF RPTL-RPT-NO(1:8) = 'DSAD1006'
+              THEN
+                 MOVE 'DEPM'                  TO WK-TIT0-RP-NO(1:4)
+                 MOVE RPTL-RPT-NO(2:2)        TO WK-TIT0-RP-NO(5:2)
+                 MOVE RPTL-RPT-NO(5:4)        TO WK-TIT0-RP-NO(7:4)
+              END-IF
+              IF RPTL-RPT-NO(1:8) = 'DPFD0406'
+              THEN
+                 MOVE 'DEPD'                  TO WK-TIT0-RP-NO(1:4)
+                 MOVE RPTL-RPT-NO(3:2)        TO WK-TIT0-RP-NO(5:2)
+                 MOVE RPTL-RPT-NO(5:4)        TO WK-TIT0-RP-NO(7:4)
+              END-IF
+              IF RPTL-RPT-NO(1:8) = 'ZTCDUMCH'
+              THEN
+                 MOVE 'ZEXD'                  TO WK-TIT0-RP-NO(1:4)
+                 MOVE RPTL-RPT-NO(5:6)        TO WK-TIT0-RP-NO(5:6)
+              END-IF
+              MOVE 76         TO  WK-MAX-LINE-CNT                       02460000
+              MOVE 32          TO  WK-TIT0-CNT WK-TIT2-CNT              02470000
+              MOVE 24          TO  WK-TIT1-CNT
+           ELSE                                                         02490000
+              MOVE RPTL-BR-DP            TO WK-BR-DP
+              MOVE ZEROS                 TO WK-TIT0-BR
+              MOVE 'A'                   TO WK-TIT0-BR(1:1)
+              MOVE '0'                   TO WK-TIT0-BR(2:1)
+              MOVE WK-BRHM-AREA-TMP      TO WK-TIT0-BR(3:1)             02360000
+              IF WK-TIT0-BR(3:1) NOT = 0
+              THEN
+                  MOVE 0                 TO WK-TIT0-BR(3:1)
+              END-IF
+              MOVE ZEROS                 TO WK-TIT0-DP
+              MOVE 'B'                   TO WK-TIT0-DP(1:1)
+              MOVE  WK-BR                TO WK-TIT0-DP(2:2)             02360000
+              MOVE '000'                 TO WK-TIT0-CCY
+              MOVE SPACES                TO WK-CCY-TO
+              IF RPTL-CCY  = '000'
+              THEN
+                  MOVE '000'             TO WK-TIT0-CCY
+                  MOVE ZEROS             TO WK-CCY-TO
+              ELSE
+                 IF RPTL-CCY NOT = SPACES AND
+                    RPTL-CCY IS NOT NUMERIC
+                 THEN
+                    MOVE '003'           TO CCYM-INST-NO
+                    MOVE RPTL-CCY        TO CCYM-CODE
+                    PERFORM S00-GET-CCY-TO-NUM
+                    IF SQLCODE = 100
+                    THEN
+                      MOVE '000'         TO WK-CCY-TO
+                      MOVE '000'         TO WK-TIT0-CCY
+                    ELSE
+                       MOVE CCYM-CURRENCY-CODE-DIG
+                                            TO WK-CCY-TO
+                       MOVE CCYM-CURRENCY-CODE-DIG
+                                            TO WK-TIT0-CCY
+                    END-IF
+                 ELSE
+                    MOVE RPTL-CCY        TO WK-TIT0-CCY
+                    MOVE RPTL-CCY        TO WK-CCY-TO
+                 END-IF
+              END-IF
+              IF RPTL-SUM-FLG = 'S'                                     02390000
+              THEN                                                      02400000
+                  MOVE 'SUMM      '    TO WK-TIT0-DESC                  02410000
+              ELSE                                                      02420000
+                  MOVE 'DETAIL    '    TO WK-TIT0-DESC                  02430000
+              END-IF                                                    02440000
+      *       MOVE RPTL-RPT-NO TO WK-TIT0-RP-NO                         02590000
+              IF RPTL-RPT-NO(4:1) = 'D' OR 'M' OR 'H' OR 'Y' OR 'O'
+              THEN
+                  EVALUATE RPTL-RPT-NO(1:3)
+                     WHEN 'DEP'
+                        MOVE 'DEP'            TO WK-TIT0-RP-NO(1:3)
+                        MOVE RPTL-RPT-NO(4:7) TO WK-TIT0-RP-NO(4:7)
+                     WHEN 'LON'
+                        MOVE 'LON'            TO WK-TIT0-RP-NO(1:3)
+                        MOVE RPTL-RPT-NO(4:1) TO WK-TIT0-RP-NO(4:1)
+                        IF RPTL-RPT-NO(5:2) = 'CF'
+                        THEN
+                           MOVE RPTL-RPT-NO(5:6) TO
+                                              WK-TIT0-RP-NO(5:6)
+                        ELSE
+                           IF RPTL-RPT-NO(5:2) = 'LX'
+                           THEN
+                              MOVE RPTL-RPT-NO(5:6) TO
+                                                 WK-TIT0-RP-NO(5:6)
+                           ELSE
+                              MOVE 'LN'       TO WK-TIT0-RP-NO(5:2)
+                              MOVE RPTL-RPT-NO(5:4)
+                                              TO WK-TIT0-RP-NO(7:4)
+                           END-IF
+                        END-IF
+                     WHEN 'PAY'
+                        MOVE 'PAY'            TO WK-TIT0-RP-NO(1:3)
+                        MOVE RPTL-RPT-NO(4:1) TO WK-TIT0-RP-NO(4:1)
+                        MOVE 'RM'             TO WK-TIT0-RP-NO(5:2)
+                        IF RPTL-RPT-NO(5:1) = 'C'
+                        THEN
+                           MOVE 'CO'          TO WK-TIT0-RP-NO(5:2)
+                        END-IF
+                        IF RPTL-RPT-NO(5:1) = 'G'
+                        THEN
+                           MOVE 'GC'          TO WK-TIT0-RP-NO(5:2)
+                        END-IF
+                        MOVE 0                TO WK-TIT0-RP-NO(7:1)
+                        MOVE RPTL-RPT-NO(6:3) TO WK-TIT0-RP-NO(8:3)
+                     WHEN 'COM'
+                        MOVE 'COM'            TO WK-TIT0-RP-NO(1:3)
+                        MOVE RPTL-RPT-NO(4:7) TO WK-TIT0-RP-NO(4:7)
+                     WHEN OTHER
+                        CONTINUE
+                  END-EVALUATE
+                  IF RPTL-RPT-NO(1:3) = 'RIA'
+                  THEN
+                      MOVE 'ZEX'              TO WK-TIT0-RP-NO(1:3)
+                      MOVE RPTL-RPT-NO(4:1) TO WK-TIT0-RP-NO(4:1)
+                      MOVE RPTL-RPT-NO(2:2) TO WK-TIT0-RP-NO(5:2)
+                      MOVE RPTL-RPT-NO(5:4) TO WK-TIT0-RP-NO(7:4)
+                  END-IF
+              ELSE
+                 IF RPTL-RPT-NO(3:1) = 'D' OR 'M' OR 'H' OR 'Y' OR 'O'
+                 THEN
+                   EVALUATE RPTL-RPT-NO(1:2)
+                     WHEN 'CA'
+                     WHEN 'SA'
+                     WHEN 'FS'
+                     WHEN 'FD'
+                        MOVE 'DEP'            TO WK-TIT0-RP-NO(1:3)
+                        MOVE RPTL-RPT-NO(3:1) TO WK-TIT0-RP-NO(4:1)
+                        MOVE RPTL-RPT-NO(1:2) TO WK-TIT0-RP-NO(5:2)
+                        MOVE RPTL-RPT-NO(4:4) TO WK-TIT0-RP-NO(7:4)
+                     WHEN 'LN'
+                     WHEN 'FC'
+                     WHEN 'LX'
+                        MOVE 'LON'            TO WK-TIT0-RP-NO(1:3)
+                        MOVE RPTL-RPT-NO(3:1) TO WK-TIT0-RP-NO(4:1)
+                        MOVE RPTL-RPT-NO(1:2) TO WK-TIT0-RP-NO(5:2)
+                        MOVE RPTL-RPT-NO(4:4) TO WK-TIT0-RP-NO(7:4)
+                        IF RPTL-RPT-NO(8:1) = 'C'
+                        THEN
+                           MOVE 'C'           TO WK-TIT0-RP-NO(4:1)
+                        END-IF
+                     WHEN 'CO'
+                     WHEN 'GC'
+                     WHEN 'BC'
+                     WHEN 'RM'
+                        MOVE 'PAY'            TO WK-TIT0-RP-NO(1:3)
+                        MOVE RPTL-RPT-NO(3:1) TO WK-TIT0-RP-NO(4:1)
+                        MOVE RPTL-RPT-NO(1:2) TO WK-TIT0-RP-NO(5:2)
+                        MOVE RPTL-RPT-NO(4:4) TO WK-TIT0-RP-NO(7:4)
+                        IF RPTL-RPT-NO(8:1) = 'C'
+                        THEN
+                           MOVE 'C'           TO WK-TIT0-RP-NO(4:1)
+                        END-IF
+                     WHEN 'CI'
+                     WHEN 'CS'
+                     WHEN 'CM'
+                     WHEN 'GL'
+                     WHEN 'ME'
+                     WHEN 'CL'
+                        MOVE 'COM'            TO WK-TIT0-RP-NO(1:3)
+                        MOVE RPTL-RPT-NO(3:1) TO WK-TIT0-RP-NO(4:1)
+                        MOVE RPTL-RPT-NO(1:2) TO WK-TIT0-RP-NO(5:2)
+                        MOVE RPTL-RPT-NO(4:4) TO WK-TIT0-RP-NO(7:4)
+                        IF RPTL-RPT-NO(8:1) = 'C'
+                        THEN
+                           MOVE 'C'           TO WK-TIT0-RP-NO(4:1)
+                        END-IF
+                     WHEN 'AS'
+                     WHEN 'IA'
+                     WHEN 'EB'
+                     WHEN 'TC'
+130820               WHEN 'DC'
+130820               WHEN 'NT'
+141230               WHEN 'AM'
+                        MOVE 'ZEX'            TO WK-TIT0-RP-NO(1:3)
+                        MOVE RPTL-RPT-NO(3:1) TO WK-TIT0-RP-NO(4:1)
+                        MOVE RPTL-RPT-NO(1:2) TO WK-TIT0-RP-NO(5:2)
+                        MOVE RPTL-RPT-NO(4:4) TO WK-TIT0-RP-NO(7:4)
+                        IF RPTL-RPT-NO(8:1) = 'C'
+                        THEN
+                           MOVE 'C'           TO WK-TIT0-RP-NO(4:1)
+                        END-IF
+                     WHEN OTHER
+                        CONTINUE
+                  END-EVALUATE
+                END-IF
+                 EVALUATE RPTL-RPT-NO(2:2)
+                   WHEN 'CA'
+                   WHEN 'SA'
+                   WHEN 'FS'
+                   WHEN 'FD'
+                      MOVE 'DEPD'             TO WK-TIT0-RP-NO(1:4)
+                      MOVE RPTL-RPT-NO(2:6)   TO WK-TIT0-RP-NO(5:6)
+                   WHEN 'LN'
+                   WHEN 'FC'
+                   WHEN 'LX'
+                      MOVE 'LOND'             TO WK-TIT0-RP-NO(1:4)
+                      MOVE RPTL-RPT-NO(2:6)   TO WK-TIT0-RP-NO(5:6)
+                   WHEN 'CO'
+                   WHEN 'GC'
+                   WHEN 'BC'
+                   WHEN 'RM'
+                      MOVE 'PAYD'             TO WK-TIT0-RP-NO(1:4)
+                      MOVE RPTL-RPT-NO(2:6)   TO WK-TIT0-RP-NO(5:6)
+                   WHEN 'CI'
+                   WHEN 'CS'
+                   WHEN 'CM'
+                   WHEN 'GL'
+                   WHEN 'ME'
+                   WHEN 'CL'
+                      IF RPTL-RPT-NO(1:2) = 'DC'
+                      THEN
+                         MOVE 'ZEX'           TO WK-TIT0-RP-NO(1:3)
+                         MOVE RPTL-RPT-NO(3:1)
+                                              TO WK-TIT0-RP-NO(4:1)
+                         MOVE RPTL-RPT-NO(1:2)
+                                              TO WK-TIT0-RP-NO(5:2)
+                         MOVE RPTL-RPT-NO(4:4)
+                                              TO WK-TIT0-RP-NO(7:4)
+                      ELSE
+                         MOVE 'COMD'          TO WK-TIT0-RP-NO(1:4)
+                         MOVE RPTL-RPT-NO(2:6) TO WK-TIT0-RP-NO(5:6)
+                      END-IF
+                   WHEN 'AS'
+                   WHEN 'IA'
+                   WHEN 'EB'
+                   WHEN 'TC'
+130820             WHEN 'DC'
+130820             WHEN 'NT'
+141230             WHEN 'AM'
+                      MOVE 'ZEXD'             TO WK-TIT0-RP-NO(1:4)
+                      MOVE RPTL-RPT-NO(2:6)   TO WK-TIT0-RP-NO(5:6)
+                   WHEN OTHER
+                      CONTINUE
+                END-EVALUATE
+              END-IF
+              IF RPTL-RPT-NO(1:9) = 'DPMCA0202' OR 'DPMFD0302'
+              THEN
+                 MOVE 'DEPD'                  TO WK-TIT0-RP-NO(1:4)
+                 MOVE RPTL-RPT-NO(4:6)        TO WK-TIT0-RP-NO(5:6)
+              END-IF
+              IF RPTL-RPT-NO(1:8) = 'DSAD1006'
+              THEN
+                 MOVE 'DEPM'                  TO WK-TIT0-RP-NO(1:4)
+                 MOVE RPTL-RPT-NO(2:2)        TO WK-TIT0-RP-NO(5:2)
+                 MOVE RPTL-RPT-NO(5:4)        TO WK-TIT0-RP-NO(7:4)
+              END-IF
+              IF RPTL-RPT-NO(1:8) = 'DPFD0406'
+              THEN
+                 MOVE 'DEPD'                  TO WK-TIT0-RP-NO(1:4)
+                 MOVE RPTL-RPT-NO(3:2)        TO WK-TIT0-RP-NO(5:2)
+                 MOVE RPTL-RPT-NO(5:4)        TO WK-TIT0-RP-NO(7:4)
+              END-IF
+              IF RPTL-RPT-NO(1:8) = 'ZTCDUMCH'
+              THEN
+                 MOVE 'ZEXD'                  TO WK-TIT0-RP-NO(1:4)
+                 MOVE RPTL-RPT-NO(5:6)        TO WK-TIT0-RP-NO(5:6)
+              END-IF
+              MOVE 76         TO  WK-MAX-LINE-CNT                       02600000
+              MOVE 32          TO  WK-TIT0-CNT WK-TIT2-CNT              02610000
+              MOVE 24          TO   WK-TIT1-CNT                         02620000
+           END-IF                                                       02630000
+           MOVE 'TAI FUNG BANK LIMITED   '  TO                          02640000
+                                        WK-TIT0-BANK-NAME               02650000
+           ACCEPT  WK-DATE  FROM  DATE                                  02660001
+
+           MOVE  WK-DATE(5:2)       TO  WK-TIT0-DATE(1:2)
+           EVALUATE WK-DATE(3:2)
+              WHEN  01
+                 MOVE 'JAN'         TO  WK-TIT0-DATE(3:3)
+              WHEN  02
+                 MOVE 'FEB'         TO  WK-TIT0-DATE(3:3)
+              WHEN  03
+                 MOVE 'MAR'         TO  WK-TIT0-DATE(3:3)
+              WHEN  04
+                 MOVE 'APR'         TO  WK-TIT0-DATE(3:3)
+              WHEN  05
+                 MOVE 'MAY'         TO  WK-TIT0-DATE(3:3)
+              WHEN  06
+                 MOVE 'JUN'         TO  WK-TIT0-DATE(3:3)
+              WHEN  07
+                 MOVE 'JUL'         TO  WK-TIT0-DATE(3:3)
+              WHEN  08
+                 MOVE 'AUG'         TO  WK-TIT0-DATE(3:3)
+              WHEN  09
+                 MOVE 'SEP'         TO  WK-TIT0-DATE(3:3)
+              WHEN  10
+                 MOVE 'OCT'         TO  WK-TIT0-DATE(3:3)
+              WHEN  11
+                 MOVE 'NOV'         TO  WK-TIT0-DATE(3:3)
+              WHEN  12
+                 MOVE 'DEC'         TO  WK-TIT0-DATE(3:3)
+           END-EVALUATE
+
+           MOVE  20                 TO  WK-TIT0-DATE(6:2)
+           MOVE  WK-DATE(1:2)       TO  WK-TIT0-DATE(8:2)
+           MOVE  WK-TIT0-FILLER       TO  WK-TIT0-END                   02700000
+           MOVE  3                    TO  WK-ADVN                       02710000
+           MOVE  WK-TIT0              TO  WK-LINE                       02720000
+           PERFORM S00-WRITE-RPG-LINE                                   02730000
+           MOVE RDES-RPT-NAME(1:50)   TO WK-TIT1-REP-NAME               02740000
+           MOVE RPTL-BR-DP            TO WK-BR-DP
+           EVALUATE WK-BR
+              WHEN  00
+                 MOVE WK-BR-00      TO  WK-TIT1-BANK-NAME(1:30)
+              WHEN  01
+                 MOVE WK-BR-01      TO  WK-TIT1-BANK-NAME(1:30)
+              WHEN OTHER
+                 MOVE 003             TO WK-BRHM-INST-NO
+                 MOVE ZEROS           TO WK-BRHM-BRDP
+                 MOVE RPTL-BR-DP      TO WK-BRHM-BRDP(12:5)
+                 MOVE WK-BRHM-KEY     TO BRHM-KEY-1
+                 PERFORM S00-GET-BR-DP-NAME
+                 IF SQLCODE = 100
+                 THEN
+                    MOVE  SPACES         TO WK-TIT1-BANK-NAME(1:30)
+                 ELSE
+                    MOVE BRHM-ENGLISH-NAME(1:30)
+                                            TO WK-TIT1-BANK-NAME(1:30)
+                 END-IF
+           END-EVALUATE
+           ACCEPT WK-TIME   FROM  TIME                                  02760000
+           MOVE  WK-TIME(1:2)       TO  WK-TIT1-TIME(1:2)               02770000
+           MOVE  WK-TIME(3:2)       TO  WK-TIT1-TIME(4:2)               02780000
+           MOVE  WK-TIME(5:2)       TO  WK-TIT1-TIME(7:2)               02790000
+           MOVE  WK-TIT1-FILLER       TO  WK-TIT1-END                   02800000
+           MOVE  1                    TO  WK-ADVN                       02810000
+           MOVE  WK-TIT1              TO  WK-LINE                       02820000
+           PERFORM S00-WRITE-RPG-LINE                                   02830000
+           EVALUATE LKG-RP-FREQUENCY                                    02840000
+             WHEN  'D'                                                  02850000
+                  MOVE 'DAILY'        TO WK-TIT2-REP-TYPE               02860000
+             WHEN  'M'                                                  02870000
+                  MOVE 'MONTHLY'      TO WK-TIT2-REP-TYPE               02880000
+             WHEN  'H'                                                  02890000
+                  MOVE 'HALF YEARLY'  TO WK-TIT2-REP-TYPE               02900000
+             WHEN  'Y'                                                  02910000
+                  MOVE 'YEARLY '      TO WK-TIT2-REP-TYPE               02920000
+             WHEN  'O'                                                  02930000
+                  MOVE 'ON REQUEST'   TO WK-TIT2-REP-TYPE               02940000
+           END-EVALUATE                                                 02950000
+      *    IF WK-TIT0-RP-NO(4:1) = 'C'
+      *    THEN
+      *       MOVE 'CATCH UP '        TO WK-TIT2-REP-TYPE
+      *    END-IF
+           ADD   1                    TO  WK-PAGE-NO                    02960000
+           MOVE SPACES                TO WK-TIT2-CCY-TYPE
+           IF RPTL-CCY NOT =  SPACES
+              AND WK-CCY-TO NOT = ZEROS
+              AND WK-CCY-TO NOT = '000'
+           THEN
+              MOVE  '/'               TO WK-TIT2-CCY-TYPE(1:1)
+              MOVE  WK-CCY-TO         TO WK-TIT2-CCY-TYPE(2:3)
+              MOVE  WK-CCY-TO         TO CCYM-CURRENCY-CODE-DIG
+              PERFORM S00-GET-CCY-TO-CHR
+              IF SQLCODE = 100
+              THEN
+                 MOVE SPACES          TO WK-TIT2-CCY-TYPE(1:13)
+              ELSE
+                 MOVE CCYM-CODE       TO WK-TIT2-CCY-TYPE(8:3)
+              END-IF
+              MOVE '('                TO WK-TIT2-CCY-TYPE(7:1)
+              MOVE ')'                TO WK-TIT2-CCY-TYPE(11:1)
+           END-IF
+           MOVE  WK-PAGE-NO           TO  WK-TIT2-PAGE-NO               02970000
+           MOVE  WK-TIT2-FILLER       TO  WK-TIT2-END                   02980000
+           MOVE  1                    TO  WK-ADVN                       02990000
+           MOVE  WK-TIT2              TO  WK-LINE                       03000000
+           PERFORM S00-WRITE-RPG-LINE                                   03010000
+           MOVE WK-AC-DATE(7:2)       TO  WK-TIT3-GL-DATE(1:2)
+           EVALUATE WK-AC-DATE(5:2)
+              WHEN  01
+                 MOVE 'JAN'           TO  WK-TIT3-GL-DATE(3:3)
+              WHEN  02
+                 MOVE 'FEB'           TO  WK-TIT3-GL-DATE(3:3)
+              WHEN  03
+                 MOVE 'MAR'           TO  WK-TIT3-GL-DATE(3:3)
+              WHEN  04
+                 MOVE 'APR'           TO  WK-TIT3-GL-DATE(3:3)
+              WHEN  05
+                 MOVE 'MAY'           TO  WK-TIT3-GL-DATE(3:3)
+              WHEN  06
+                 MOVE 'JUN'           TO  WK-TIT3-GL-DATE(3:3)
+              WHEN  07
+                 MOVE 'JUL'           TO  WK-TIT3-GL-DATE(3:3)
+              WHEN  08
+                 MOVE 'AUG'           TO  WK-TIT3-GL-DATE(3:3)
+              WHEN  09
+                 MOVE 'SEP'           TO  WK-TIT3-GL-DATE(3:3)
+              WHEN  10
+                 MOVE 'OCT'           TO  WK-TIT3-GL-DATE(3:3)
+              WHEN  11
+                 MOVE 'NOV'           TO  WK-TIT3-GL-DATE(3:3)
+              WHEN  12
+                 MOVE 'DEC'           TO  WK-TIT3-GL-DATE(3:3)
+           END-EVALUATE
+
+           MOVE  WK-AC-DATE(1:4)      TO  WK-TIT3-GL-DATE(6:4)          02690000
+           MOVE  20                   TO  WK-YEAR(1:2)
+           MOVE  WK-AC-DATE(3:2)      TO  WK-YEAR(3:2)
+           MOVE  WK-AC-DATE(5:2)      TO  WK-MONTH
+           MOVE  WK-AC-DATE(7:2)      TO  WK-DAY
+           IF WK-MONTH = 1 OR WK-MONTH = 2
+           THEN
+              COMPUTE WK-MONTH = WK-MONTH + 12
+              END-COMPUTE
+              COMPUTE WK-YEAR = WK-YEAR - 1
+              END-COMPUTE
+           END-IF
+           COMPUTE WK-TEMP-INT1 = WK-MONTH  * 2
+           END-COMPUTE
+           ADD 1                      TO WK-MONTH
+           COMPUTE WK-TEMP-INT2 = WK-MONTH  * 3
+           END-COMPUTE
+           DIVIDE WK-TEMP-INT2  BY 5  GIVING WK-TEMP-INT3
+           COMPUTE WK-TEMP-INT4 = WK-YEAR / 4
+           END-COMPUTE
+           COMPUTE WK-TEMP-INT5 = WK-YEAR / 100
+           END-COMPUTE
+           COMPUTE WK-TEMP-INT6 = WK-YEAR / 400
+           END-COMPUTE
+           MOVE ZEROS                 TO WK-TEMP-INT7
+           ADD  WK-DAY                TO WK-TEMP-INT7
+           ADD  WK-YEAR               TO WK-TEMP-INT7
+           ADD  WK-TEMP-INT1          TO WK-TEMP-INT7
+           ADD  WK-TEMP-INT3          TO WK-TEMP-INT7
+           ADD  WK-TEMP-INT4          TO WK-TEMP-INT7
+           COMPUTE WK-TEMP-INT7 = WK-TEMP-INT7 - WK-TEMP-INT5
+           END-COMPUTE
+           ADD  WK-TEMP-INT6          TO WK-TEMP-INT7
+           DIVIDE WK-TEMP-INT7  BY 7  GIVING WK-TEMP-INT8
+                            REMAINDER WK-TEMP-WEEK
+           EVALUATE WK-TEMP-WEEK
+             WHEN  0
+               MOVE '(MON)'           TO WK-TIT3-WEEK
+             WHEN  1
+               MOVE '(TUE)'           TO WK-TIT3-WEEK
+             WHEN  2
+               MOVE '(WED)'           TO WK-TIT3-WEEK
+             WHEN  3
+               MOVE '(THU)'           TO WK-TIT3-WEEK
+             WHEN  4
+               MOVE '(FRI)'           TO WK-TIT3-WEEK
+             WHEN  5
+               MOVE '(SAT)'           TO WK-TIT3-WEEK
+             WHEN  6
+               MOVE '(SUN)'           TO WK-TIT3-WEEK
+           END-EVALUATE
+      *                                                                 03075001
+           MOVE  1                    TO  WK-ADVN                       03080000
+           MOVE  WK-TIT3              TO  WK-LINE                       03090000
+           PERFORM S00-WRITE-RPG-LINE                                   03100000
+           MOVE RPTL-BR-DP            TO  WK-BR-DP
+           MOVE RPTL-CCY              TO  WK-CCY                        03210000
+           MOVE  1                   TO  WK-ADVN                        03780000
+           MOVE WK-BOTT5             TO  WK-LINE                        03790000
+           PERFORM S00-WRITE-RPG-LINE                                   03800000
+           MOVE  1                   TO  WK-ADVN                        03780000
+           MOVE WK-BOTT5             TO  WK-LINE                        03790000
+           PERFORM S00-WRITE-RPG-LINE                                   03800000
+           IF WK-NO-RPT-DES-IND = 'N'  THEN                             03110000
+              MOVE ZEROS             TO WK-RDES-COUNT
+              PERFORM VARYING WK-I FROM 1 BY 1 UNTIL WK-I > RDES-CNT    03120000
+                 PERFORM S00-WRITE-COUNT
+              END-PERFORM                                               03170000
+              IF WK-RDES-COUNT NOT = ZEROS
+              THEN
+                 IF RPTL-BR-DP(2:2) NOT = '00'
+                 THEN
+                    IF WK-RDES-CNT = ZEROS
+                    THEN
+                       PERFORM S00-SET-TITLE-RECORD
+                    END-IF
+                    MOVE ZEROS       TO WK-RDES-TEMP
+                    PERFORM S00-GEN-LON-TITLE
+                 END-IF
+              ELSE
+                 PERFORM VARYING WK-I FROM 1 BY 1                       03120000
+                 UNTIL WK-I > RDES-CNT                                  03120000
+                    IF RDES-TXT-IND(WK-I) = 'S'
+                    THEN
+                       MOVE 1                  TO  WK-ADVN              03380000
+                       MOVE RDES-TXT(WK-I) TO WK-LINE                   03140000
+                       PERFORM S00-WRITE-RPG-LINE                       03150000
+                    END-IF
+                 END-PERFORM                                            03170000
+                 EVALUATE RPTL-FMT-TYPE
+                    WHEN 'A'
+                       PERFORM VARYING WK-I FROM 1 BY 1                 03120000
+                       UNTIL WK-I > WK-A OR WK-I > 10                   03120000
+                          MOVE 1                   TO  WK-ADVN          03380000
+                          MOVE WK-FMT-TXT(1,WK-I)  TO WK-LINE           03140000
+                          PERFORM S00-WRITE-RPG-LINE                    03150000
+                       END-PERFORM                                      03170000
+                    WHEN 'B'
+                       PERFORM VARYING WK-I FROM 1 BY 1                 03120000
+                       UNTIL WK-I > WK-B OR WK-I > 10                   03120000
+                          MOVE 1                   TO  WK-ADVN          03380000
+                          MOVE WK-FMT-TXT(2,WK-I)  TO WK-LINE           03140000
+                          PERFORM S00-WRITE-RPG-LINE                    03150000
+                       END-PERFORM                                      03170000
+                    WHEN 'C'
+                       PERFORM VARYING WK-I FROM 1 BY 1                 03120000
+                       UNTIL WK-I > WK-C OR WK-I > 10                   03120000
+                          MOVE 1                   TO  WK-ADVN          03380000
+                          MOVE WK-FMT-TXT(3,WK-I)  TO WK-LINE           03140000
+                          PERFORM S00-WRITE-RPG-LINE                    03150000
+                       END-PERFORM                                      03170000
+                    WHEN 'E'
+                       PERFORM VARYING WK-I FROM 1 BY 1                 03120000
+                       UNTIL WK-I > WK-D OR WK-I > 10                   03120000
+                          MOVE 1                   TO  WK-ADVN          03380000
+                          MOVE WK-FMT-TXT(4,WK-I)  TO WK-LINE           03140000
+                          PERFORM S00-WRITE-RPG-LINE                    03150000
+                       END-PERFORM                                      03170000
+                    WHEN 'F'
+                       PERFORM VARYING WK-I FROM 1 BY 1                 03120000
+                       UNTIL WK-I > WK-E OR WK-I > 10                   03120000
+                          MOVE 1                   TO  WK-ADVN          03380000
+                          MOVE WK-FMT-TXT(5,WK-I)  TO WK-LINE           03140000
+                          PERFORM S00-WRITE-RPG-LINE                    03150000
+                       END-PERFORM                                      03170000
+                    WHEN OTHER
+                       CONTINUE
+                 END-EVALUATE
+              END-IF
+           END-IF                                                       03180000
+           MOVE 'N'                   TO  WK-PAGE-END                   03220000
+           EXIT.                                                        03230000
+       S00-GEN-LON-TITLE.
+           PERFORM VARYING WK-P FROM 1 BY 1
+              UNTIL WK-P > WK-RDES-COUNT
+                 MOVE 1                        TO  WK-ADVN              03380000
+                 MOVE WK-RDES-FMT(WK-P)        TO  WK-RDES-TEMP         03390000
+                 MOVE RDES-TXT(WK-RDES-TEMP)   TO  WK-LINE              03390000
+                 MOVE 0                        TO  WK-J                 03400000
+                 PERFORM VARYING WK-K FROM 1 BY 1                       03410000
+                          UNTIL WK-K > 132
+                   IF WK-LINE(WK-K:1) = '*'                             03420000
+                   THEN
+                     ADD 1                    TO  WK-J                  03430000
+                     MOVE WK-RDES-TXT(WK-P)(WK-J:1)                     03440000
+                                           TO WK-LINE(WK-K:1)
+                   END-IF                                               03450000
+                 END-PERFORM                                            03460000
+                 PERFORM S00-WRITE-RPG-LINE                             03520000
+           END-PERFORM
+           EXIT.
+      *****************************                                     03240000
+      * PROCESS TITEL                                                   03250000
+      *****************************                                     03260000
+       S00-WRITE-COUNT.
+           IF RDES-TXT-IND(WK-I) = 'P' THEN                             03130000
+              ADD 1                  TO WK-RDES-COUNT
+           END-IF                                                       03160000
+           EXIT.
+       S00-SET-TITLE-RECORD.
+           MOVE WK-RDES-COUNT TO WK-RDES-CNT
+           MOVE WK-RDES-COUNT TO WK-RDES-COUNT-1
+           IF WK-RDES-FMT(1) = ZEROS
+           OR WK-RDES-FMT(1) = LOW-VALUE
+           THEN
+              PERFORM VARYING WK-P FROM 1 BY 1
+                 UNTIL WK-P > WK-RDES-COUNT OR WK-EOF = 'Y'
+                 IF WK-EOF NOT = 'Y'
+                 THEN
+                    MOVE RPTL-FMT-NO   TO WK-RDES-FMT(WK-P)
+                    MOVE RPTL-TXT      TO WK-RDES-TXT(WK-P)
+                 END-IF
+                 IF WK-P < WK-RDES-COUNT
+                 THEN
+                   READ RPFDATA AT END MOVE 'Y' TO WK-EOF END-READ
+                 END-IF
+              END-PERFORM
+           END-IF
+           PERFORM VARYING WK-P FROM 1 BY 1
+              UNTIL WK-P > WK-RDES-COUNT-1 OR WK-EOF = 'Y'
+              MOVE 'N'           TO WK-FND-FLG
+              PERFORM VARYING WK-X FROM 1 BY 1
+                 UNTIL WK-X > WK-RDES-COUNT-1
+                 IF RPTL-FMT-NO = WK-RDES-FMT(WK-X)
+                 THEN
+                   MOVE RPTL-TXT       TO WK-RDES-TXT(WK-X)
+                   MOVE 'Y'            TO WK-FND-FLG
+                 END-IF
+              END-PERFORM
+              IF WK-FND-FLG = 'N'
+              THEN
+                 MOVE 98                       TO WK-P
+              ELSE
+                 READ RPFDATA AT END MOVE 'Y' TO WK-EOF END-READ
+              END-IF
+           END-PERFORM
+           EXIT.
+      *****************************                                     03240000
+      * PROCESS REPORG LINE                                             03250000
+      *****************************                                     03260000
+       B02-CRT-RPG-LINE.                                                03270000
+           IF WK-NO-RPT-DES-IND = 'Y'  THEN                             03280000
+              PERFORM S00-NO-RPT-DES                                    03290000
+           ELSE                                                         03300000
+              IF RPTL-FMT-NO > RDES-CNT OR RPTL-FMT-NO = 0              03310000
+                 OR RPTL-FMT-NO IS NOT NUMERIC
+              THEN
+                 PERFORM S00-NO-RPT-DES                                 03340000
+              ELSE                                                      03350000
+                 IF RDES-TXT-IND(RPTL-FMT-NO) = 'D'                     03360000
+                   AND RPTL-SPECIAL-PAGE NOT = 'Y'
+                 THEN
+                    MOVE 1                     TO  WK-ADVN              03380000
+                    MOVE RDES-TXT(RPTL-FMT-NO)  TO  WK-LINE             03390000
+                    MOVE  0                    TO  WK-J                 03400000
+                    PERFORM VARYING WK-I FROM 1 BY 1 UNTIL WK-I > 132   03410000
+                       IF WK-LINE(WK-I:1) = '*'  THEN                   03420000
+                          ADD 1                TO  WK-J                 03430000
+                          MOVE RPTL-TXT(WK-J:1) TO  WK-LINE(WK-I:1)     03440000
+                       END-IF                                           03450000
+                    END-PERFORM                                         03460000
+                    PERFORM S00-WRITE-RPG-LINE                          03520000
+                 ELSE                                                   03470000
+                    PERFORM S00-NO-RPT-DES                              03480000
+                 END-IF                                                 03490000
+              END-IF                                                    03500000
+           END-IF                                                       03510000
+           READ RPFDATA AT END  MOVE 'Y'  TO  WK-EOF END-READ.          03560000
+           IF RPTL-BR-DP IS NOT NUMERIC                                 03570000
+              MOVE ZEROS TO RPTL-BR-DP                                  03580000
+           END-IF                                                       03590000
+           IF RPTL-BR-DP NOT = WK-BR-DP OR                              03620000
+              WK-LINE-CNT > WK-MAX-LINE-CNT                             03630000
+              MOVE 'Y'              TO WK-PAGE-END                      03640000
+           END-IF                                                       03650000
+           EVALUATE TRUE
+             WHEN RPTL-CCY = '000'   AND WK-CCY = '000'
+             WHEN RPTL-CCY = WK-CCY
+                CONTINUE
+             WHEN RPTL-CCY = '000'   AND WK-CCY NOT = SPACES
+                MOVE 'Y'             TO WK-CCY-DEF-FLG
+                MOVE 'Y'             TO WK-PAGE-END
+             WHEN RPTL-CCY NOT = SPACES AND WK-CCY = '000'
+                MOVE 'Y'             TO WK-CCY-DEF-FLG
+                MOVE 'Y'             TO WK-PAGE-END
+             WHEN RPTL-CCY NOT = WK-CCY
+                MOVE 'Y'             TO WK-CCY-DEF-FLG
+                MOVE 'Y'             TO WK-PAGE-END
+           END-EVALUATE
+           IF RPTL-BR-DP NOT = WK-BR-DP                                 03610000
+           THEN
+              MOVE 'Y'               TO WK-BRDP-PDEF-FLG
+           END-IF
+           IF WK-LINE-CNT > WK-MAX-LINE-CNT                             03610000
+           THEN
+              MOVE 'Y'               TO WK-MAX-CNT-FLG
+           END-IF
+           IF RPTL-SPECIAL-PAGE = 'Y'
+           THEN
+              MOVE 'Y'               TO WK-PAGE-END
+              MOVE 'Y'               TO WK-SPECIAL-FLG
+              READ RPFDATA AT END  MOVE 'Y'  TO  WK-EOF END-READ        03560000
+           END-IF
+           IF ( WK-SPECIAL-FLG  = 'Y'
+               OR WK-BRDP-PDEF-FLG  = 'Y'
+               OR WK-CCY-DEF-FLG  = 'Y' )
+              AND WK-RDES-COUNT NOT = ZEROS
+           THEN
+              PERFORM S00-SET-TITLE-RECORD
+           END-IF
+           EXIT.                                                        03660000
+      *****************************                                     03670000
+      * WRITE REPORT PAGE RECORD                                        03680000
+      *****************************                                     03690000
+       B03-WRITE-RPG.                                                   03700000
+           MOVE  WK-BR-DP            TO  RPG-DST-BR-DP                  03710000
+           MOVE  WK-BR-DP            TO  RPG-RPT-BR-DP                  03720000
+           MOVE  WK-RPT-NO           TO  RPG-RPT-NO                     03730000
+           MOVE  WK-PAGE-NO          TO  RPG-PAGE-NO                    03740000
+           IF WK-MAX-CNT-FLG = 'Y'
+           THEN
+              MOVE 1                 TO  WK-ADVN                        03780000
+              MOVE WK-BOTT3          TO  WK-LINE                        03790000
+              PERFORM S00-WRITE-RPG-LINE                                03800000
+           END-IF
+           IF WK-SPECIAL-FLG = 'Y' AND
+              RPTL-BR-DP(2:2) NOT = WK-BR
+           THEN
+              MOVE 1                 TO  WK-ADVN                        03780000
+              MOVE WK-BOTT1          TO  WK-LINE                        03790000
+              PERFORM S00-WRITE-RPG-LINE                                03800000
+           ELSE
+              IF WK-SPECIAL-FLG = 'Y'
+              AND RPTL-BR-DP(2:2) = WK-BR
+              THEN
+                 MOVE 1              TO  WK-ADVN                        03780000
+                 MOVE WK-BOTT3       TO  WK-LINE                        03790000
+                 PERFORM S00-WRITE-RPG-LINE                             03800000
+              END-IF
+           END-IF
+           MOVE  RPCRPG              TO RPCRPGT
+           WRITE RPCRPG                                                 03820000
+           MOVE  RPCRPGT             TO RPCRPG
+           MOVE  0                   TO  WK-LINE-CNT                    03830000
+           MOVE  0                   TO  RPG-LINE-CNT                   03840000
+           MOVE WK-BR-DP            TO WK-BR-DP1
+           MOVE WK-BR-DP            TO WK-BR-DP3
+           MOVE RPTL-BR-DP          TO WK-BR-DP2
+           IF RPTL-BR-DP  IS NUMERIC
+      *       AND RPTL-BR-DP NOT = ZEROS
+              AND WK-SPECIAL-FLG = 'Y'
+              AND LKG-RP-BANK-FLG = 1
+              AND RPTL-BR-DP(2:2) NOT = WK-BR
+      *       AND WK-BR2  > WK-BR1
+           THEN
+               MOVE ZEROS           TO WK-BR-COMPUTE
+               MOVE WK-BR2          TO WK-INDX3
+               IF RPTL-BR-DP = ZEROS
+               THEN
+                  MOVE 100          TO WK-INDX3
+               END-IF
+               COMPUTE WK-BR-COMPUTE = WK-BR2 - WK-BR1
+               IF WK-BR-COMPUTE  >= 1
+                  AND WK-BR-COMPUTE IS NUMERIC
+               THEN
+                 ADD   1            TO WK-BR3
+                 PERFORM VARYING WK-INDX FROM WK-BR3 BY 1
+                   UNTIL WK-INDX >=  WK-INDX3
+                   MOVE WK-INDX TO WK-BR1
+                   SET BRHM-FND-NO          TO TRUE
+                     PERFORM S00-FND-BRHM
+                   IF BRHM-FND-YES
+                   THEN
+                      PERFORM B05-10-WRITE-BANK-TITLE
+                      MOVE RPCRPG            TO RPCRPGT
+                      WRITE RPCRPG                                      03820000
+                      MOVE RPCRPGT           TO RPCRPG
+                      MOVE 0         TO  WK-LINE-CNT                    03830000
+                      MOVE 0         TO  RPG-LINE-CNT                   03840000
+                   END-IF
+                 END-PERFORM
+              END-IF
+           END-IF
+           EXIT.                                                        03850000
+      *****************************                                     03670000
+      * WRITE REPORT PAGE RECORD                                        03680000
+      *****************************                                     03690000
+       B05-WRITE-RPG.                                                   03700000
+           MOVE  WK-BR-DP           TO  RPG-DST-BR-DP                   03710000
+           MOVE  WK-BR-DP           TO  RPG-RPT-BR-DP                   03720000
+           MOVE  WK-RPT-NO          TO  RPG-RPT-NO                      03730000
+           MOVE  WK-PAGE-NO         TO  RPG-PAGE-NO                     03740000
+           IF WK-BRDP-PDEF-FLG = 'Y'
+           THEN
+              IF RPTL-BR-DP (2:2)  NOT = WK-BR
+              THEN
+                 MOVE 1             TO  WK-ADVN                         03780000
+                 MOVE WK-BOTT1      TO  WK-LINE                         03790000
+                 PERFORM S00-WRITE-RPG-LINE                             03800000
+              END-IF
+           END-IF
+           MOVE  RPCRPG              TO RPCRPGT
+           WRITE RPCRPG                                                 03820000
+           MOVE  RPCRPGT             TO RPCRPG
+           MOVE  0                  TO  WK-LINE-CNT                     03830000
+           MOVE  0                  TO  RPG-LINE-CNT                    03840000
+           MOVE WK-BR-DP            TO WK-BR-DP1
+           MOVE WK-BR-DP            TO WK-BR-DP3
+           MOVE RPTL-BR-DP          TO WK-BR-DP2
+           IF RPTL-BR-DP  IS NUMERIC
+      *       AND RPTL-BR-DP NOT = ZEROS
+              AND WK-BRDP-PDEF-FLG = 'Y'
+              AND LKG-RP-BANK-FLG = 1
+      *       AND WK-BR2  > WK-BR1
+           THEN
+               MOVE ZEROS           TO WK-BR-COMPUTE
+               MOVE WK-BR2          TO WK-INDX3
+               IF RPTL-BR-DP = ZEROS
+               THEN
+                  MOVE 100          TO WK-INDX3
+               END-IF
+               COMPUTE WK-BR-COMPUTE = WK-BR2 - WK-BR1
+               IF WK-BR-COMPUTE  >= 1
+                  AND WK-BR-COMPUTE IS NUMERIC
+               THEN
+                 ADD   1            TO WK-BR3
+                 PERFORM VARYING WK-INDX FROM WK-BR3 BY 1
+                   UNTIL WK-INDX >= WK-INDX3
+                   MOVE WK-INDX TO WK-BR1
+                   SET BRHM-FND-NO          TO TRUE
+                   PERFORM S00-FND-BRHM
+                   IF BRHM-FND-YES
+                   THEN
+                      PERFORM B05-10-WRITE-BANK-TITLE
+                      MOVE RPCRPG            TO RPCRPGT
+                      WRITE RPCRPG                                      03820000
+                      MOVE RPCRPGT           TO RPCRPG
+                      MOVE 0         TO  WK-LINE-CNT                    03830000
+                      MOVE 0         TO  RPG-LINE-CNT                   03840000
+                   END-IF
+                 END-PERFORM
+              END-IF
+           END-IF
+           EXIT.                                                        03850000
+      *****************************                                     03670000
+      * WRITE REPORT PAGE RECORD                                        03680000
+      *****************************                                     03690000
+       B04-WRITE-RPG.                                                   03700000
+           MOVE  WK-BR-DP          TO  RPG-DST-BR-DP                    03710000
+           MOVE  WK-BR-DP          TO  RPG-RPT-BR-DP                    03720000
+           MOVE  WK-RPT-NO         TO  RPG-RPT-NO                       03730000
+           MOVE  WK-PAGE-NO        TO  RPG-PAGE-NO                      03740000
+           IF WK-BR NOT = ZEROS
+           THEN
+              MOVE 1                 TO  WK-ADVN                        03780000
+              MOVE WK-BOTT5          TO  WK-LINE                        03790000
+              PERFORM S00-WRITE-RPG-LINE                                03800000
+              MOVE 1                 TO  WK-ADVN                        03780000
+              MOVE WK-BOTT1          TO  WK-LINE                        03790000
+              PERFORM S00-WRITE-RPG-LINE                                03800000
+           END-IF
+           MOVE WK-BR-DP            TO WK-BR-DP1
+           MOVE WK-BR-DP            TO WK-BR-DP3
+           IF WK-BR1 IS NUMERIC
+              AND WK-BR1 NOT = ZEROS
+              AND WK-BR1 <= WK-BRHM-LAST
+              AND LKG-RP-BANK-FLG = 1
+           THEN
+              MOVE RPCRPG            TO RPCRPGT
+              WRITE RPCRPG                                              03820000
+              MOVE RPCRPGT           TO RPCRPG
+              MOVE 0               TO  WK-LINE-CNT                      03830000
+              MOVE 0               TO  RPG-LINE-CNT                     03840000
+              COMPUTE WK-BR3 = WK-BR3 + 1
+              PERFORM VARYING WK-INDX FROM WK-BR3 BY 1
+                UNTIL WK-INDX > 99
+                SET BRHM-FND-NO          TO TRUE
+                  PERFORM S00-FND-BRHM
+                IF BRHM-FND-YES
+                THEN
+                   MOVE WK-INDX TO WK-BR1
+                   PERFORM B05-10-WRITE-BANK-TITLE
+                   IF WK-BR1  NOT =  WK-BRHM-LAST
+                   THEN
+                      MOVE RPCRPG            TO RPCRPGT
+                      WRITE RPCRPG                                      03820000
+                      MOVE RPCRPGT           TO RPCRPG
+                      MOVE 0       TO  WK-LINE-CNT                      03830000
+                      MOVE 0       TO  RPG-LINE-CNT                     03840000
+                   END-IF
+                END-IF
+              END-PERFORM
+           END-IF
+           EXIT.                                                        03850000
+      *                                                                 03860000
+       B05-10-WRITE-BANK-TITLE.
+           MOVE RPTL-RPT-NO     TO  RDES-RPT-NO                         02270000
+           READ RPFRDES INVALID KEY                                     02280000
+                        DISPLAY 'RPFRDES' NTFD-MSG                      02290000
+                        DISPLAY 'RDES-RPT-NO' RDES-RPT-NO
+                        MOVE 'Y'         TO WK-NO-RPT-DES-IND           02300000
+                    NOT INVALID KEY                                     02310000
+                        MOVE 'N'         TO WK-NO-RPT-DES-IND           02320000
+           END-READ                                                     02330000
+           MOVE ZEROS                    TO WK-TIT0-BR
+           MOVE 'A'                      TO WK-TIT0-BR(1:1)
+           MOVE '0'                   TO WK-TIT0-BR(2:1)
+           MOVE WK-BRHM-AREA-TMP         TO WK-TIT0-BR(3:1)             02360000
+           IF WK-TIT0-BR(3:1) NOT = 0
+           THEN
+               MOVE 0                 TO WK-TIT0-BR(3:1)
+           END-IF
+           MOVE ZEROS                    TO WK-TIT0-DP
+           MOVE 'B'                      TO WK-TIT0-DP(1:1)
+           MOVE WK-BR1                   TO WK-TIT0-DP(2:2)             02360000
+           MOVE '000'                    TO WK-TIT0-CCY
+           MOVE 'DETAIL    '             TO WK-TIT0-DESC                02430000
+      *    MOVE RPTL-RPT-NO              TO WK-TIT0-RP-NO               02590000
+           IF RPTL-RPT-NO(4:1) = 'D' OR 'M' OR 'H' OR 'Y' OR 'O'
+           THEN
+               EVALUATE RPTL-RPT-NO(1:3)
+                  WHEN 'DEP'
+                     MOVE 'DEP'               TO WK-TIT0-RP-NO(1:3)
+                     MOVE RPTL-RPT-NO(4:7) TO WK-TIT0-RP-NO(4:7)
+                  WHEN 'LON'
+                     MOVE 'LON'            TO WK-TIT0-RP-NO(1:3)
+                     MOVE RPTL-RPT-NO(4:1) TO WK-TIT0-RP-NO(4:1)
+                     IF RPTL-RPT-NO(5:2) = 'CF'
+                     THEN
+                        MOVE RPTL-RPT-NO(5:6) TO
+                                           WK-TIT0-RP-NO(5:6)
+                     ELSE
+                        IF RPTL-RPT-NO(5:2) = 'LX'
+                        THEN
+                           MOVE RPTL-RPT-NO(5:6) TO
+                                              WK-TIT0-RP-NO(5:6)
+                        ELSE
+                           MOVE 'LN'       TO WK-TIT0-RP-NO(5:2)
+                           MOVE RPTL-RPT-NO(5:4)
+                                           TO WK-TIT0-RP-NO(7:4)
+                        END-IF
+                     END-IF
+                  WHEN 'PAY'
+                     MOVE 'PAY'               TO WK-TIT0-RP-NO(1:3)
+                     MOVE RPTL-RPT-NO(4:1) TO WK-TIT0-RP-NO(4:1)
+                     MOVE 'RM'                TO WK-TIT0-RP-NO(5:2)
+                     IF RPTL-RPT-NO(5:1) = 'C'
+                     THEN
+                        MOVE 'CO'             TO WK-TIT0-RP-NO(5:2)
+                     END-IF
+                     IF RPTL-RPT-NO(5:1) = 'G'
+                     THEN
+                        MOVE 'GC'             TO WK-TIT0-RP-NO(5:2)
+                     END-IF
+                     MOVE 0                   TO WK-TIT0-RP-NO(7:1)
+                     MOVE RPTL-RPT-NO(6:3) TO WK-TIT0-RP-NO(8:3)
+                  WHEN 'COM'
+                     MOVE 'COM'               TO WK-TIT0-RP-NO(1:3)
+                     MOVE RPTL-RPT-NO(4:7) TO WK-TIT0-RP-NO(4:7)
+                  WHEN OTHER
+                     CONTINUE
+               END-EVALUATE
+               IF RPTL-RPT-NO(1:3) = 'RIA'
+               THEN
+                   MOVE 'ZEX'                 TO WK-TIT0-RP-NO(1:3)
+                   MOVE RPTL-RPT-NO(4:1) TO WK-TIT0-RP-NO(4:1)
+                   MOVE RPTL-RPT-NO(2:2) TO WK-TIT0-RP-NO(5:2)
+                   MOVE RPTL-RPT-NO(5:4) TO WK-TIT0-RP-NO(7:4)
+               END-IF
+           ELSE
+              IF RPTL-RPT-NO(3:1) = 'D' OR 'M' OR 'H' OR 'Y' OR 'O'
+              THEN
+                EVALUATE RPTL-RPT-NO(1:2)
+                  WHEN 'CA'
+                  WHEN 'SA'
+                  WHEN 'FS'
+                  WHEN 'FD'
+                     MOVE 'DEP'               TO WK-TIT0-RP-NO(1:3)
+                     MOVE RPTL-RPT-NO(3:1) TO WK-TIT0-RP-NO(4:1)
+                     MOVE RPTL-RPT-NO(1:2) TO WK-TIT0-RP-NO(5:2)
+                     MOVE RPTL-RPT-NO(4:4) TO WK-TIT0-RP-NO(7:4)
+                  WHEN 'LN'
+                  WHEN 'FC'
+                  WHEN 'LX'
+                     MOVE 'LON'               TO WK-TIT0-RP-NO(1:3)
+                     MOVE RPTL-RPT-NO(3:1) TO WK-TIT0-RP-NO(4:1)
+                     MOVE RPTL-RPT-NO(1:2) TO WK-TIT0-RP-NO(5:2)
+                     MOVE RPTL-RPT-NO(4:4) TO WK-TIT0-RP-NO(7:4)
+                     IF RPTL-RPT-NO(8:1) = 'C'
+                     THEN
+                        MOVE 'C'              TO WK-TIT0-RP-NO(4:1)
+                     END-IF
+                  WHEN 'CO'
+                  WHEN 'GC'
+                  WHEN 'BC'
+                  WHEN 'RM'
+                     MOVE 'PAY'               TO WK-TIT0-RP-NO(1:3)
+                     MOVE RPTL-RPT-NO(3:1) TO WK-TIT0-RP-NO(4:1)
+                     MOVE RPTL-RPT-NO(1:2) TO WK-TIT0-RP-NO(5:2)
+                     MOVE RPTL-RPT-NO(4:4) TO WK-TIT0-RP-NO(7:4)
+                     IF RPTL-RPT-NO(8:1) = 'C'
+                     THEN
+                        MOVE 'C'              TO WK-TIT0-RP-NO(4:1)
+                     END-IF
+                  WHEN 'CI'
+                  WHEN 'CS'
+                  WHEN 'CM'
+                  WHEN 'GL'
+                  WHEN 'ME'
+                  WHEN 'CL'
+                     MOVE 'COM'               TO WK-TIT0-RP-NO(1:3)
+                     MOVE RPTL-RPT-NO(3:1) TO WK-TIT0-RP-NO(4:1)
+                     MOVE RPTL-RPT-NO(1:2) TO WK-TIT0-RP-NO(5:2)
+                     MOVE RPTL-RPT-NO(4:4) TO WK-TIT0-RP-NO(7:4)
+                     IF RPTL-RPT-NO(8:1) = 'C'
+                     THEN
+                        MOVE 'C'              TO WK-TIT0-RP-NO(4:1)
+                     END-IF
+                  WHEN 'AS'
+                  WHEN 'IA'
+                  WHEN 'EB'
+                  WHEN 'TC'
+130820            WHEN 'DC'
+130820            WHEN 'NT'
+141230            WHEN 'AM'
+                     MOVE 'ZEX'               TO WK-TIT0-RP-NO(1:3)
+                     MOVE RPTL-RPT-NO(3:1) TO WK-TIT0-RP-NO(4:1)
+                     MOVE RPTL-RPT-NO(1:2) TO WK-TIT0-RP-NO(5:2)
+                     MOVE RPTL-RPT-NO(4:4) TO WK-TIT0-RP-NO(7:4)
+                     IF RPTL-RPT-NO(8:1) = 'C'
+                     THEN
+                        MOVE 'C'              TO WK-TIT0-RP-NO(4:1)
+                     END-IF
+                  WHEN OTHER
+                     CONTINUE
+               END-EVALUATE
+             END-IF
+              EVALUATE RPTL-RPT-NO(2:2)
+                WHEN 'CA'
+                WHEN 'SA'
+                WHEN 'FS'
+                WHEN 'FD'
+                   MOVE 'DEPD'                TO WK-TIT0-RP-NO(1:4)
+                   MOVE RPTL-RPT-NO(2:6)      TO WK-TIT0-RP-NO(5:6)
+                WHEN 'LN'
+                WHEN 'FC'
+                WHEN 'LX'
+                   MOVE 'LOND'                TO WK-TIT0-RP-NO(1:4)
+                   MOVE RPTL-RPT-NO(2:6)      TO WK-TIT0-RP-NO(5:6)
+                WHEN 'CO'
+                WHEN 'GC'
+                WHEN 'BC'
+                WHEN 'RM'
+                   MOVE 'PAYD'                TO WK-TIT0-RP-NO(1:4)
+                   MOVE RPTL-RPT-NO(2:6)      TO WK-TIT0-RP-NO(5:6)
+                WHEN 'CI'
+                WHEN 'CS'
+                WHEN 'CM'
+                WHEN 'GL'
+                WHEN 'ME'
+                WHEN 'CL'
+                   IF RPTL-RPT-NO(1:2) = 'DC'
+                   THEN
+                      MOVE 'ZEX'           TO WK-TIT0-RP-NO(1:3)
+                      MOVE RPTL-RPT-NO(3:1)
+                                           TO WK-TIT0-RP-NO(4:1)
+                      MOVE RPTL-RPT-NO(1:2)
+                                           TO WK-TIT0-RP-NO(5:2)
+                      MOVE RPTL-RPT-NO(4:4)
+                                           TO WK-TIT0-RP-NO(7:4)
+                   ELSE
+                      MOVE 'COMD'          TO WK-TIT0-RP-NO(1:4)
+                      MOVE RPTL-RPT-NO(2:6) TO WK-TIT0-RP-NO(5:6)
+                   END-IF
+                WHEN 'AS'
+                WHEN 'IA'
+                WHEN 'EB'
+                WHEN 'TC'
+130820          WHEN 'DC'
+130820          WHEN 'NT'
+141230          WHEN 'AM'
+                   MOVE 'ZEXD'                TO WK-TIT0-RP-NO(1:4)
+                   MOVE RPTL-RPT-NO(2:6)      TO WK-TIT0-RP-NO(5:6)
+                WHEN OTHER
+                   CONTINUE
+             END-EVALUATE
+           END-IF
+           IF RPTL-RPT-NO(1:9) = 'DPMCA0202' OR 'DPMFD0302'
+           THEN
+              MOVE 'DEPD'                     TO WK-TIT0-RP-NO(1:4)
+              MOVE RPTL-RPT-NO(4:6)           TO WK-TIT0-RP-NO(5:6)
+           END-IF
+           IF RPTL-RPT-NO(1:8) = 'DSAD1006'
+           THEN
+              MOVE 'DEPM'                     TO WK-TIT0-RP-NO(1:4)
+              MOVE RPTL-RPT-NO(2:2)        TO WK-TIT0-RP-NO(5:2)
+              MOVE RPTL-RPT-NO(5:4)        TO WK-TIT0-RP-NO(7:4)
+           END-IF
+           IF RPTL-RPT-NO(1:8) = 'DPFD0406'
+           THEN
+              MOVE 'DEPD'                  TO WK-TIT0-RP-NO(1:4)
+              MOVE RPTL-RPT-NO(3:2)        TO WK-TIT0-RP-NO(5:2)
+              MOVE RPTL-RPT-NO(5:4)        TO WK-TIT0-RP-NO(7:4)
+           END-IF
+           IF RPTL-RPT-NO(1:8) = 'ZTCDUMCH'
+           THEN
+              MOVE 'ZEXD'                     TO WK-TIT0-RP-NO(1:4)
+              MOVE RPTL-RPT-NO(5:6)           TO WK-TIT0-RP-NO(5:6)
+           END-IF
+           MOVE 76                       TO  WK-MAX-LINE-CNT            02600000
+           MOVE 32                       TO  WK-TIT0-CNT WK-TIT2-CNT    02610000
+           MOVE 24                       TO   WK-TIT1-CNT               02620000
+           MOVE 'TAI FUNG BANK LIMITED   '  TO                          02640000
+                                        WK-TIT0-BANK-NAME               02650000
+           ACCEPT  WK-DATE  FROM  DATE                                  02660001
+
+           MOVE  WK-DATE(5:2)       TO  WK-TIT0-DATE(1:2)
+           EVALUATE WK-DATE(3:2)
+              WHEN  01
+                 MOVE 'JAN'         TO  WK-TIT0-DATE(3:3)
+              WHEN  02
+                 MOVE 'FEB'         TO  WK-TIT0-DATE(3:3)
+              WHEN  03
+                 MOVE 'MAR'         TO  WK-TIT0-DATE(3:3)
+              WHEN  04
+                 MOVE 'APR'         TO  WK-TIT0-DATE(3:3)
+              WHEN  05
+                 MOVE 'MAY'         TO  WK-TIT0-DATE(3:3)
+              WHEN  06
+                 MOVE 'JUN'         TO  WK-TIT0-DATE(3:3)
+              WHEN  07
+                 MOVE 'JUL'         TO  WK-TIT0-DATE(3:3)
+              WHEN  08
+                 MOVE 'AUG'         TO  WK-TIT0-DATE(3:3)
+              WHEN  09
+                 MOVE 'SEP'         TO  WK-TIT0-DATE(3:3)
+              WHEN  10
+                 MOVE 'OCT'         TO  WK-TIT0-DATE(3:3)
+              WHEN  11
+                 MOVE 'NOV'         TO  WK-TIT0-DATE(3:3)
+              WHEN  12
+                 MOVE 'DEC'         TO  WK-TIT0-DATE(3:3)
+           END-EVALUATE
+           MOVE  20                 TO  WK-TIT0-DATE(6:2)
+           MOVE  WK-DATE(1:2)       TO  WK-TIT0-DATE(8:2)
+           MOVE  WK-TIT0-FILLER       TO  WK-TIT0-END                   02700000
+           MOVE  3                    TO  WK-ADVN                       02710000
+           MOVE  WK-TIT0              TO  WK-LINE                       02720000
+           PERFORM S00-WRITE-RPG-LINE                                   02730000
+           IF WK-NO-RPT-DES-IND = 'N'
+           THEN
+              MOVE RDES-RPT-NAME(1:50)   TO WK-TIT1-REP-NAME            02740000
+           ELSE
+              MOVE SPACES                TO WK-TIT1-REP-NAME
+           END-IF
+           EVALUATE WK-BR1
+              WHEN  00
+                 MOVE WK-BR-00      TO  WK-TIT1-BANK-NAME(1:30)
+              WHEN  01
+                 MOVE WK-BR-01      TO  WK-TIT1-BANK-NAME(1:30)
+              WHEN OTHER
+                 MOVE 003             TO WK-BRHM-INST-NO
+                 MOVE ZEROS           TO WK-BRHM-BRDP
+                 MOVE WK-AR1          TO WK-BRHM-BRDP(12:1)
+                 MOVE WK-BR1          TO WK-BRHM-BRDP(13:2)
+                 MOVE ZEROS           TO WK-BRHM-BRDP(15:2)
+                 MOVE WK-BRHM-KEY     TO BRHM-KEY-1
+                 PERFORM S00-GET-BR-DP-NAME
+                 IF SQLCODE = 100
+                 THEN
+                    MOVE  SPACES         TO WK-TIT1-BANK-NAME(1:30)
+                 ELSE
+                    MOVE BRHM-ENGLISH-NAME(1:30)
+                                            TO WK-TIT1-BANK-NAME(1:30)
+                 END-IF
+           END-EVALUATE
+           ACCEPT WK-TIME   FROM  TIME                                  02760000
+           MOVE  WK-TIME(1:2)       TO  WK-TIT1-TIME(1:2)               02770000
+           MOVE  WK-TIME(3:2)       TO  WK-TIT1-TIME(4:2)               02780000
+           MOVE  WK-TIME(5:2)       TO  WK-TIT1-TIME(7:2)               02790000
+           MOVE  WK-TIT1-FILLER       TO  WK-TIT1-END                   02800000
+           MOVE  1                    TO  WK-ADVN                       02810000
+           MOVE  WK-TIT1              TO  WK-LINE                       02820000
+           PERFORM S00-WRITE-RPG-LINE                                   02830000
+           EVALUATE LKG-RP-FREQUENCY                                    02840000
+             WHEN  'D'                                                  02850000
+                  MOVE 'DAILY'        TO WK-TIT2-REP-TYPE               02860000
+             WHEN  'M'                                                  02870000
+                  MOVE 'MONTHLY'      TO WK-TIT2-REP-TYPE               02880000
+             WHEN  'H'                                                  02890000
+                  MOVE 'HALF YEARLY'  TO WK-TIT2-REP-TYPE               02900000
+             WHEN  'Y'                                                  02910000
+                  MOVE 'YEARLY '      TO WK-TIT2-REP-TYPE               02920000
+             WHEN  'O'                                                  02930000
+                  MOVE 'ON REQUEST'   TO WK-TIT2-REP-TYPE               02940000
+           END-EVALUATE                                                 02950000
+      *    IF WK-TIT0-RP-NO(4:1) = 'C'
+      *    THEN
+      *       MOVE 'CATCH UP '        TO WK-TIT2-REP-TYPE
+      *    END-IF
+           ADD   1                    TO  WK-PAGE-NO                    02960000
+           MOVE SPACES                TO WK-TIT2-CCY-TYPE
+           MOVE  WK-PAGE-NO           TO  WK-TIT2-PAGE-NO               02970000
+           MOVE  WK-TIT2-FILLER       TO  WK-TIT2-END                   02980000
+           MOVE  1                    TO  WK-ADVN                       02990000
+           MOVE  WK-TIT2              TO  WK-LINE                       03000000
+           PERFORM S00-WRITE-RPG-LINE                                   03010000
+           MOVE WK-AC-DATE(7:2)       TO  WK-TIT3-GL-DATE(1:2)
+           EVALUATE WK-AC-DATE(5:2)
+              WHEN  01
+                 MOVE 'JAN'           TO  WK-TIT3-GL-DATE(3:3)
+              WHEN  02
+                 MOVE 'FEB'           TO  WK-TIT3-GL-DATE(3:3)
+              WHEN  03
+                 MOVE 'MAR'           TO  WK-TIT3-GL-DATE(3:3)
+              WHEN  04
+                 MOVE 'APR'           TO  WK-TIT3-GL-DATE(3:3)
+              WHEN  05
+                 MOVE 'MAY'           TO  WK-TIT3-GL-DATE(3:3)
+              WHEN  06
+                 MOVE 'JUN'           TO  WK-TIT3-GL-DATE(3:3)
+              WHEN  07
+                 MOVE 'JUL'           TO  WK-TIT3-GL-DATE(3:3)
+              WHEN  08
+                 MOVE 'AUG'           TO  WK-TIT3-GL-DATE(3:3)
+              WHEN  09
+                 MOVE 'SEP'           TO  WK-TIT3-GL-DATE(3:3)
+              WHEN  10
+                 MOVE 'OCT'           TO  WK-TIT3-GL-DATE(3:3)
+              WHEN  11
+                 MOVE 'NOV'           TO  WK-TIT3-GL-DATE(3:3)
+              WHEN  12
+                 MOVE 'DEC'           TO  WK-TIT3-GL-DATE(3:3)
+           END-EVALUATE
+
+           MOVE  WK-AC-DATE(1:4)      TO  WK-TIT3-GL-DATE(6:4)          02690000
+           MOVE  20                   TO  WK-YEAR(1:2)
+           MOVE  WK-AC-DATE(3:2)      TO  WK-YEAR(3:2)
+           MOVE  WK-AC-DATE(5:2)      TO  WK-MONTH
+           MOVE  WK-AC-DATE(7:2)      TO  WK-DAY
+           IF WK-MONTH = 1 OR WK-MONTH = 2
+           THEN
+              COMPUTE WK-MONTH = WK-MONTH + 12
+              END-COMPUTE
+              COMPUTE WK-YEAR = WK-YEAR - 1
+              END-COMPUTE
+           END-IF
+           COMPUTE WK-TEMP-INT1 = WK-MONTH  * 2
+           END-COMPUTE
+           ADD 1                      TO WK-MONTH
+           COMPUTE WK-TEMP-INT2 = WK-MONTH  * 3
+           END-COMPUTE
+           DIVIDE WK-TEMP-INT2  BY 5  GIVING WK-TEMP-INT3
+           COMPUTE WK-TEMP-INT4 = WK-YEAR / 4
+           END-COMPUTE
+           COMPUTE WK-TEMP-INT5 = WK-YEAR / 100
+           END-COMPUTE
+           COMPUTE WK-TEMP-INT6 = WK-YEAR / 400
+           END-COMPUTE
+           MOVE ZEROS                 TO WK-TEMP-INT7
+           ADD  WK-DAY                TO WK-TEMP-INT7
+           ADD  WK-YEAR               TO WK-TEMP-INT7
+           ADD  WK-TEMP-INT1          TO WK-TEMP-INT7
+           ADD  WK-TEMP-INT3          TO WK-TEMP-INT7
+           ADD  WK-TEMP-INT4          TO WK-TEMP-INT7
+           COMPUTE WK-TEMP-INT7 = WK-TEMP-INT7 - WK-TEMP-INT5
+           END-COMPUTE
+           ADD  WK-TEMP-INT6          TO WK-TEMP-INT7
+           DIVIDE WK-TEMP-INT7  BY 7  GIVING WK-TEMP-INT8
+                            REMAINDER WK-TEMP-WEEK
+           EVALUATE WK-TEMP-WEEK
+             WHEN  0
+               MOVE '(MON)'           TO WK-TIT3-WEEK
+             WHEN  1
+               MOVE '(TUE)'           TO WK-TIT3-WEEK
+             WHEN  2
+               MOVE '(WED)'           TO WK-TIT3-WEEK
+             WHEN  3
+               MOVE '(THU)'           TO WK-TIT3-WEEK
+             WHEN  4
+               MOVE '(FRI)'           TO WK-TIT3-WEEK
+             WHEN  5
+               MOVE '(SAT)'           TO WK-TIT3-WEEK
+             WHEN  6
+               MOVE '(SUN)'           TO WK-TIT3-WEEK
+           END-EVALUATE
+      *                                                                 03075001
+           MOVE  1                    TO  WK-ADVN                       03080000
+           MOVE  WK-TIT3              TO  WK-LINE                       03090000
+           PERFORM S00-WRITE-RPG-LINE                                   03100000
+           MOVE  1                   TO  WK-ADVN                        03780000
+           MOVE WK-BOTT5             TO  WK-LINE                        03790000
+           PERFORM S00-WRITE-RPG-LINE                                   03800000
+           MOVE  1                   TO  WK-ADVN                        03780000
+           MOVE WK-BOTT5             TO  WK-LINE                        03790000
+           PERFORM S00-WRITE-RPG-LINE                                   03800000
+           MOVE  1                   TO  WK-ADVN                        03780000
+           MOVE WK-BOTT4             TO  WK-LINE                        03790000
+           PERFORM S00-WRITE-RPG-LINE                                   03800000
+           MOVE  1                   TO  WK-ADVN                        03780000
+           MOVE WK-BOTT5             TO  WK-LINE                        03790000
+           PERFORM S00-WRITE-RPG-LINE                                   03800000
+           MOVE  1                   TO  WK-ADVN                        03780000
+           MOVE WK-BOTT1             TO  WK-LINE                        03790000
+           PERFORM S00-WRITE-RPG-LINE                                   03800000
+           MOVE 'N'                   TO  WK-PAGE-END                   03220000
+           EXIT.
+       B00-GEN-BLANK-TITLE.
+           IF LKG-RP-BANK-FLG = 0
+           THEN
+              MOVE WKG-RP-MAP-NO  TO RDES-RPT-NO                        02270000
+              READ RPFRDES INVALID KEY                                  02280000
+                           DISPLAY 'RPFRDES' NTFD-MSG                   02290000
+                           DISPLAY 'RDES-RPT-NO' RDES-RPT-NO
+                           MOVE 'Y'      TO WK-NO-RPT-DES-IND           02300000
+                       NOT INVALID KEY                                  02310000
+                           MOVE 'N'      TO WK-NO-RPT-DES-IND           02320000
+              END-READ                                                  02330000
+              MOVE ZEROS                 TO WK-TIT0-BR
+              MOVE 'A'                   TO WK-TIT0-BR(1:1)
+              MOVE 0                     TO WK-TIT0-BR(2:1)             02360000
+              MOVE WK-BRHM-AREA-TMP    TO WK-TIT0-BR(3:1)
+              IF WK-TIT0-BR(3:1) NOT = 0
+              THEN
+                  MOVE 0                 TO WK-TIT0-BR(3:1)
+              END-IF
+              MOVE ZEROS                 TO WK-TIT0-DP
+              MOVE 'B'                   TO WK-TIT0-DP(1:1)
+              MOVE ZEROS                 TO WK-TIT0-DP(2:2)             02360000
+              MOVE '000'                 TO WK-TIT0-CCY
+              MOVE 'SUMM      '          TO WK-TIT0-DESC                02430000
+      *       MOVE LKG-RP-MAP-NO         TO WK-TIT0-RP-NO               02590000
+              IF WKG-RP-MAP-NO(4:1) = 'D' OR 'M' OR 'H' OR 'Y' OR 'O'
+              THEN
+                  DISPLAY 'WKG-RP-MAP-NO'  WKG-RP-MAP-NO(1:3)
+                  EVALUATE WKG-RP-MAP-NO(1:3)
+                     WHEN 'DEP'
+                        MOVE 'DEP'              TO WK-TIT0-RP-NO(1:3)
+                        MOVE WKG-RP-MAP-NO(4:7) TO WK-TIT0-RP-NO(4:7)
+                     WHEN 'LON'
+                        MOVE 'LON'            TO WK-TIT0-RP-NO(1:3)
+                        MOVE WKG-RP-MAP-NO(4:1) TO WK-TIT0-RP-NO(4:1)
+                        IF WKG-RP-MAP-NO(5:2) = 'CF'
+                        THEN
+                           MOVE WKG-RP-MAP-NO(5:6) TO
+                                              WK-TIT0-RP-NO(5:6)
+                        ELSE
+                           IF WKG-RP-MAP-NO(5:2) = 'LX'
+                           THEN
+                              MOVE WKG-RP-MAP-NO(5:6) TO
+                                                 WK-TIT0-RP-NO(5:6)
+                           ELSE
+                              MOVE 'LN'       TO WK-TIT0-RP-NO(5:2)
+                              MOVE WKG-RP-MAP-NO(5:4)
+                                              TO WK-TIT0-RP-NO(7:4)
+                           END-IF
+                        END-IF
+                     WHEN 'PAY'
+                        MOVE 'PAY'              TO WK-TIT0-RP-NO(1:3)
+                        MOVE WKG-RP-MAP-NO(4:1) TO WK-TIT0-RP-NO(4:1)
+                        MOVE 'RM'             TO WK-TIT0-RP-NO(5:2)
+                        IF WKG-RP-MAP-NO(5:1) = 'C'
+                        THEN
+                           MOVE 'CO'          TO WK-TIT0-RP-NO(5:2)
+                        END-IF
+                        IF WKG-RP-MAP-NO(5:1) = 'G'
+                        THEN
+                           MOVE 'GC'          TO WK-TIT0-RP-NO(5:2)
+                        END-IF
+                        MOVE 0                TO WK-TIT0-RP-NO(7:1)
+                        MOVE WKG-RP-MAP-NO(6:3) TO WK-TIT0-RP-NO(8:3)
+                     WHEN 'COM'
+                        MOVE 'COM'              TO WK-TIT0-RP-NO(1:3)
+                        MOVE WKG-RP-MAP-NO(4:7) TO WK-TIT0-RP-NO(4:7)
+                     WHEN OTHER
+                        CONTINUE
+                  END-EVALUATE
+                  DISPLAY 'WK-TIT0-RP-NO'  WK-TIT0-RP-NO
+                  IF WKG-RP-MAP-NO(1:3) = 'RIA'
+                  THEN
+                      MOVE 'ZEX'              TO WK-TIT0-RP-NO(1:3)
+                      MOVE WKG-RP-MAP-NO(4:1) TO WK-TIT0-RP-NO(4:1)
+                      MOVE WKG-RP-MAP-NO(2:2) TO WK-TIT0-RP-NO(5:2)
+                      MOVE WKG-RP-MAP-NO(5:4) TO WK-TIT0-RP-NO(7:4)
+                  END-IF
+              ELSE
+                 IF WKG-RP-MAP-NO(3:1) = 'D' OR 'M' OR 'H' OR 'Y' OR 'O'
+                 THEN
+                   EVALUATE WKG-RP-MAP-NO(1:2)
+                     WHEN 'CA'
+                     WHEN 'SA'
+                     WHEN 'FS'
+                     WHEN 'FD'
+                        MOVE 'DEP'              TO WK-TIT0-RP-NO(1:3)
+                        MOVE WKG-RP-MAP-NO(3:1) TO WK-TIT0-RP-NO(4:1)
+                        MOVE WKG-RP-MAP-NO(1:2) TO WK-TIT0-RP-NO(5:2)
+                        MOVE WKG-RP-MAP-NO(4:4) TO WK-TIT0-RP-NO(7:4)
+                        IF WKG-RP-MAP-NO(8:1) = 'C'
+                        THEN
+                           MOVE 'C'             TO WK-TIT0-RP-NO(4:1)
+                        END-IF
+                     WHEN 'LN'
+                     WHEN 'FC'
+                     WHEN 'LX'
+                        MOVE 'LON'              TO WK-TIT0-RP-NO(1:3)
+                        MOVE WKG-RP-MAP-NO(3:1) TO WK-TIT0-RP-NO(4:1)
+                        MOVE WKG-RP-MAP-NO(1:2) TO WK-TIT0-RP-NO(5:2)
+                        MOVE WKG-RP-MAP-NO(4:4) TO WK-TIT0-RP-NO(7:4)
+                        IF WKG-RP-MAP-NO(8:1) = 'C'
+                        THEN
+                           MOVE 'C'             TO WK-TIT0-RP-NO(4:1)
+                        END-IF
+                     WHEN 'CO'
+                     WHEN 'GC'
+                     WHEN 'BC'
+                     WHEN 'RM'
+                        MOVE 'PAY'              TO WK-TIT0-RP-NO(1:3)
+                        MOVE WKG-RP-MAP-NO(3:1) TO WK-TIT0-RP-NO(4:1)
+                        MOVE WKG-RP-MAP-NO(1:2) TO WK-TIT0-RP-NO(5:2)
+                        MOVE WKG-RP-MAP-NO(4:4) TO WK-TIT0-RP-NO(7:4)
+                        IF WKG-RP-MAP-NO(8:1) = 'C'
+                        THEN
+                           MOVE 'C'             TO WK-TIT0-RP-NO(4:1)
+                        END-IF
+                     WHEN 'CI'
+                     WHEN 'CS'
+                     WHEN 'CM'
+                     WHEN 'GL'
+                     WHEN 'ME'
+                     WHEN 'CL'
+                        MOVE 'COM'              TO WK-TIT0-RP-NO(1:3)
+                        MOVE WKG-RP-MAP-NO(3:1) TO WK-TIT0-RP-NO(4:1)
+                        MOVE WKG-RP-MAP-NO(1:2) TO WK-TIT0-RP-NO(5:2)
+                        MOVE WKG-RP-MAP-NO(4:4) TO WK-TIT0-RP-NO(7:4)
+                        IF WKG-RP-MAP-NO(8:1) = 'C'
+                        THEN
+                           MOVE 'C'             TO WK-TIT0-RP-NO(4:1)
+                        END-IF
+                     WHEN 'AS'
+                     WHEN 'IA'
+                     WHEN 'EB'
+                     WHEN 'TC'
+130820               WHEN 'DC'
+130820               WHEN 'NT'
+141230               WHEN 'AM'
+                        MOVE 'ZEX'              TO WK-TIT0-RP-NO(1:3)
+                        MOVE WKG-RP-MAP-NO(3:1) TO WK-TIT0-RP-NO(4:1)
+                        MOVE WKG-RP-MAP-NO(1:2) TO WK-TIT0-RP-NO(5:2)
+                        MOVE WKG-RP-MAP-NO(4:4) TO WK-TIT0-RP-NO(7:4)
+                        IF WKG-RP-MAP-NO(8:1) = 'C'
+                        THEN
+                           MOVE 'C'             TO WK-TIT0-RP-NO(4:1)
+                        END-IF
+                     WHEN OTHER
+                        CONTINUE
+                  END-EVALUATE
+                END-IF
+                 EVALUATE WKG-RP-MAP-NO(2:2)
+                   WHEN 'CA'
+                   WHEN 'SA'
+                   WHEN 'FS'
+                   WHEN 'FD'
+                      MOVE 'DEPD'               TO WK-TIT0-RP-NO(1:4)
+                      MOVE WKG-RP-MAP-NO(2:6)   TO WK-TIT0-RP-NO(5:6)
+                   WHEN 'LN'
+                   WHEN 'FC'
+                   WHEN 'LX'
+                      MOVE 'LOND'               TO WK-TIT0-RP-NO(1:4)
+                      MOVE WKG-RP-MAP-NO(2:6)   TO WK-TIT0-RP-NO(5:6)
+                   WHEN 'CO'
+                   WHEN 'GC'
+                   WHEN 'BC'
+                   WHEN 'RM'
+                      MOVE 'PAYD'               TO WK-TIT0-RP-NO(1:4)
+                      MOVE WKG-RP-MAP-NO(2:6)   TO WK-TIT0-RP-NO(5:6)
+                   WHEN 'CI'
+                   WHEN 'CS'
+                   WHEN 'CM'
+                   WHEN 'GL'
+                   WHEN 'ME'
+                   WHEN 'CL'
+                      IF WKG-RP-MAP-NO(1:2) = 'DC'
+                      THEN
+                         MOVE 'ZEX'           TO WK-TIT0-RP-NO(1:3)
+                         MOVE WKG-RP-MAP-NO(3:1)
+                                              TO WK-TIT0-RP-NO(4:1)
+                         MOVE WKG-RP-MAP-NO(1:2)
+                                              TO WK-TIT0-RP-NO(5:2)
+                         MOVE WKG-RP-MAP-NO(4:4)
+                                              TO WK-TIT0-RP-NO(7:4)
+                      ELSE
+                         MOVE 'COMD'          TO WK-TIT0-RP-NO(1:4)
+                         MOVE WKG-RP-MAP-NO(2:6)  TO WK-TIT0-RP-NO(5:6)
+                      END-IF
+                   WHEN 'AS'
+                   WHEN 'IA'
+                   WHEN 'EB'
+                   WHEN 'TC'
+130820             WHEN 'DC'
+130820             WHEN 'NT'
+141230             WHEN 'AM'
+                      MOVE 'ZEXD'               TO WK-TIT0-RP-NO(1:4)
+                      MOVE WKG-RP-MAP-NO(2:6)   TO WK-TIT0-RP-NO(5:6)
+                   WHEN OTHER
+                      CONTINUE
+                END-EVALUATE
+              END-IF
+              DISPLAY 'WKG-RP-MAP-NO'  WKG-RP-MAP-NO
+              IF WKG-RP-MAP-NO(1:9) = 'DPMCA0202' OR 'DPMFD0302'
+              THEN
+                 MOVE 'DEPD'                    TO WK-TIT0-RP-NO(1:4)
+                 MOVE WKG-RP-MAP-NO(4:6)        TO WK-TIT0-RP-NO(5:6)
+              END-IF
+              IF WKG-RP-MAP-NO(1:8) = 'DSAD1006'
+              THEN
+                 MOVE 'DEPM'                    TO WK-TIT0-RP-NO(1:4)
+                 MOVE WKG-RP-MAP-NO(2:2)        TO WK-TIT0-RP-NO(5:2)
+                 MOVE WKG-RP-MAP-NO(5:4)        TO WK-TIT0-RP-NO(7:4)
+              END-IF
+              IF WKG-RP-MAP-NO(1:8) = 'DPFD0406'
+              THEN
+                 MOVE 'DEPD'                  TO WK-TIT0-RP-NO(1:4)
+                 MOVE WKG-RP-MAP-NO(3:2)      TO WK-TIT0-RP-NO(5:2)
+                 MOVE WKG-RP-MAP-NO(5:4)      TO WK-TIT0-RP-NO(7:4)
+              END-IF
+              IF WKG-RP-MAP-NO(1:8) = 'ZTCDUMCH'
+              THEN
+                 MOVE 'ZEXD'                    TO WK-TIT0-RP-NO(1:4)
+                 MOVE WKG-RP-MAP-NO(5:6)        TO WK-TIT0-RP-NO(5:6)
+              END-IF
+              MOVE 76                    TO  WK-MAX-LINE-CNT            02600000
+              MOVE 32                    TO  WK-TIT0-CNT WK-TIT2-CNT    02610000
+              MOVE 24                    TO   WK-TIT1-CNT               02620000
+              MOVE 'TAI FUNG BANK LIMITED   ' TO                        02640000
+                                           WK-TIT0-BANK-NAME            02650000
+              ACCEPT WK-DATE FROM DATE                                  02660001
+
+              MOVE WK-DATE(5:2)     TO  WK-TIT0-DATE(1:2)
+              EVALUATE WK-DATE(3:2)
+                 WHEN 01
+                    MOVE 'JAN'      TO  WK-TIT0-DATE(3:3)
+                 WHEN 02
+                    MOVE 'FEB'      TO  WK-TIT0-DATE(3:3)
+                 WHEN 03
+                    MOVE 'MAR'      TO  WK-TIT0-DATE(3:3)
+                 WHEN 04
+                    MOVE 'APR'      TO  WK-TIT0-DATE(3:3)
+                 WHEN 05
+                    MOVE 'MAY'      TO  WK-TIT0-DATE(3:3)
+                 WHEN 06
+                    MOVE 'JUN'      TO  WK-TIT0-DATE(3:3)
+                 WHEN 07
+                    MOVE 'JUL'      TO  WK-TIT0-DATE(3:3)
+                 WHEN 08
+                    MOVE 'AUG'      TO  WK-TIT0-DATE(3:3)
+                 WHEN 09
+                    MOVE 'SEP'      TO  WK-TIT0-DATE(3:3)
+                 WHEN 10
+                    MOVE 'OCT'      TO  WK-TIT0-DATE(3:3)
+                 WHEN 11
+                    MOVE 'NOV'      TO  WK-TIT0-DATE(3:3)
+                 WHEN 12
+                    MOVE 'DEC'      TO  WK-TIT0-DATE(3:3)
+              END-EVALUATE
+
+              MOVE 20               TO  WK-TIT0-DATE(6:2)
+              MOVE WK-DATE(1:2)     TO  WK-TIT0-DATE(8:2)
+              MOVE WK-TIT0-FILLER     TO  WK-TIT0-END                   02700000
+              MOVE 3                  TO  WK-ADVN                       02710000
+              MOVE WK-TIT0            TO  WK-LINE                       02720000
+              PERFORM S00-WRITE-RPG-LINE                                02730000
+              IF WK-NO-RPT-DES-IND = 'N'
+              THEN
+                 DISPLAY "WK-TIT1-REP-NAME:" WK-TIT1-REP-NAME
+                 MOVE RDES-RPT-NAME(1:50) TO WK-TIT1-REP-NAME           02740000
+              ELSE
+                 MOVE SPACES          TO WK-TIT1-REP-NAME
+                 DISPLAY "WK-TIT1-REP-NAME:" WK-TIT1-REP-NAME
+              END-IF
+              MOVE WK-BR-00           TO WK-TIT1-BANK-NAME(1:30)
+              ACCEPT WK-TIME FROM TIME                                  02760000
+              MOVE WK-TIME(1:2)       TO  WK-TIT1-TIME(1:2)             02770000
+              MOVE WK-TIME(3:2)       TO  WK-TIT1-TIME(4:2)             02780000
+              MOVE WK-TIME(5:2)       TO  WK-TIT1-TIME(7:2)             02790000
+              MOVE WK-TIT1-FILLER     TO  WK-TIT1-END                   02800000
+              MOVE 1                  TO  WK-ADVN                       02810000
+              MOVE WK-TIT1            TO  WK-LINE                       02820000
+              PERFORM S00-WRITE-RPG-LINE                                02830000
+              EVALUATE LKG-RP-FREQUENCY                                 02840000
+                WHEN 'D'                                                02850000
+                     MOVE 'DAILY'     TO WK-TIT2-REP-TYPE               02860000
+                WHEN 'M'                                                02870000
+                     MOVE 'MONTHLY' TO WK-TIT2-REP-TYPE                 02880000
+                WHEN 'H'                                                02890000
+                     MOVE 'HALF YEARLY' TO WK-TIT2-REP-TYPE             02900000
+                WHEN 'Y'                                                02910000
+                     MOVE 'YEARLY ' TO WK-TIT2-REP-TYPE                 02920000
+                WHEN 'O'                                                02930000
+                     MOVE 'ON REQUEST' TO WK-TIT2-REP-TYPE              02940000
+              END-EVALUATE                                              02950000
+              IF WK-TIT0-RP-NO(4:1) = 'C'
+              THEN
+                 MOVE 'CATCH UP '     TO WK-TIT2-REP-TYPE
+              END-IF
+              ADD 1                   TO  WK-PAGE-NO                    02960000
+              MOVE SPACES             TO WK-TIT2-CCY-TYPE
+              MOVE WK-PAGE-NO         TO  WK-TIT2-PAGE-NO               02970000
+              MOVE WK-TIT2-FILLER     TO  WK-TIT2-END                   02980000
+              MOVE 1                  TO  WK-ADVN                       02990000
+              MOVE WK-TIT2            TO  WK-LINE                       03000000
+              PERFORM S00-WRITE-RPG-LINE                                03010000
+              MOVE WK-AC-DATE(7:2) TO WK-TIT3-GL-DATE(1:2)
+              EVALUATE WK-AC-DATE(5:2)
+                 WHEN 01
+                    MOVE 'JAN'        TO  WK-TIT3-GL-DATE(3:3)
+                 WHEN 02
+                    MOVE 'FEB'        TO  WK-TIT3-GL-DATE(3:3)
+                 WHEN 03
+                    MOVE 'MAR'        TO  WK-TIT3-GL-DATE(3:3)
+                 WHEN 04
+                    MOVE 'APR'        TO  WK-TIT3-GL-DATE(3:3)
+                 WHEN 05
+                    MOVE 'MAY'        TO  WK-TIT3-GL-DATE(3:3)
+                 WHEN 06
+                    MOVE 'JUN'        TO  WK-TIT3-GL-DATE(3:3)
+                 WHEN 07
+                    MOVE 'JUL'        TO  WK-TIT3-GL-DATE(3:3)
+                 WHEN 08
+                    MOVE 'AUG'        TO  WK-TIT3-GL-DATE(3:3)
+                 WHEN 09
+                    MOVE 'SEP'        TO  WK-TIT3-GL-DATE(3:3)
+                 WHEN 10
+                    MOVE 'OCT'        TO  WK-TIT3-GL-DATE(3:3)
+                 WHEN 11
+                    MOVE 'NOV'        TO  WK-TIT3-GL-DATE(3:3)
+                 WHEN 12
+                    MOVE 'DEC'        TO  WK-TIT3-GL-DATE(3:3)
+              END-EVALUATE
+
+              MOVE WK-AC-DATE(1:4) TO WK-TIT3-GL-DATE(6:4)              02690000
+              MOVE 20                 TO  WK-YEAR(1:2)
+              MOVE WK-AC-DATE(3:2) TO WK-YEAR(3:2)
+              MOVE WK-AC-DATE(5:2) TO WK-MONTH
+              MOVE WK-AC-DATE(7:2) TO WK-DAY
+              IF WK-MONTH = 1 OR WK-MONTH = 2
+              THEN
+                 COMPUTE WK-MONTH = WK-MONTH + 12
+                 END-COMPUTE
+                 COMPUTE WK-YEAR = WK-YEAR - 1
+                 END-COMPUTE
+              END-IF
+              COMPUTE WK-TEMP-INT1 = WK-MONTH * 2
+              END-COMPUTE
+              ADD 1                   TO WK-MONTH
+              COMPUTE WK-TEMP-INT2 = WK-MONTH * 3
+              END-COMPUTE
+              DIVIDE WK-TEMP-INT2 BY 5 GIVING WK-TEMP-INT3
+              COMPUTE WK-TEMP-INT4 = WK-YEAR / 4
+              END-COMPUTE
+              COMPUTE WK-TEMP-INT5 = WK-YEAR / 100
+              END-COMPUTE
+              COMPUTE WK-TEMP-INT6 = WK-YEAR / 400
+              END-COMPUTE
+              MOVE ZEROS              TO WK-TEMP-INT7
+              ADD WK-DAY              TO WK-TEMP-INT7
+              ADD WK-YEAR             TO WK-TEMP-INT7
+              ADD WK-TEMP-INT1        TO WK-TEMP-INT7
+              ADD WK-TEMP-INT3        TO WK-TEMP-INT7
+              ADD WK-TEMP-INT4        TO WK-TEMP-INT7
+              COMPUTE WK-TEMP-INT7 = WK-TEMP-INT7 - WK-TEMP-INT5
+              END-COMPUTE
+              ADD WK-TEMP-INT6        TO WK-TEMP-INT7
+              DIVIDE WK-TEMP-INT7 BY 7 GIVING WK-TEMP-INT8
+                               REMAINDER WK-TEMP-WEEK
+              EVALUATE WK-TEMP-WEEK
+                WHEN 0
+                  MOVE '(MON)'        TO WK-TIT3-WEEK
+                WHEN 1
+                  MOVE '(TUE)'        TO WK-TIT3-WEEK
+                WHEN 2
+                  MOVE '(WED)'        TO WK-TIT3-WEEK
+                WHEN 3
+                  MOVE '(THU)'        TO WK-TIT3-WEEK
+                WHEN 4
+                  MOVE '(FRI)'        TO WK-TIT3-WEEK
+                WHEN 5
+                  MOVE '(SAT)'        TO WK-TIT3-WEEK
+                WHEN 6
+                  MOVE '(SUN)'        TO WK-TIT3-WEEK
+              END-EVALUATE
+              MOVE 1                     TO  WK-ADVN                    03080000
+              MOVE WK-TIT3               TO  WK-LINE                    03090000
+              PERFORM S00-WRITE-RPG-LINE                                03100000
+              MOVE 1                     TO  WK-ADVN                    03780000
+              MOVE WK-BOTT5              TO  WK-LINE                    03790000
+              PERFORM S00-WRITE-RPG-LINE                                03800000
+              MOVE 1                     TO  WK-ADVN                    03780000
+              MOVE WK-BOTT5              TO  WK-LINE                    03790000
+              PERFORM S00-WRITE-RPG-LINE                                03800000
+              MOVE 1                     TO  WK-ADVN                    03780000
+              MOVE WK-BOTT4          TO  WK-LINE                        03790000
+              PERFORM S00-WRITE-RPG-LINE                                03800000
+              MOVE 'N'                   TO  WK-PAGE-END                03220000
+      *       MOVE  RPCRPG              TO RPCRPGT
+      *       WRITE RPCRPG                                              03820000
+      *       MOVE  RPCRPGT             TO RPCRPG
+           ELSE
+                MOVE WKG-RP-MAP-NO       TO RDES-RPT-NO                 02270000
+                READ RPFRDES INVALID KEY                                02280000
+                             DISPLAY 'RPFRDES' NTFD-MSG                 02290000
+                             DISPLAY 'RDES-RPT-NO' RDES-RPT-NO
+                             MOVE 'Y'    TO WK-NO-RPT-DES-IND           02300000
+                         NOT INVALID KEY                                02310000
+                             MOVE 'N'    TO WK-NO-RPT-DES-IND           02320000
+                END-READ                                                02330000
+              PERFORM VARYING WK-INDX FROM 1 BY 1
+                UNTIL WK-INDX >  99
+                SET BRHM-FND-NO          TO TRUE
+                PERFORM S00-FND-BRHM
+              IF BRHM-FND-YES
+              THEN
+                MOVE WK-INDX             TO WK-BR1
+                MOVE ZEROS               TO WK-TIT0-BR
+                MOVE 'A'                 TO WK-TIT0-BR(1:1)
+                MOVE '0'                   TO WK-TIT0-BR(2:1)
+                MOVE WK-BRHM-AREA-TMP    TO WK-TIT0-BR(3:1)             02360000
+                IF WK-TIT0-BR(3:1) NOT = 0
+                THEN
+                    MOVE 0                 TO WK-TIT0-BR(3:1)
+                END-IF
+                MOVE ZEROS               TO WK-TIT0-DP
+                MOVE 'B'                 TO WK-TIT0-DP(1:1)
+                MOVE WK-BR1              TO WK-TIT0-DP(2:2)             02360000
+                MOVE '000'               TO WK-TIT0-CCY
+                MOVE 'DETAIL    '        TO WK-TIT0-DESC                02430000
+      *         MOVE WKG-RP-MAP-NO       TO WK-TIT0-RP-NO               02590000
+              IF WKG-RP-MAP-NO(4:1) = 'D' OR 'M' OR 'H' OR 'Y' OR 'O'
+              THEN
+                  DISPLAY 'WKG-RP-MAP-NO1'  WKG-RP-MAP-NO(1:3)
+                  EVALUATE WKG-RP-MAP-NO(1:3)
+                     WHEN 'DEP'
+                        MOVE 'DEP'              TO WK-TIT0-RP-NO(1:3)
+                        MOVE WKG-RP-MAP-NO(4:7) TO WK-TIT0-RP-NO(4:7)
+                     WHEN 'LON'
+                        MOVE 'LON'            TO WK-TIT0-RP-NO(1:3)
+                        MOVE WKG-RP-MAP-NO(1:1) TO WK-TIT0-RP-NO(4:1)
+                        IF WKG-RP-MAP-NO(5:2) = 'CF'
+                        THEN
+                           MOVE WKG-RP-MAP-NO(5:6) TO
+                                              WK-TIT0-RP-NO(5:6)
+                        ELSE
+                           IF WKG-RP-MAP-NO(5:2) = 'LX'
+                           THEN
+                              MOVE WKG-RP-MAP-NO(5:6) TO
+                                                 WK-TIT0-RP-NO(5:6)
+                           ELSE
+                              MOVE 'LN'       TO WK-TIT0-RP-NO(5:2)
+                              MOVE WKG-RP-MAP-NO(5:4)
+                                              TO WK-TIT0-RP-NO(7:4)
+                           END-IF
+                        END-IF
+                     WHEN 'PAY'
+                        MOVE 'PAY'              TO WK-TIT0-RP-NO(1:3)
+                        MOVE WKG-RP-MAP-NO(4:1) TO WK-TIT0-RP-NO(4:1)
+                        MOVE 'RM'             TO WK-TIT0-RP-NO(5:2)
+                        IF WKG-RP-MAP-NO(5:1) = 'C'
+                        THEN
+                           MOVE 'CO'          TO WK-TIT0-RP-NO(5:2)
+                        END-IF
+                        IF WKG-RP-MAP-NO(5:1) = 'G'
+                        THEN
+                           MOVE 'GC'          TO WK-TIT0-RP-NO(5:2)
+                        END-IF
+                        MOVE 0                TO WK-TIT0-RP-NO(7:1)
+                        MOVE WKG-RP-MAP-NO(6:3) TO WK-TIT0-RP-NO(8:3)
+                     WHEN 'COM'
+                        MOVE 'COM'              TO WK-TIT0-RP-NO(1:3)
+                        MOVE WKG-RP-MAP-NO(4:7) TO WK-TIT0-RP-NO(4:7)
+                     WHEN OTHER
+                        CONTINUE
+                  END-EVALUATE
+                  DISPLAY 'WK-TIT0-RP-NO1' WK-TIT0-RP-NO
+                  IF WKG-RP-MAP-NO(1:3) = 'RIA'
+                  THEN
+                      MOVE 'ZEX'                TO WK-TIT0-RP-NO(1:3)
+                      MOVE WKG-RP-MAP-NO(4:1)   TO WK-TIT0-RP-NO(4:1)
+                      MOVE WKG-RP-MAP-NO(2:2)   TO WK-TIT0-RP-NO(5:2)
+                      MOVE WKG-RP-MAP-NO(5:4)   TO WK-TIT0-RP-NO(7:4)
+                  END-IF
+              ELSE
+                 IF WKG-RP-MAP-NO(3:1) = 'D' OR 'M' OR 'H' OR 'Y' OR 'O'
+                 THEN
+                   EVALUATE WKG-RP-MAP-NO(1:2)
+                     WHEN 'CA'
+                     WHEN 'SA'
+                     WHEN 'FS'
+                     WHEN 'FD'
+                        MOVE 'DEP'              TO WK-TIT0-RP-NO(1:3)
+                        MOVE WKG-RP-MAP-NO(3:1) TO WK-TIT0-RP-NO(4:1)
+                        MOVE WKG-RP-MAP-NO(1:2) TO WK-TIT0-RP-NO(5:2)
+                        MOVE WKG-RP-MAP-NO(4:4) TO WK-TIT0-RP-NO(7:4)
+                        IF WKG-RP-MAP-NO(8:1) = 'C'
+                        THEN
+                           MOVE 'C'             TO WK-TIT0-RP-NO(4:1)
+                        END-IF
+                     WHEN 'LN'
+                     WHEN 'FC'
+                     WHEN 'LX'
+                        MOVE 'LON'              TO WK-TIT0-RP-NO(1:3)
+                        MOVE WKG-RP-MAP-NO(3:1) TO WK-TIT0-RP-NO(4:1)
+                        MOVE WKG-RP-MAP-NO(1:2) TO WK-TIT0-RP-NO(5:2)
+                        MOVE WKG-RP-MAP-NO(4:4) TO WK-TIT0-RP-NO(7:4)
+                        IF WKG-RP-MAP-NO(8:1) = 'C'
+                        THEN
+                           MOVE 'C'             TO WK-TIT0-RP-NO(4:1)
+                        END-IF
+                     WHEN 'CO'
+                     WHEN 'GC'
+                     WHEN 'BC'
+                     WHEN 'RM'
+                        MOVE 'PAY'              TO WK-TIT0-RP-NO(1:3)
+                        MOVE WKG-RP-MAP-NO(3:1) TO WK-TIT0-RP-NO(4:1)
+                        MOVE WKG-RP-MAP-NO(1:2) TO WK-TIT0-RP-NO(5:2)
+                        MOVE WKG-RP-MAP-NO(4:4) TO WK-TIT0-RP-NO(7:4)
+                        IF WKG-RP-MAP-NO(8:1) = 'C'
+                        THEN
+                           MOVE 'C'             TO WK-TIT0-RP-NO(4:1)
+                        END-IF
+                     WHEN 'CI'
+                     WHEN 'CS'
+                     WHEN 'CM'
+                     WHEN 'GL'
+                     WHEN 'ME'
+                     WHEN 'CL'
+                        MOVE 'COM'              TO WK-TIT0-RP-NO(1:3)
+                        MOVE WKG-RP-MAP-NO(3:1) TO WK-TIT0-RP-NO(4:1)
+                        MOVE WKG-RP-MAP-NO(1:2) TO WK-TIT0-RP-NO(5:2)
+                        MOVE WKG-RP-MAP-NO(4:4) TO WK-TIT0-RP-NO(7:4)
+                        IF WKG-RP-MAP-NO(8:1) = 'C'
+                        THEN
+                           MOVE 'C'             TO WK-TIT0-RP-NO(4:1)
+                        END-IF
+                     WHEN 'AS'
+                     WHEN 'IA'
+                     WHEN 'EB'
+                     WHEN 'TC'
+130820               WHEN 'DC'
+130820               WHEN 'NT'
+141230               WHEN 'AM'
+                        MOVE 'ZEX'              TO WK-TIT0-RP-NO(1:3)
+                        MOVE WKG-RP-MAP-NO(3:1) TO WK-TIT0-RP-NO(4:1)
+                        MOVE WKG-RP-MAP-NO(1:2) TO WK-TIT0-RP-NO(5:2)
+                        MOVE WKG-RP-MAP-NO(4:4) TO WK-TIT0-RP-NO(7:4)
+                        IF WKG-RP-MAP-NO(8:1) = 'C'
+                        THEN
+                           MOVE 'C'             TO WK-TIT0-RP-NO(4:1)
+                        END-IF
+                     WHEN OTHER
+                        CONTINUE
+                  END-EVALUATE
+                END-IF
+                 EVALUATE WKG-RP-MAP-NO(2:2)
+                   WHEN 'CA'
+                   WHEN 'SA'
+                   WHEN 'FS'
+                   WHEN 'FD'
+                      MOVE 'DEPD'               TO WK-TIT0-RP-NO(1:4)
+                      MOVE WKG-RP-MAP-NO(2:6)   TO WK-TIT0-RP-NO(5:6)
+                   WHEN 'LN'
+                   WHEN 'FC'
+                   WHEN 'LX'
+                      MOVE 'LOND'               TO WK-TIT0-RP-NO(1:4)
+                      MOVE WKG-RP-MAP-NO(2:6)   TO WK-TIT0-RP-NO(5:6)
+                   WHEN 'CO'
+                   WHEN 'GC'
+                   WHEN 'BC'
+                   WHEN 'RM'
+                      MOVE 'PAYD'               TO WK-TIT0-RP-NO(1:4)
+                      MOVE WKG-RP-MAP-NO(2:6)   TO WK-TIT0-RP-NO(5:6)
+                   WHEN 'CI'
+                   WHEN 'CS'
+                   WHEN 'CM'
+                   WHEN 'GL'
+                   WHEN 'ME'
+                   WHEN 'CL'
+                      IF WKG-RP-MAP-NO(1:2) = 'DC'
+                      THEN
+                         MOVE 'ZEX'           TO WK-TIT0-RP-NO(1:3)
+                         MOVE WKG-RP-MAP-NO(3:1)
+                                              TO WK-TIT0-RP-NO(4:1)
+                         MOVE WKG-RP-MAP-NO(1:2)
+                                              TO WK-TIT0-RP-NO(5:2)
+                         MOVE WKG-RP-MAP-NO(4:4)
+                                              TO WK-TIT0-RP-NO(7:4)
+                      ELSE
+                         MOVE 'COMD'          TO WK-TIT0-RP-NO(1:4)
+                         MOVE WKG-RP-MAP-NO(2:6) TO WK-TIT0-RP-NO(5:6)
+                      END-IF
+                   WHEN 'AS'
+                   WHEN 'IA'
+                   WHEN 'EB'
+                   WHEN 'TC'
+130820             WHEN 'DC'
+130820             WHEN 'NT'
+141230             WHEN 'AM'
+                      MOVE 'ZEXD'               TO WK-TIT0-RP-NO(1:4)
+                      MOVE WKG-RP-MAP-NO(2:6)   TO WK-TIT0-RP-NO(5:6)
+                   WHEN OTHER
+                      CONTINUE
+                END-EVALUATE
+              END-IF
+              IF WKG-RP-MAP-NO(1:9) = 'DPMCA0202' OR 'DPMFD0302'
+              THEN
+                 MOVE 'DEPD'                  TO WK-TIT0-RP-NO(1:4)
+                 MOVE WKG-RP-MAP-NO(4:6)      TO WK-TIT0-RP-NO(5:6)
+              END-IF
+              IF WKG-RP-MAP-NO(1:8) = 'DSAD1006'
+              THEN
+                 MOVE 'DEPM'                  TO WK-TIT0-RP-NO(1:4)
+                 MOVE WKG-RP-MAP-NO(2:2)        TO WK-TIT0-RP-NO(5:2)
+                 MOVE WKG-RP-MAP-NO(5:4)        TO WK-TIT0-RP-NO(7:4)
+              END-IF
+              IF WKG-RP-MAP-NO(1:8) = 'DPFD0406'
+              THEN
+                 MOVE 'DEPD'                  TO WK-TIT0-RP-NO(1:4)
+                 MOVE WKG-RP-MAP-NO(3:2)      TO WK-TIT0-RP-NO(5:2)
+                 MOVE WKG-RP-MAP-NO(5:4)      TO WK-TIT0-RP-NO(7:4)
+              END-IF
+              IF WKG-RP-MAP-NO(1:8) = 'ZTCDUMCH'
+              THEN
+                 MOVE 'ZEXD'                  TO WK-TIT0-RP-NO(1:4)
+                 MOVE WKG-RP-MAP-NO(5:6)      TO WK-TIT0-RP-NO(5:6)
+              END-IF
+                MOVE 76                  TO  WK-MAX-LINE-CNT            02600000
+                MOVE 32                  TO  WK-TIT0-CNT WK-TIT2-CNT    02610000
+                MOVE 24                  TO   WK-TIT1-CNT               02620000
+                MOVE 'TAI FUNG BANK LIMITED   ' TO                      02640000
+                                             WK-TIT0-BANK-NAME          02650000
+                ACCEPT WK-DATE FROM DATE                                02660001
+
+                MOVE WK-DATE(5:2)   TO  WK-TIT0-DATE(1:2)
+                EVALUATE WK-DATE(3:2)
+                   WHEN 01
+                      MOVE 'JAN'    TO  WK-TIT0-DATE(3:3)
+                   WHEN 02
+                      MOVE 'FEB'    TO  WK-TIT0-DATE(3:3)
+                   WHEN 03
+                      MOVE 'MAR'    TO  WK-TIT0-DATE(3:3)
+                   WHEN 04
+                      MOVE 'APR'    TO  WK-TIT0-DATE(3:3)
+                   WHEN 05
+                      MOVE 'MAY'    TO  WK-TIT0-DATE(3:3)
+                   WHEN 06
+                      MOVE 'JUN'    TO  WK-TIT0-DATE(3:3)
+                   WHEN 07
+                      MOVE 'JUL'    TO  WK-TIT0-DATE(3:3)
+                   WHEN 08
+                      MOVE 'AUG'    TO  WK-TIT0-DATE(3:3)
+                   WHEN 09
+                      MOVE 'SEP'    TO  WK-TIT0-DATE(3:3)
+                   WHEN 10
+                      MOVE 'OCT'    TO  WK-TIT0-DATE(3:3)
+                   WHEN 11
+                      MOVE 'NOV'    TO  WK-TIT0-DATE(3:3)
+                   WHEN 12
+                      MOVE 'DEC'    TO  WK-TIT0-DATE(3:3)
+                END-EVALUATE
+
+                MOVE 20             TO  WK-TIT0-DATE(6:2)
+                MOVE WK-DATE(1:2)   TO  WK-TIT0-DATE(8:2)
+                MOVE WK-TIT0-FILLER   TO  WK-TIT0-END                   02700000
+                MOVE 3                TO  WK-ADVN                       02710000
+                MOVE WK-TIT0          TO  WK-LINE                       02720000
+                PERFORM S00-WRITE-RPG-LINE                              02730000
+                IF WK-NO-RPT-DES-IND = 'N'
+                THEN
+                   MOVE RDES-RPT-NAME(1:50) TO WK-TIT1-REP-NAME         02740000
+                ELSE
+                   MOVE SPACES           TO WK-TIT1-REP-NAME
+                END-IF
+                EVALUATE WK-BR1
+                   WHEN 00
+                      MOVE WK-BR-00 TO  WK-TIT1-BANK-NAME(1:30)
+                   WHEN 01
+                      MOVE WK-BR-01 TO  WK-TIT1-BANK-NAME(1:30)
+                   WHEN OTHER
+                      MOVE 003        TO WK-BRHM-INST-NO
+                      MOVE ZEROS      TO WK-BRHM-BRDP
+                      MOVE WK-BR1     TO WK-BRHM-BRDP(13:2)
+                      MOVE WK-BRHM-KEY TO BRHM-KEY-1
+                      PERFORM S00-GET-BR-DP-NAME
+                      IF SQLCODE = 100
+                      THEN
+                         MOVE SPACES     TO WK-TIT1-BANK-NAME(1:30)
+                      ELSE
+                         MOVE BRHM-ENGLISH-NAME(1:30)
+                                         TO WK-TIT1-BANK-NAME(1:30)
+                      END-IF
+                END-EVALUATE
+                ACCEPT WK-TIME FROM TIME                                02760000
+                MOVE WK-TIME(1:2)   TO  WK-TIT1-TIME(1:2)               02770000
+                MOVE WK-TIME(3:2)   TO  WK-TIT1-TIME(4:2)               02780000
+                MOVE WK-TIME(5:2)   TO  WK-TIT1-TIME(7:2)               02790000
+                MOVE WK-TIT1-FILLER   TO  WK-TIT1-END                   02800000
+                MOVE 1                TO  WK-ADVN                       02810000
+                MOVE WK-TIT1          TO  WK-LINE                       02820000
+                PERFORM S00-WRITE-RPG-LINE                              02830000
+                EVALUATE LKG-RP-FREQUENCY                               02840000
+                  WHEN 'D'                                              02850000
+                       MOVE 'DAILY'   TO WK-TIT2-REP-TYPE               02860000
+                  WHEN 'M'                                              02870000
+                       MOVE 'MONTHLY' TO WK-TIT2-REP-TYPE               02880000
+                  WHEN 'H'                                              02890000
+                       MOVE 'HALF YEARLY' TO WK-TIT2-REP-TYPE           02900000
+                  WHEN 'Y'                                              02910000
+                       MOVE 'YEARLY ' TO WK-TIT2-REP-TYPE               02920000
+                  WHEN 'O'                                              02930000
+                       MOVE 'ON REQUEST' TO WK-TIT2-REP-TYPE            02940000
+                END-EVALUATE                                            02950000
+                IF WK-TIT0-RP-NO(4:1) = 'C'
+                THEN
+                   MOVE 'CATCH UP '   TO WK-TIT2-REP-TYPE
+                END-IF
+                ADD 1                 TO  WK-PAGE-NO                    02960000
+                MOVE SPACES           TO WK-TIT2-CCY-TYPE
+                MOVE WK-PAGE-NO       TO  WK-TIT2-PAGE-NO               02970000
+                MOVE WK-TIT2-FILLER   TO  WK-TIT2-END                   02980000
+                MOVE 1                TO  WK-ADVN                       02990000
+                MOVE WK-TIT2          TO  WK-LINE                       03000000
+                PERFORM S00-WRITE-RPG-LINE                              03010000
+                MOVE WK-AC-DATE(7:2) TO WK-TIT3-GL-DATE(1:2)
+                EVALUATE WK-AC-DATE(5:2)
+                   WHEN 01
+                      MOVE 'JAN'      TO  WK-TIT3-GL-DATE(3:3)
+                   WHEN 02
+                      MOVE 'FEB'      TO  WK-TIT3-GL-DATE(3:3)
+                   WHEN 03
+                      MOVE 'MAR'      TO  WK-TIT3-GL-DATE(3:3)
+                   WHEN 04
+                      MOVE 'APR'      TO  WK-TIT3-GL-DATE(3:3)
+                   WHEN 05
+                      MOVE 'MAY'      TO  WK-TIT3-GL-DATE(3:3)
+                   WHEN 06
+                      MOVE 'JUN'      TO  WK-TIT3-GL-DATE(3:3)
+                   WHEN 07
+                      MOVE 'JUL'      TO  WK-TIT3-GL-DATE(3:3)
+                   WHEN 08
+                      MOVE 'AUG'      TO  WK-TIT3-GL-DATE(3:3)
+                   WHEN 09
+                      MOVE 'SEP'      TO  WK-TIT3-GL-DATE(3:3)
+                   WHEN 10
+                      MOVE 'OCT'      TO  WK-TIT3-GL-DATE(3:3)
+                   WHEN 11
+                      MOVE 'NOV'      TO  WK-TIT3-GL-DATE(3:3)
+                   WHEN 12
+                      MOVE 'DEC'      TO  WK-TIT3-GL-DATE(3:3)
+                END-EVALUATE
+
+                MOVE WK-AC-DATE(1:4) TO WK-TIT3-GL-DATE(6:4)            02690000
+                MOVE 20               TO  WK-YEAR(1:2)
+                MOVE WK-AC-DATE(3:2) TO WK-YEAR(3:2)
+                MOVE WK-AC-DATE(5:2) TO WK-MONTH
+                MOVE WK-AC-DATE(7:2) TO WK-DAY
+                IF WK-MONTH = 1 OR WK-MONTH = 2
+                THEN
+                   COMPUTE WK-MONTH = WK-MONTH + 12
+                   END-COMPUTE
+                   COMPUTE WK-YEAR = WK-YEAR - 1
+                   END-COMPUTE
+                END-IF
+                COMPUTE WK-TEMP-INT1 = WK-MONTH * 2
+                END-COMPUTE
+                ADD 1                 TO WK-MONTH
+                COMPUTE WK-TEMP-INT2 = WK-MONTH * 3
+                END-COMPUTE
+                DIVIDE WK-TEMP-INT2 BY 5 GIVING WK-TEMP-INT3
+                COMPUTE WK-TEMP-INT4 = WK-YEAR / 4
+                END-COMPUTE
+                COMPUTE WK-TEMP-INT5 = WK-YEAR / 100
+                END-COMPUTE
+                COMPUTE WK-TEMP-INT6 = WK-YEAR / 400
+                END-COMPUTE
+                MOVE ZEROS            TO WK-TEMP-INT7
+                ADD WK-DAY            TO WK-TEMP-INT7
+                ADD WK-YEAR           TO WK-TEMP-INT7
+                ADD WK-TEMP-INT1      TO WK-TEMP-INT7
+                ADD WK-TEMP-INT3      TO WK-TEMP-INT7
+                ADD WK-TEMP-INT4      TO WK-TEMP-INT7
+                COMPUTE WK-TEMP-INT7 = WK-TEMP-INT7 - WK-TEMP-INT5
+                END-COMPUTE
+                ADD WK-TEMP-INT6      TO WK-TEMP-INT7
+                DIVIDE WK-TEMP-INT7 BY 7 GIVING WK-TEMP-INT8
+                                 REMAINDER WK-TEMP-WEEK
+                EVALUATE WK-TEMP-WEEK
+                  WHEN 0
+                    MOVE '(MON)'      TO WK-TIT3-WEEK
+                  WHEN 1
+                    MOVE '(TUE)'      TO WK-TIT3-WEEK
+                  WHEN 2
+                    MOVE '(WED)'      TO WK-TIT3-WEEK
+                  WHEN 3
+                    MOVE '(THU)'      TO WK-TIT3-WEEK
+                  WHEN 4
+                    MOVE '(FRI)'      TO WK-TIT3-WEEK
+                  WHEN 5
+                    MOVE '(SAT)'      TO WK-TIT3-WEEK
+                  WHEN 6
+                    MOVE '(SUN)'      TO WK-TIT3-WEEK
+                END-EVALUATE
+                MOVE 1                TO  WK-ADVN                       03080000
+                MOVE WK-TIT3          TO  WK-LINE                       03090000
+                PERFORM S00-WRITE-RPG-LINE                              03100000
+                MOVE 1               TO  WK-ADVN                        03780000
+                MOVE WK-BOTT5        TO  WK-LINE                        03790000
+                PERFORM S00-WRITE-RPG-LINE                              03800000
+                MOVE 1               TO  WK-ADVN                        03780000
+                MOVE WK-BOTT5        TO  WK-LINE                        03790000
+                PERFORM S00-WRITE-RPG-LINE                              03800000
+                MOVE 1               TO  WK-ADVN                        03780000
+                IF WK-BR1 = WK-BRHM-LAST
+                THEN
+                   MOVE WK-BOTT4     TO  WK-LINE                        03790000
+                   PERFORM S00-WRITE-RPG-LINE                           03800000
+                   MOVE 1            TO  WK-ADVN                        03780000
+                   MOVE WK-BOTT5     TO  WK-LINE                        03790000
+                   PERFORM S00-WRITE-RPG-LINE                           03800000
+                   MOVE 1            TO  WK-ADVN                        03780000
+                   MOVE WK-BOTT1     TO  WK-LINE                        03790000
+                   PERFORM S00-WRITE-RPG-LINE                           03800000
+                ELSE
+                   MOVE WK-BOTT4     TO  WK-LINE                        03790000
+                   PERFORM S00-WRITE-RPG-LINE                           03800000
+                   MOVE 1            TO  WK-ADVN                        03780000
+                   MOVE WK-BOTT5     TO  WK-LINE                        03790000
+                   PERFORM S00-WRITE-RPG-LINE                           03800000
+                   MOVE 1            TO  WK-ADVN                        03780000
+                   MOVE WK-BOTT1     TO  WK-LINE                        03790000
+                   PERFORM S00-WRITE-RPG-LINE                           03800000
+                   MOVE RPCRPG            TO RPCRPGT
+                   WRITE RPCRPG                                         03820000
+                   MOVE RPCRPGT           TO RPCRPG
+                   MOVE 0          TO  WK-LINE-CNT                      03830000
+                   MOVE 0          TO  RPG-LINE-CNT                     03840000
+                END-IF
+                MOVE 'N'              TO  WK-PAGE-END                   03220000
+              END-IF
+              END-PERFORM
+           END-IF
+           EXIT.
+                                                                        03870000
+       C00-MAIN-PROCESS.                                                03880000
+           CLOSE RPFRPG                                                 03880112
+           OPEN  INPUT RPFRPG                                           03880212
+           IF WK-RPG-STS NOT = ZEROS                                    03880812
+              DISPLAY 'WK-RPG-STS'  WK-RPG-STS
+              MOVE 8               TO RETURN-CODE                       03881112
+              PERFORM Z00-RETURN                                        03881212
+           END-IF                                                       03881312
+            READ RPFRPG                                                 03890000
+                 AT END DISPLAY 'RPBDRPT: RPFRPG  EMPTY'                03900012
+                        MOVE 4 TO RETURN-CODE                           03910000
+                 NOT AT END                                             03920000
+                        PERFORM B00-PRINT UNTIL  EOF-FLAG = 'END'       03930000
+            END-READ                                                    03940000
+            EXIT.                                                       03950000
+                                                                        03960000
+       B00-PRINT.                                                       03970000
+            PERFORM B01-PRINT-REPORT                                    03980000
+            READ RPFRPG  AT END MOVE 'END' TO EOF-FLAG                  03990000
+            EXIT.                                                       04000000
+      *******************************                                   04010000
+      * PRINT PROCESS                                                   04020000
+      *******************************                                   04030000
+       B01-PRINT-REPORT.                                                04040000
+            IF   RPG-DST-BR-DP NOT = WK-BD OR WK-FIRST = 'Y'            04050000
+                 PERFORM B02-NEW-DIST-BD                                04060000
+                 MOVE 'N' TO WK-FIRST                                   04070000
+            END-IF                                                      04080000
+            MOVE   SPACES        TO     RPFREPT-RECORD                  04090000
+            WRITE  RPFREPT-RECORD AFTER PAGE                            04100000
+            PERFORM S00-CHECK-REPT                                      04110000
+            PERFORM VARYING I FROM 1 BY 1 UNTIL I > RPG-LINE-CNT        04120000
+                 IF I = 1                                               04130000
+                    WRITE RPFREPT-RECORD FROM RPG-LINE(I)               04140000
+                          AFTER ADVANCING 5 LINES                       04150000
+                 ELSE                                                   04160000
+                    WRITE RPFREPT-RECORD FROM RPG-LINE(I)               04170000
+                 END-IF                                                 04180000
+                 PERFORM S00-CHECK-REPT                                 04190000
+            END-PERFORM                                                 04200000
+            PERFORM C00-NEW-REPORT                                      04210000
+            EXIT.                                                       04220000
+      *                                                                 04230000
+       B02-NEW-DIST-BD.                                                 04240000
+            INITIALIZE WK-RPRRSUM                                       04250000
+            MOVE  RPG-LINE(1)    TO  WK-LINE1                           04260000
+            MOVE  RPG-LINE(2)    TO  WK-LINE2                           04270000
+            MOVE  RPG-DST-BR-DP  TO  WK-BD                              04280000
+            EXIT.                                                       04290000
+      *******************************                                   04300000
+      * ADD NEW REPORT IN SUM TABLE                                     04310000
+      *******************************                                   04320000
+       C00-NEW-REPORT.                                                  04330000
+            SET WK-IND TO 1                                             04340000
+            SEARCH WK-RSUM                                              04350000
+            AT END MOVE 8 TO RETURN-CODE                                04360000
+                   PERFORM Z00-RETURN                                   04370000
+              WHEN (WK-RSUM-RPT-NO(WK-IND) = RPG-RPT-NO AND             04380000
+                    WK-RSUM-RPT-BR-DP(WK-IND) = RPG-RPT-BR-DP) OR       04390000
+                    WK-RSUM-RPT-NO(WK-IND) = SPACES                     04400000
+                 MOVE RPG-DST-BR-DP        TO WK-RSUM-DST-BR-DP(WK-IND) 04410000
+                 MOVE RPG-RPT-BR-DP        TO WK-RSUM-RPT-BR-DP(WK-IND) 04420000
+                 MOVE RPG-RPT-NO           TO WK-RSUM-RPT-NO(WK-IND)    04430000
+                 MOVE RPG-PAGE-NO          TO WK-RSUM-PAGE-NO(WK-IND)   04440000
+                 MOVE SPACES               TO WK-RSUM-RPT-NAME(WK-IND)  04450000
+                 IF RPG-LINE(2)(140:60) = SPACES                        04460000
+                   MOVE RPG-LINE(2)(55:50) TO WK-RSUM-RPT-NAME(WK-IND)  04470000
+                 ELSE                                                   04480000
+                   MOVE RPG-LINE(2)(55:80) TO WK-RSUM-RPT-NAME(WK-IND)  04490000
+                 END-IF                                                 04500000
+            END-SEARCH                                                  04510000
+            EXIT.                                                       04520000
+      *                                                                 04530000
+       S00-CHECK-RSUM.                                                  04540000
+           IF WK-RSUM-STS NOT = '00'                                    04550000
+              DISPLAY 'WRITE SCFRSUM ERROR: ' WK-RSUM-STS               04560000
+              MOVE 8 TO RETURN-CODE                                     04570000
+              PERFORM Z00-RETURN                                        04580000
+           END-IF                                                       04590000
+           EXIT.                                                        04600000
+      *                                                                 04610000
+       S00-CHECK-REPT.                                                  04620000
+           IF WK-REPT-STS NOT = '00'                                    04630000
+              DISPLAY 'WRITE RPFREPT ERROR: ' WK-REPT-STS               04640000
+              MOVE 8 TO RETURN-CODE                                     04650000
+              PERFORM Z00-RETURN                                        04660000
+           END-IF                                                       04670000
+           EXIT.                                                        04680000
+       R00-LOAD-BRHM.
+           READ RPQBRHM
+           SET BRHM-END-NO           TO TRUE
+           MOVE ZEROS                TO WK-BRHM-CNT
+           IF WK-BRHM-STS = '10'
+              OR WK-BRHM-STS NOT = ZEROS
+           THEN
+              DISPLAY 'BRHM IS EMPTY' WK-BRHM-STS
+              MOVE 4 TO RETURN-CODE                                     04650000
+              PERFORM Z00-RETURN                                        04660000
+           ELSE
+              PERFORM  S00-READ-RPQBRHM UNTIL BRHM-END-YES
+           END-IF
+           MOVE WK-BRHM-BR-DP(WK-BRHM-CNT) TO WK-BRHM-LAST
+           EXIT.
+       S00-READ-RPQBRHM.
+           READ RPQBRHM
+           IF WK-BRHM-STS = '10'
+           THEN
+              SET BRHM-END-YES       TO TRUE
+           ELSE
+              ADD 1                  TO WK-BRHM-CNT
+              MOVE BRHM-AREAF        TO WK-BRHM-AREA(WK-BRHM-CNT)
+              MOVE BRHM-BRDP         TO WK-BRHM-BR-DP(WK-BRHM-CNT)
+           END-IF
+           EXIT.
+       S00-FND-BRHM.
+           MOVE 0                             TO WK-BRHM-AREA-TMP
+           MOVE WK-INDX                       TO WK-INDX2
+           PERFORM VARYING WK-INDX1 FROM 1 BY 1
+             UNTIL  WK-INDX1 >  WK-BRHM-CNT OR BRHM-FND-YES
+               IF WK-INDX2 = WK-BRHM-BR-DP(WK-INDX1)
+               THEN
+                  SET BRHM-FND-YES            TO TRUE
+                  MOVE WK-BRHM-AREA(WK-INDX1) TO WK-BRHM-AREA-TMP
+               END-IF
+           END-PERFORM
+           EXIT.
+      *                                                                 04690000
+       S00-NO-RPT-DES.                                                  04700000
+           MOVE  1            TO  WK-ADVN                               04710000
+           MOVE RPTL-TXT       TO  WK-LINE                              04720000
+           EXIT.                                                        04730000
+       S00-GET-BR-DP-NAME.
+           EXEC SQL
+                SELECT  BR_NAME,
+                        ENGLISH_NAME
+                 INTO  :BRHM-BR-NAME,
+                       :BRHM-ENGLISH-NAME
+                 FROM   BRHM
+                WHERE   KEY_1 = :BRHM-KEY-1
+           END-EXEC
+            EVALUATE TRUE
+               WHEN SQLCODE = ZERO
+               WHEN SQLCODE = 100
+                  CONTINUE
+               WHEN OTHER
+                  DISPLAY 'SELECT ERROR SQLCODE= ' SQLCODE              -STS
+                  MOVE 8 TO RETURN-CODE                                 04570000
+                  PERFORM Z00-RETURN                                    04580000
+            END-EVALUATE
+           EXIT.
+       S00-GET-CCY-TO-CHR.
+           EXEC SQL
+                SELECT  CODE
+                 INTO  :CCYM-CODE
+                 FROM   CCYM
+                WHERE   CURRENCY_CODE_DIG = :CCYM-CURRENCY-CODE-DIG
+           END-EXEC
+            DISPLAY 'CCYM-CODE'  CCYM-CODE
+            DISPLAY 'SQLCODED '  SQLCODE
+            EVALUATE TRUE
+               WHEN SQLCODE = ZERO
+               WHEN SQLCODE = 100
+                  CONTINUE
+               WHEN OTHER
+                  DISPLAY 'SELECT ERROR SQLCODE= ' SQLCODE              -STS
+                  MOVE 8 TO RETURN-CODE                                 04570000
+                  PERFORM Z00-RETURN                                    04580000
+            END-EVALUATE
+           EXIT.
+       S00-GET-CCY-TO-NUM.
+           EXEC SQL
+                SELECT  CURRENCY_CODE_DIG
+                 INTO  :CCYM-CURRENCY-CODE-DIG
+                 FROM   CCYM
+                WHERE   INST_NO = :CCYM-INST-NO  AND
+                        CODE = :CCYM-CODE
+           END-EXEC
+            EVALUATE TRUE
+               WHEN SQLCODE = ZERO
+               WHEN SQLCODE = 100
+                  CONTINUE
+               WHEN OTHER
+                  DISPLAY 'SELECT ERROR SQLCODE= ' SQLCODE              -STS
+                  MOVE 8 TO RETURN-CODE                                 04570000
+                  PERFORM Z00-RETURN                                    04580000
+            END-EVALUATE
+           EXIT.
+      *****************************                                     04740000
+      * PROCESS A LINE IN THE PAGE                                      04750000
+      *****************************                                     04760000
+       S00-WRITE-RPG-LINE.                                              04770000
+           ADD WK-ADVN          TO  WK-LINE-CNT                         04780000
+           COMPUTE RPG-LINE-CNT = RPG-LINE-CNT + 1
+           MOVE WK-LINE         TO  RPG-LINE(RPG-LINE-CNT)              04800000
+           EXIT.                                                        04810000
+      *                                                                 04820000
+      *****************************                                     04830000
+      * OVERSEA CONSTANT SETTINGS                                       04840000
+      *****************************                                     04850000
+       Z00-RETURN.                                                      04860000
+           CLOSE RPFDATA RPFRDES RPFRPG RPFREPT                         04870000
+           DISPLAY END-MSG                                              04880000
+           STOP RUN                                                     04890000
+           EXIT.                                                        04900000
+      *                                                                 04910009
+       END PROGRAM RPBDRPT.                                             04920000

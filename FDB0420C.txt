@@ -1,0 +1,461 @@
+      ******************************************************************
+      ***                                                            ***
+      ***  SYSTEM:-  BANCS-EX                                        ***
+      ***                                                            ***
+      ***  PROGRAM:- FDB0420C                                        ***
+      ***                                                            ***
+      ***  PURPOSE:- REPORT PROGRAM FOR DEPOSIT                      ***
+      ***                                                            ***
+      ******************************************************************
+      *                                                                *
+      *                    PROGRAM HISTORY                             *
+      *                    ---------------                             *
+      *                                                                *
+      *****************************************************************
+      * PROGRAMMER : DATE :SPR NO : COMMENTS *
+      *-----------------------------------------------------------------
+      * HEXIONGFENG :  20160713:        : NEW                          *
+      *-----------------------------------------------------------------
+R11996* HEXIONGFENG :  20160806:        : CHANGE FOR RQM 11996 REOPEN  *
+R11996*-----------------------------------------------------------------
+R36285* VNBSD       : 20180420 :ADD PROD-CODE FIELD TO THE REPORT      *
+R36285*-----------------------------------------------------------------
+      *
+       IDENTIFICATION DIVISION.
+      *
+       PROGRAM-ID.    FDB0420C.
+       AUTHOR.        VNBHXF.
+      *-----------------------------------------------------------------
+      *-----------------------------------------------------------------
+       INSTALLATION.
+       DATE-WRITTEN.  JULY 2016.
+      *
+      ******************************************************************
+       ENVIRONMENT   DIVISION.
+      ******************************************************************
+      *
+      ******************************************************************
+       CONFIGURATION SECTION.
+      ******************************************************************
+      *
+      ******************************************************************
+       INPUT-OUTPUT  SECTION.
+      ******************************************************************
+      *
+      ******************************************************************
+       FILE-CONTROL.
+      ******************************************************************
+      *
+           SELECT FDQ0420T ASSIGN TO    FDQ0420T
+                           ORGANIZATION IS SEQUENTIAL
+                           ACCESS MODE  IS SEQUENTIAL
+                           FILE STATUS  IS FILE-0420T-STS.
+      *
+           SELECT FDQ0420Y ASSIGN TO    FDQ0420Y
+                           ORGANIZATION IS SEQUENTIAL
+                           ACCESS MODE  IS SEQUENTIAL
+                           FILE STATUS  IS FILE-0420Y-STS.
+      *
+      ******************************************************************
+       DATA DIVISION.
+      ******************************************************************
+      *
+      ******************************************************************
+       FILE SECTION.
+      ******************************************************************
+       FD   FDQ0420T RECORDING MODE IS F.
+       COPY FDC0420T IN LIBRYMIS.
+       FD   FDQ0420Y RECORDING MODE IS F.
+       01 FDC0420Y.
+          03 0420Y-BR-NO                     PIC X(05).
+          03 0420Y-MAST-AC                   PIC X(16).
+          03 0420Y-ACCT-TYPE                 PIC X(04).
+          03 0420Y-VOL-NO                    PIC X(03).
+          03 0420Y-SEQ-NO                    PIC X(02).
+          03 0420Y-CCY                       PIC X(03).
+          03 0420Y-CCY-NO                    PIC X(03).
+          03 0420Y-CURR-BAL                  PIC S9(14)V9(3).
+          03 0420Y-INT-RATE                  PIC S9(3)V9(4).
+          03 0420Y-INT-PAID                  PIC S9(14)V9(3).
+          03 0420Y-INT-FROM                  PIC X(09).
+          03 0420Y-INT-TO                    PIC X(09).
+          03 0420Y-TRF-AC-NO                 PIC X(16).
+          03 0420Y-TRF-CCY                   PIC X(03).
+          03 0420Y-EXCH-RATE                 PIC S9(5)V9999.
+          03 0420Y-INT-TRF                   PIC S9(14)V9(3).
+          03 0420Y-JRNL-NO                   PIC 9(9).
+          03 0420Y-TRN-DATE                  PIC 9(9).
+R36285    03 0420Y-PROD-CODE                 PIC X(8).
+      ******************************************************************
+       WORKING-STORAGE SECTION.
+      ******************************************************************
+      **************************
+      * RECORD LAYOUT          *
+      **************************
+      *
+           EXEC SQL INCLUDE CPINFD   END-EXEC.
+           EXEC SQL INCLUDE SQLCA    END-EXEC.
+      *
+      **************************
+      * CONSTANT DECLARATION   *
+      **************************
+      *
+       77 WARNING-RC                   PIC 9(1) VALUE 4.
+       77 ERROR-RC                     PIC 9(1) VALUE 8.
+       77 K-PROGRAM-NAME               PIC X(8) VALUE 'FDB0420C'.
+       77 PGM-ZTCBQJPM                 PIC X(8) VALUE 'ZTCBQJPM'.
+      *
+      ******************************
+      * PROGRAM VARIABLES          *
+      ******************************
+       01 WS-VARIABLES.
+          03 WS-INVM-KEY.
+             05 WS-INVM-SOC-NO         PIC 999.
+             05 WS-INVM-MEMB-CUST-AC   PIC 9(16).
+          03 WS-AC-DATE                PIC S9(09) COMP-3.
+          03 WS-AC-DATE1               PIC S9(09) COMP-3.
+          03 WS-AC-DATE2               PIC S9(09) COMP-3.
+          03 WS-INT-FRM-DT             PIC X(8).
+          03 WS-INT-TO-DT              PIC X(8).
+          03 WS-INT-RATE-X             PIC X(7).
+          03 WS-INT-RATE REDEFINES WS-INT-RATE-X.
+             05 WS-INT-RATE-9          PIC S9(3)V9(4).
+          03 WS-AC-TYPE.
+             05 WS-AC-PREFIX           PIC X(02).
+                88 WS-SA-0600          VALUE "42" "52" "50" "58".
+                88 WS-FS-0600          VALUE "42" "52" "50" "58" "72".
+                88 WS-AC-CA            VALUE "41" "51".
+                88 WS-CA-0600          VALUE "41" "51" "61".
+                88 WS-FD               VALUE "46" "56" "76".
+                88 WS-SA-0204          VALUE "42" "52" "72" "50"
+                                             "58".
+             05 WS-INCT-AC-TRAIL       PIC X(02).
+      **************************
+      * FILE STATUS            *
+      **************************
+       01 WS-FILE-STS.
+          03 FILE-0420T-STS            PIC 9(2).
+          03 FILE-0420Y-STS            PIC 9(2).
+      **************************
+      * CONDITION DECLARATION  *
+      **************************
+       01 WS-FLIE-END.
+          03 TABLE-FETCH-FLG           PIC X(1) VALUE SPACE.
+             88 WS-END-Y                        VALUE 'Y'.
+             88 WS-END-N                        VALUE 'N'.
+          03 WS-INFD-FLG               PIC X(1) VALUE SPACE.
+             88 WS-INFD-FOUND                   VALUE 'Y'.
+             88 WS-INFD-NOTFND                  VALUE 'N'.
+      *
+      *****************************************************************
+      *    COMMUNICATION AREA                                         *
+      *****************************************************************
+      *
+           COPY ZTCCJPRM IN LIBRYMIS.
+           COPY UT0030CA IN LIBRYMIS.
+           COPY UT0020CA IN LIBRYMIS.
+      *
+      **************************
+       PROCEDURE DIVISION.
+      **************************
+      *
+       A000-MAIN-PROC.
+           PERFORM A000-INITIALIZE
+              THRU A000-INITIALIZE-EXIT
+      *
+           PERFORM B000-MAIN-PROC
+              THRU B000-MAIN-PROC-EXIT
+      *
+           PERFORM S000-CLOSE-FILE
+              THRU S000-CLOSE-FILE-EXIT.
+      *
+           PERFORM Z000-RETURN
+              THRU Z000-RETURN-EXIT
+           .
+           EXIT.
+      *************************
+      * INITIALIZE VARIABLES  *
+      *************************
+       A000-INITIALIZE.
+      *
+           INITIALIZE WS-VARIABLES
+      *
+           PERFORM S000-CALL-ZTCBQJPM
+              THRU S000-CALL-ZTCBQJPM-EXIT
+           INITIALIZE UT0030-FUNCTION
+                      UT0030-DATE-AREA
+                      UT0030-BINARY-DATE
+           SET FROM-CCYYMMDD           TO TRUE
+           MOVE JPRM-AC-DATE           TO UT0030-DATE-CCYYMMDD
+           CALL 'UT0030'            USING UT0030-FUNCTION
+                                           UT0030-DATE-AREA
+                                           UT0030-BINARY-DATE
+           MOVE UT0030-BINARY-DATE     TO WS-AC-DATE
+      *
+           PERFORM S000-OPEN-FILE
+              THRU S000-OPEN-FILE-EXIT
+           .
+       A000-INITIALIZE-EXIT.
+           EXIT.
+      ****************************************************************
+      * MAIN PROGRAM                                                 *
+      ****************************************************************
+       B000-MAIN-PROC.
+           SET WS-END-N                TO TRUE
+      *
+           PERFORM S000-READ-FDQ0420T
+              THRU S000-READ-FDQ0420T-EXIT
+      *
+           PERFORM UNTIL WS-END-Y
+              MOVE FDC0420T            TO FDC0420Y
+              PERFORM B100-READ-INFD
+                 THRU B100-READ-INFD-EXIT
+      *
+              IF WS-INFD-FOUND
+              THEN
+      *          DISPLAY "INFD-VALUE-DATE:" INFD-VALUE-DATE
+      *          DISPLAY "INFD-DUE-DATE:" INFD-DUE-DATE
+      *          DISPLAY "JPRM-AC-DATE:" JPRM-AC-DATE
+                 IF INFD-VALUE-DATE <= JPRM-AC-DATE AND
+                    INFD-DUE-DATE >= JPRM-AC-DATE
+                 THEN
+                    INITIALIZE UT0030-FUNCTION
+                               UT0030-DATE-AREA
+                               UT0030-BINARY-DATE
+                    SET FROM-CCYYMMDD  TO TRUE
+                    DISPLAY "INFD-FILLER(51:8):" INFD-FILLER(51:8)
+                    MOVE INFD-FILLER(51:8)
+                                       TO UT0030-DATE-CCYYMMDD
+                    CALL 'UT0030'   USING UT0030-FUNCTION
+                                          UT0030-DATE-AREA
+                                          UT0030-BINARY-DATE
+                    MOVE UT0030-BINARY-DATE
+                                       TO WS-AC-DATE1
+      *
+                    INITIALIZE UT0020-FUNCTION
+                               UT0020-DATE-AREA
+                               UT0020-BINARY-DATE
+                    MOVE WS-AC-DATE1   TO UT0020-BINARY-DATE
+                    SET TO-DDMMMCCYY   TO TRUE
+                    CALL "UT0020"   USING UT0020-FUNCTION
+                                          UT0020-DATE-AREA
+                                          UT0020-BINARY-DATE
+                    MOVE UT0020-DATE-DDMMMCCYY
+                                       TO 0420Y-INT-FROM
+                    DISPLAY "0420Y-INT-FROM:" 0420Y-INT-FROM
+      *
+                    INITIALIZE UT0030-FUNCTION
+                               UT0030-DATE-AREA
+                               UT0030-BINARY-DATE
+                    SET FROM-CCYYMMDD  TO TRUE
+                    MOVE INFD-FILLER(59:8)
+                                       TO UT0030-DATE-CCYYMMDD
+                    CALL 'UT0030'   USING UT0030-FUNCTION
+                                          UT0030-DATE-AREA
+                                          UT0030-BINARY-DATE
+                    MOVE UT0030-BINARY-DATE
+                                       TO WS-AC-DATE2
+      *
+                    INITIALIZE UT0020-FUNCTION
+                               UT0020-DATE-AREA
+                               UT0020-BINARY-DATE
+                    MOVE WS-AC-DATE2   TO UT0020-BINARY-DATE
+                    SET TO-DDMMMCCYY   TO TRUE
+                    CALL "UT0020"   USING UT0020-FUNCTION
+                                          UT0020-DATE-AREA
+                                          UT0020-BINARY-DATE
+                    MOVE UT0020-DATE-DDMMMCCYY
+                                       TO 0420Y-INT-TO
+                    DISPLAY "0420Y-INT-TO:" 0420Y-INT-TO
+      *
+                    IF INFD-FILLER(67:7) = SPACE
+                    THEN
+                       MOVE ZERO       TO 0420Y-INT-RATE
+                    ELSE
+                       MOVE INFD-FILLER(67:7)
+                                       TO WS-INT-RATE
+                       MOVE WS-INT-RATE-9
+                                       TO 0420Y-INT-RATE
+                    END-IF
+                 END-IF
+              END-IF
+      *
+              PERFORM S000-WRITE-FDQ0420Y
+                 THRU S000-WRITE-FDQ0420Y
+      *
+              PERFORM S000-READ-FDQ0420T
+                 THRU S000-READ-FDQ0420T-EXIT
+           END-PERFORM
+           .
+       B000-MAIN-PROC-EXIT.
+           EXIT.
+      *
+       B100-READ-INFD.
+           INITIALIZE INFD
+           MOVE 0420T-MAST-AC          TO INFD-MAST-AC
+           MOVE 0420T-VOL-NO           TO INFD-VOLUME-NO
+           MOVE 0420T-SEQ-NO           TO INFD-SEQUENCE-NO
+      *
+           EXEC SQL
+              SELECT INFD_AC,
+                     INFD_DUE_DATE,
+                     INFD_MAST_AC,
+                     INFD_VOLUME_NO,
+                     INFD_SEQUENCE_NO,
+                     INFD_VALUE_DATE,
+                     INFD_ACCT_TYPE,
+                     INFD_INT_CAT,
+                     INFD_RATE,
+                     INFD_AMOUNT,
+                     INFD_FILLER
+              INTO   :INFD-AC,
+                     :INFD-DUE-DATE,
+                     :INFD-MAST-AC,
+                     :INFD-VOLUME-NO,
+                     :INFD-SEQUENCE-NO,
+                     :INFD-VALUE-DATE,
+                     :INFD-ACCT-TYPE,
+                     :INFD-INT-CAT,
+                     :INFD-RATE,
+                     :INFD-AMOUNT,
+                     :INFD-FILLER
+              FROM INFD
+              WHERE INFD_MAST_AC     = :INFD-MAST-AC
+                AND INFD_VOLUME_NO   = :INFD-VOLUME-NO
+                AND INFD_SEQUENCE_NO = :INFD-SEQUENCE-NO
+R11996          AND INFD_DUE_DATE    <> '99999999'
+              ORDER BY INFD_DUE_DATE DESC
+              FETCH FIRST 1 ROWS ONLY
+           END-EXEC
+      *
+           EVALUATE TRUE
+              WHEN SQLCODE = ZERO
+                 SET WS-INFD-FOUND     TO TRUE
+              WHEN SQLCODE = 100
+                 SET WS-INFD-NOTFND    TO TRUE
+              WHEN OTHER
+                 MOVE ERROR-RC         TO RETURN-CODE
+                 DISPLAY "READ INFD ERROR"
+                 DISPLAY "INFD-AC:" INFD-AC
+                 DISPLAY 'THE SELECT  SQLCODE    :' SQLCODE
+                 DISPLAY 'THE SELECT  SQLSTATE   :' SQLSTATE
+                 PERFORM Z000-RETURN
+                    THRU Z000-RETURN-EXIT
+           END-EVALUATE
+           .
+       B100-READ-INFD-EXIT.
+           EXIT.
+      *--------------------------------------------*
+      * CALL ZTCBQJPM                              *
+      *--------------------------------------------*
+       S000-CALL-ZTCBQJPM.
+           CALL PGM-ZTCBQJPM        USING ZTCCJPRM
+           IF RETURN-CODE NOT = ZERO
+           THEN
+              DISPLAY 'CALL  ZTCBQJPM ERROR,RETURN-CODE='
+              RETURN-CODE
+              PERFORM Z000-RETURN
+                 THRU Z000-RETURN-EXIT
+           END-IF
+           .
+       S000-CALL-ZTCBQJPM-EXIT.
+           EXIT.
+      *****************************************************************
+      *  OPEN I-O FLIE                                                *
+      *****************************************************************
+       S000-OPEN-FILE.
+      *
+           OPEN INPUT  FDQ0420T
+           OPEN OUTPUT FDQ0420Y
+      *
+           IF FILE-0420T-STS NOT = ZEROS
+           THEN
+              MOVE ERROR-RC            TO RETURN-CODE
+              DISPLAY 'OPEN FDQ0420T ERROR, STATUS = ' FILE-0420T-STS
+              PERFORM Z000-RETURN
+                 THRU Z000-RETURN-EXIT
+           END-IF
+           IF FILE-0420Y-STS NOT = ZEROS
+           THEN
+              MOVE ERROR-RC            TO RETURN-CODE
+              DISPLAY 'OPEN FDQ0420Y ERROR, STATUS = ' FILE-0420Y-STS
+              PERFORM Z000-RETURN
+                 THRU Z000-RETURN-EXIT
+           END-IF
+           .
+       S000-OPEN-FILE-EXIT.
+           EXIT.
+      *****************************************************************
+      * CLOSE I-O FILE                                                *
+      *****************************************************************
+       S000-CLOSE-FILE.
+      *
+           CLOSE FDQ0420T
+                 FDQ0420Y
+      *
+           IF FILE-0420T-STS NOT = ZEROS
+           THEN
+              MOVE ERROR-RC               TO RETURN-CODE
+              DISPLAY 'CLOSE FDQ0420T ERROR, STATUS = ' FILE-0420T-STS
+              PERFORM Z000-RETURN
+                 THRU Z000-RETURN-EXIT
+           END-IF
+      *
+           IF FILE-0420Y-STS NOT = ZEROS
+           THEN
+              MOVE ERROR-RC               TO RETURN-CODE
+              DISPLAY 'CLOSE FDQ0420Y ERROR, STATUS = ' FILE-0420Y-STS
+              PERFORM Z000-RETURN
+                 THRU Z000-RETURN-EXIT
+           END-IF
+           .
+       S000-CLOSE-FILE-EXIT.
+           EXIT.
+      *
+       S000-READ-FDQ0420T.
+      *
+           READ FDQ0420T
+           EVALUATE TRUE
+              WHEN FILE-0420T-STS = ZEROS
+                 CONTINUE
+              WHEN FILE-0420T-STS = 10 OR 14
+                 SET WS-END-Y          TO TRUE
+              WHEN OTHER
+                 MOVE ERROR-RC         TO RETURN-CODE
+                 DISPLAY 'READ FDQ0420T ERROR, STATUS=' FILE-0420T-STS
+                 PERFORM Z000-RETURN
+                    THRU Z000-RETURN-EXIT
+           END-EVALUATE
+           .
+       S000-READ-FDQ0420T-EXIT.
+           EXIT.
+      *
+       S000-WRITE-FDQ0420Y.
+      *
+           WRITE FDC0420Y
+           IF FILE-0420Y-STS NOT = ZEROS
+           THEN
+              MOVE ERROR-RC            TO RETURN-CODE
+              DISPLAY 'WRITE FDQ0420Y ERROR, STATUS=' FILE-0420Y-STS
+              PERFORM Z000-RETURN
+                 THRU Z000-RETURN-EXIT
+           END-IF
+           .
+       S000-WRITE-FDQ0420Y-EXIT.
+           EXIT.
+      *
+      *****************************************************************
+      *  RETURN PROGRAM                                               *
+      *****************************************************************
+      *
+       Z000-RETURN.
+      *
+           GOBACK
+           .
+       Z000-RETURN-EXIT.
+           EXIT.
+      *********************
+      *  END PROGRAM      *
+      *********************
+       END PROGRAM FDB0420C.
+      *********************

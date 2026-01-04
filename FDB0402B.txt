@@ -1,0 +1,366 @@
+      ******************************************************************
+      ***                                                            ***
+      ***  SYSTEM:-  BANCS                                           ***
+      ***                                                            ***
+      ***  PROGRAM:- FDB0402B                                        ***
+      ***                                                            ***
+      ***  PURPOSE:- READ FDQ0402A TO WRITE FDQ0402B                 ***
+      ***                                                            ***
+      ******************************************************************
+      *
+      *                    PROGRAM HISTORY
+      *                    ---------------
+      *
+      ******************************************************************
+      * PROGRAMMER : DATE :SPR NO : COMMENTS
+      *-----------------------------------------------------------------
+      * HEXIONGFENG: 20110714:        : NEW
+      *-----------------------------------------------------------------
+R36285* HEXIONGFENG: 20180425:        : UPDATED FOR RQM:36285
+R36285*-----------------------------------------------------------------
+      *-----------------------------------------------------------------
+      *
+       IDENTIFICATION DIVISION.
+      *
+       PROGRAM-ID.    FDB0402B.
+       AUTHOR.        VNBHXF.
+      *-----------------------------------------------------------------
+      *-----------------------------------------------------------------
+       INSTALLATION.
+       DATE-WRITTEN.  JULY 2011.
+      *
+      ******************************************************************
+       ENVIRONMENT   DIVISION.
+       CONFIGURATION SECTION.
+       INPUT-OUTPUT  SECTION.
+       FILE-CONTROL.
+           SELECT FDQ0402A ASSIGN TO    FDQ0402A
+                           ORGANIZATION IS SEQUENTIAL
+                           ACCESS MODE  IS SEQUENTIAL
+                           FILE STATUS  IS FILE-QSAM1-STS.
+           SELECT FDQ0402B ASSIGN TO    FDQ0402B
+                           ORGANIZATION IS SEQUENTIAL
+                           ACCESS MODE  IS SEQUENTIAL
+                           FILE STATUS  IS FILE-QSAM2-STS.
+      ******************************************************************
+       DATA DIVISION.
+       FILE SECTION.
+       FD FDQ0402A RECORDING MODE IS F.
+          COPY FDC0402A IN LIBRYMIS.
+       FD FDQ0402B RECORDING MODE IS F.
+          COPY FDC0402B IN LIBRYMIS.
+      *
+       WORKING-STORAGE SECTION.
+      *
+       01 WS-PROGRAM-DATA.
+          03 WS-PROGRAM-NAME                  PIC X(8) VALUE 'FDB0402B'.
+       01 WS-PGM-TEMP-DATA.
+          03 WS-BR-DP                         PIC 9(5).
+          03 WS-CCY                           PIC 9(3).
+          03 WS-EX-RATE                       PIC S9(5)V9(6).
+          03 WS-CCY-NAME                      PIC X(3).
+          03 WS-TENURE                        PIC X(4).
+          03 WS-NUM-AC                        PIC 9(5).
+          03 WS-CERT-AMT                      PIC 9(13)V9(3).
+          03 WS-AMT-EXCHANGED                 PIC 9(13)V9(3).
+          03 WS-AMT-HKD                       PIC 9(13)V9(3).
+          03 WS-INT-PAID                      PIC 9(13)V9(3).
+          03 WS-ACCT-NO                       PIC 9(17).
+          03 WS-CERT-NO                       PIC 9(17).
+R36285    03 WS-PROD-CODE                     PIC X(8).
+R36285    03 WS-PROD-IND                      PIC X(1).
+      *
+          COPY ZFXCBINQ IN LIBRYMIS.
+      *
+      **************************
+      * FILE STATUS            *
+      **************************
+       01 FILE-QSAM1-STS                      PIC 9(2).
+       01 FILE-QSAM2-STS                      PIC 9(2).
+      **************************
+      * CONSTANT DECLARATION   *
+      **************************
+       77 ERROR-RC                         PIC 9(1) VALUE 8.
+       77 WK-PGM-ZFXBINQ                   PIC X(10) VALUE 'ZFXBINQ '.
+      *
+       01 FILE-END-QSAM1                   PIC X(1).
+          88 END-QSAM1-Y                            VALUE 'Y'.
+          88 END-QSAM1-N                            VALUE 'N'.
+      **************************
+      *  FILLER                *
+      **************************
+      *
+       PROCEDURE DIVISION.
+      **************************
+      * MAIN ROUNTE            *
+      **************************
+      *
+           PERFORM A000-INITIALIZE
+              THRU A000-INITIALIZE-EXIT
+           PERFORM B000-MAIN-LOGIC
+              THRU B000-MAIN-LOGIC-EXIT
+           PERFORM C000-CLOSE-FILE
+           PERFORM C000-CLOSE-FILE-EXIT
+           PERFORM Z000-RETURN
+              THRU Z000-RETURN-EXIT
+              .
+           EXIT.
+      *************************
+      * INITIALIZE VARIABLES  *
+      *************************
+       A000-INITIALIZE.
+      *
+           INITIALIZE WS-PGM-TEMP-DATA
+           OPEN INPUT   FDQ0402A
+           OPEN OUTPUT  FDQ0402B
+      *
+           IF FILE-QSAM1-STS NOT = ZEROS  THEN
+              MOVE ERROR-RC               TO RETURN-CODE
+#??           DISPLAY 'OPEN FDQ0402A ERROR, STATUS = ' FILE-QSAM1-STS
+              PERFORM Z000-RETURN
+                 THRU Z000-RETURN-EXIT
+           END-IF
+           IF FILE-QSAM2-STS NOT = ZEROS  THEN
+              MOVE ERROR-RC               TO RETURN-CODE
+#??           DISPLAY 'OPEN FDQ0402B ERROR, STATUS = ' FILE-QSAM2-STS
+              PERFORM Z000-RETURN
+                 THRU Z000-RETURN-EXIT
+           END-IF
+           .
+       A000-INITIALIZE-EXIT.
+           EXIT.
+      ********************
+      * MAIN PROGRAM     *
+      ********************
+       B000-MAIN-LOGIC.
+           SET END-QSAM1-N                 TO TRUE
+           READ FDQ0402A
+              AT END SET END-QSAM1-Y       TO TRUE
+           END-READ
+           MOVE 0402A-BR-DP                TO WS-BR-DP
+           MOVE 0402A-CCY                  TO WS-CCY
+           MOVE 0402A-CCY-NAME             TO WS-CCY-NAME
+           MOVE 0402A-TENURE               TO WS-TENURE
+R36285     MOVE 0402A-PROD-CODE            TO WS-PROD-CODE
+R36285     MOVE 0402A-PROD-IND             TO WS-PROD-IND
+           IF FILE-END-QSAM1 NOT = 'Y'
+           THEN
+              MOVE 1                       TO WS-NUM-AC
+              MOVE 0402A-CERT-AMT          TO WS-CERT-AMT
+              MOVE 0402A-AMT-EXCHANGED     TO WS-AMT-EXCHANGED
+      *       IF 0402A-CCY-NAME NOT = "HKD"
+      *       THEN
+      *          INITIALIZE ZFXCBINQ
+      *          MOVE 0402A-CERT-AMT  TO BINQ-FX-BUY-AMT
+      *          MOVE 0402A-CCY-NAME  TO BINQ-FX-BUY-CCY
+      *          MOVE "HKD"           TO BINQ-FX-SEL-CCY
+      *          PERFORM S000-CALL-EXCHANGE
+      *             THRU S000-CALL-EXCHANGE-EXIT
+      *          MOVE BINQ-FX-SEL-AMT      TO WS-AMT-HKD
+      *       ELSE
+      *          MOVE ZERO                 TO WS-AMT-HKD
+      *       END-IF
+              MOVE 0402A-IN-HKD            TO WS-AMT-HKD
+              MOVE 0402A-INT-PAID          TO WS-INT-PAID
+              READ FDQ0402A
+                 AT END SET END-QSAM1-Y    TO TRUE
+              END-READ
+              IF FILE-END-QSAM1 = 'Y'
+              THEN
+                 PERFORM S000-WRITE-FDQ0402B
+                    THRU S000-WRITE-FDQ0402B-EXIT
+              ELSE
+                 PERFORM B100-PROG-LOGIC UNTIL END-QSAM1-Y
+                 PERFORM S000-WRITE-FDQ0402B
+                    THRU S000-WRITE-FDQ0402B-EXIT
+              END-IF
+           END-IF
+           .
+       B000-MAIN-LOGIC-EXIT.
+           EXIT.
+      *
+       B100-PROG-LOGIC.
+           IF 0402A-BR-DP = WS-BR-DP
+           THEN
+              IF 0402A-CCY = WS-CCY
+              THEN
+R36285*          IF 0402A-TENURE = WS-TENURE
+R36285           IF 0402A-PROD-CODE = WS-PROD-CODE
+                 THEN
+                    ADD 1                      TO WS-NUM-AC
+                    ADD 0402A-CERT-AMT         TO WS-CERT-AMT
+                    ADD 0402A-AMT-EXCHANGED    TO WS-AMT-EXCHANGED
+                    ADD 0402A-IN-HKD           TO WS-AMT-HKD
+      *             ADD ZEROS                  TO WS-AMT-HKD
+      *             IF 0402A-CCY-NAME NOT = "HKD"
+      *             THEN
+      *                INITIALIZE ZFXCBINQ
+      *                MOVE 0402A-CERT-AMT  TO BINQ-FX-BUY-AMT
+      *                MOVE 0402A-CCY-NAME  TO BINQ-FX-BUY-CCY
+      *                MOVE "HKD"           TO BINQ-FX-SEL-CCY
+      *                PERFORM S000-CALL-EXCHANGE
+      *                   THRU S000-CALL-EXCHANGE-EXIT
+      *                ADD BINQ-FX-SEL-AMT      TO WS-AMT-HKD
+      *             ELSE
+      *                ADD ZERO                 TO WS-AMT-HKD
+      *             END-IF
+                    ADD 0402A-INT-PAID         TO WS-INT-PAID
+                 ELSE
+                    PERFORM S000-WRITE-FDQ0402B
+                       THRU S000-WRITE-FDQ0402B-EXIT
+                    MOVE 1                     TO WS-NUM-AC
+                    MOVE 0402A-CERT-AMT        TO WS-CERT-AMT
+                    MOVE 0402A-AMT-EXCHANGED   TO WS-AMT-EXCHANGED
+                    MOVE ZEROS                 TO WS-AMT-HKD
+                    MOVE 0402A-IN-HKD          TO WS-AMT-HKD
+      *             IF 0402A-CCY-NAME NOT = "HKD"
+      *             THEN
+      *                INITIALIZE ZFXCBINQ
+      *                MOVE 0402A-CERT-AMT  TO BINQ-FX-BUY-AMT
+      *                MOVE 0402A-CCY-NAME  TO BINQ-FX-BUY-CCY
+      *                MOVE "HKD"           TO BINQ-FX-SEL-CCY
+      *                PERFORM S000-CALL-EXCHANGE
+      *                   THRU S000-CALL-EXCHANGE-EXIT
+      *                MOVE BINQ-FX-SEL-AMT      TO WS-AMT-HKD
+      *             ELSE
+      *                MOVE ZERO                 TO WS-AMT-HKD
+      *             END-IF
+                    MOVE 0402A-INT-PAID        TO WS-INT-PAID
+                 END-IF
+              ELSE
+                 PERFORM S000-WRITE-FDQ0402B
+                    THRU S000-WRITE-FDQ0402B-EXIT
+                 MOVE 1                        TO WS-NUM-AC
+                 MOVE 0402A-CERT-AMT           TO WS-CERT-AMT
+                 MOVE 0402A-AMT-EXCHANGED      TO WS-AMT-EXCHANGED
+                 MOVE ZEROS                    TO WS-AMT-HKD
+                 MOVE 0402A-IN-HKD             TO WS-AMT-HKD
+      *          IF 0402A-CCY-NAME NOT = "HKD"
+      *          THEN
+      *             INITIALIZE ZFXCBINQ
+      *             MOVE 0402A-CERT-AMT  TO BINQ-FX-BUY-AMT
+      *             MOVE 0402A-CCY-NAME  TO BINQ-FX-BUY-CCY
+      *             MOVE "HKD"           TO BINQ-FX-SEL-CCY
+      *             PERFORM S000-CALL-EXCHANGE
+      *                THRU S000-CALL-EXCHANGE-EXIT
+      *             MOVE BINQ-FX-SEL-AMT      TO WS-AMT-HKD
+      *          ELSE
+      *             MOVE ZERO                 TO WS-AMT-HKD
+      *          END-IF
+                 MOVE 0402A-INT-PAID           TO WS-INT-PAID
+              END-IF
+           ELSE
+              PERFORM S000-WRITE-FDQ0402B
+                 THRU S000-WRITE-FDQ0402B-EXIT
+              MOVE 1                           TO WS-NUM-AC
+              MOVE 0402A-CERT-AMT              TO WS-CERT-AMT
+              MOVE 0402A-AMT-EXCHANGED         TO WS-AMT-EXCHANGED
+              MOVE ZEROS                       TO WS-AMT-HKD
+              MOVE 0402A-IN-HKD                TO WS-AMT-HKD
+      *       IF 0402A-CCY-NAME NOT = "HKD"
+      *       THEN
+      *          INITIALIZE ZFXCBINQ
+      *          MOVE 0402A-CERT-AMT  TO BINQ-FX-BUY-AMT
+      *          MOVE 0402A-CCY-NAME  TO BINQ-FX-BUY-CCY
+      *          MOVE "HKD"           TO BINQ-FX-SEL-CCY
+      *          PERFORM S000-CALL-EXCHANGE
+      *             THRU S000-CALL-EXCHANGE-EXIT
+      *          MOVE BINQ-FX-SEL-AMT      TO WS-AMT-HKD
+      *       ELSE
+      *          MOVE ZERO                 TO WS-AMT-HKD
+      *       END-IF
+              MOVE 0402A-INT-PAID              TO WS-INT-PAID
+           END-IF
+           MOVE 0402A-BR-DP                TO WS-BR-DP
+           MOVE 0402A-CCY                  TO WS-CCY
+           MOVE 0402A-CCY-NAME             TO WS-CCY-NAME
+           MOVE 0402A-TENURE               TO WS-TENURE
+R36285     MOVE 0402A-PROD-CODE            TO WS-PROD-CODE
+R36285     MOVE 0402A-PROD-IND             TO WS-PROD-IND
+           READ FDQ0402A
+           AT END SET END-QSAM1-Y TO TRUE
+           END-READ
+           .
+           EXIT.
+      *
+      **********************
+      *  WRITE-FDQ0402B    *
+      **********************
+      *
+       S000-WRITE-FDQ0402B.
+           MOVE WS-BR-DP                   TO 0402B-BR-DP
+           MOVE WS-CCY                     TO 0402B-CCY
+           MOVE WS-CCY-NAME                TO 0402B-CCY-NAME
+           MOVE WS-TENURE                  TO 0402B-TENURE
+           MOVE WS-NUM-AC                  TO 0402B-NUM-AC
+           MOVE WS-CERT-AMT                TO 0402B-CERT-AMT
+           MOVE WS-AMT-EXCHANGED           TO 0402B-AMT-EXCHANGED
+           MOVE WS-AMT-HKD                 TO 0402B-AMT-HKD
+           MOVE WS-INT-PAID                TO 0402B-INT-PAID
+R36285     MOVE WS-PROD-CODE               TO 0402B-PROD-CODE
+R36285     MOVE WS-PROD-IND                TO 0402B-PROD-IND
+           WRITE FDC0402B-DATA
+           IF FILE-QSAM2-STS NOT = ZEROS THEN
+              MOVE ERROR-RC                TO RETURN-CODE
+              DISPLAY 'WRITE FDQ0402B ERROR, STATUS=' FILE-QSAM2-STS
+              PERFORM Z000-RETURN
+                 THRU Z000-RETURN-EXIT
+           END-IF
+           MOVE ZERO                       TO 0402B-NUM-AC
+           MOVE ZERO                       TO 0402B-CERT-AMT
+           MOVE ZERO                       TO 0402B-AMT-EXCHANGED
+           MOVE ZERO                       TO 0402B-AMT-HKD
+           MOVE ZERO                       TO 0402B-INT-PAID
+      *
+           .
+       S000-WRITE-FDQ0402B-EXIT.
+           EXIT.
+      *
+       S000-CALL-EXCHANGE.
+      *
+           SET BINQ-FX-FUNC-COM           TO TRUE
+           CALL WK-PGM-ZFXBINQ USING ZFXCBINQ
+XF0119*    IF BINQ-FX-RC NOT = ZERO
+XF0119*    THEN
+XF0119*       DISPLAY 'CALL  ZFXBINQ  ERROR,RETURN-CODE= ' BINQ-FX-RC
+XF0119*       MOVE WK-ERROR-RC            TO RETURN-CODE
+XF0119*       PERFORM Z000-ROUTINE-RETURN
+XF0119*          THRU Z000-ROUTINE-RETURN-EXIT
+XF0119*    END-IF
+           .
+       S000-CALL-EXCHANGE-EXIT.
+           EXIT.
+      *
+      ********************
+      * CLOSE FILE       *
+      ********************
+      *
+       C000-CLOSE-FILE.
+           CLOSE FDQ0402A FDQ0402B
+           IF FILE-QSAM1-STS NOT = ZEROS   THEN
+              MOVE ERROR-RC               TO RETURN-CODE
+#??           DISPLAY 'CLOSE FDQ0402A ERROR, STATUS = ' FILE-QSAM1-STS
+              PERFORM Z000-RETURN
+                 THRU Z000-RETURN-EXIT
+           END-IF
+           IF FILE-QSAM2-STS NOT = ZEROS THEN
+              MOVE ERROR-RC               TO RETURN-CODE
+#??           DISPLAY 'CLOSE FDQ0402B ERROR, STATUS = ' FILE-QSAM2-STS
+              PERFORM Z000-RETURN
+                 THRU Z000-RETURN-EXIT
+           END-IF
+      *
+           .
+       C000-CLOSE-FILE-EXIT.
+           EXIT.
+      *
+       Z000-RETURN.
+           GOBACK
+      *
+           .
+       Z000-RETURN-EXIT.
+           EXIT.
+      *********************
+      *  END PROGRAM      *
+      *********************
+       END PROGRAM FDB0402B.
